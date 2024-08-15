@@ -1,7 +1,7 @@
-#include <Layer.hpp>
-#include <Loss.hpp>
-#include <Optimizer.hpp>
-#include <Tensor.hpp>
+#include "Layer.hpp"
+#include "Loss.hpp"
+#include "Optimizer.hpp"
+#include "Tensor.hpp"
 #include <vector>
 
 class SmartDNN {
