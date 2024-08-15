@@ -245,6 +245,26 @@ void Tensor::transpose(int dim1, int dim2) {
     }
 }
 
+
+void Tensor::reshape(const Shape& newShape){
+    if (newShape.dimensions.size() == 1 && newShape.dimensions[0] == -1){
+        _shape.dimensions = {_shape.size()};
+        return;
+    }
+
+    if (newShape.size() != _shape.size()) {
+        throw std::invalid_argument("New dimensions must have the same size as the current tensor: " +
+        std::to_string(_shape.size()) + " != " + std::to_string(newShape.size()));
+    }
+
+    for (int num : newShape.dimensions) {
+        if (num <= 0)
+            throw std::invalid_argument("New dimensions must be positive");
+    }
+
+    _shape = newShape;
+}
+
 /*
 
 CPU / GPU MEMORY MANAGEMENT

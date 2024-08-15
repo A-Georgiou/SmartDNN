@@ -88,7 +88,13 @@ public:
     int sum() const;
     Tensor sum(int axis) const;
     void transpose(int dim1, int dim2);
-    //Tensor reshape(const Shape& newShape) const;
+    void reshape(const Shape& newShape);
+
+    template<typename... Args>
+    void reshape(Args... args) {
+        _shape = Shape{args...};
+        reshape(_shape);
+    }
 
     void fill(float value);
     void randomize(float min, float max);
