@@ -9,8 +9,8 @@ INITIALISATION CONSTRUCTORS
 */
 
 Tensor::Tensor(): _shape(), data({}), d_data(nullptr), onGPU(false) {}
-Tensor::Tensor(Shape dimensions): _shape(dimensions), data(dimensions.size(), 0.0f), d_data(nullptr), onGPU(false) {}
-Tensor::Tensor(Shape dimensions, float value): _shape(dimensions), data(dimensions.size(), value), d_data(nullptr), onGPU(false) {}
+Tensor::Tensor(Shape dimensions): _shape(std::move(dimensions)), data(dimensions.size(), 0.0f), d_data(nullptr), onGPU(false) {}
+Tensor::Tensor(Shape dimensions, float value): _shape(std::move(dimensions)), data(_shape.size(), value), d_data(nullptr), onGPU(false) {}
 Tensor::Tensor(const Tensor& other): _shape(other._shape), data(other.data), d_data(nullptr), onGPU(false) {}
 Tensor::Tensor(const std::vector<float>& data, const Shape& shape) : _shape(shape), data(data), onGPU(false), d_data(nullptr) {
     if (data.size() != shape.size()) {
@@ -51,9 +51,12 @@ void Tensor::swap(Tensor& other) noexcept {
     std::swap(onGPU, other.onGPU);
 }
 
-Tensor& Tensor::operator=(Tensor other) {
+Tensor& Tensor::operator=(const Tensor& other) {
     freeGPUMemory();
-    swap(other);
+    if (this != &other) {  // Avoid self-assignment
+        Tensor temp(other);  // Use the copy constructor
+        swap(temp);  // Swap the contents
+    }
     return *this;
 }
 
@@ -190,6 +193,14 @@ void Tensor::add(const Tensor& other){
 
 void Tensor::subtract(const Tensor& other){
     *this -= other;
+}
+
+Tensor Tensor::sqrt() const{
+    Tensor result(_shape);
+    for (int i = 0; i < _shape.size(); ++i) {
+        result.data[i] = std::sqrt(data[i]);
+    }
+    return result;
 }
 
 int Tensor::sum() const {

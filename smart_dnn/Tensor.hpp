@@ -56,6 +56,7 @@ public:
     Tensor(const std::vector<float>& data, const Shape& shape);
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept;
+    
     virtual ~Tensor();
 
     float& operator()(std::initializer_list<int> indices);
@@ -67,7 +68,7 @@ public:
     const std::vector<float>& getData() const { return data; }
     std::vector<float>& getData() { return data; }
 
-    Tensor& operator=(Tensor other);
+    Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other) noexcept;
 
     Tensor& operator+=(const Tensor& other);
@@ -86,6 +87,7 @@ public:
     Tensor operator/(float scalar) const;
 
     int sum() const;
+    Tensor sqrt() const;
     Tensor sum(int axis) const;
     void transpose(int dim1, int dim2);
     void reshape(const Shape& newShape);
@@ -125,5 +127,27 @@ private:
     void checkCompatibility(const Tensor& other) const;
     void applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op, Tensor* result) const;
 };
+
+/*
+
+Inverse operators for scalar-tensor operations.
+
+*/
+
+Tensor operator+(float scalar, const Tensor& tensor){
+    return tensor + scalar;
+}
+
+Tensor operator-(float scalar, const Tensor& tensor) {
+    return tensor - scalar;
+}
+
+Tensor operator*(float scalar, const Tensor& tensor) {
+    return tensor * scalar;
+}
+
+Tensor operator/(float scalar, const Tensor& tensor) {
+    return tensor / scalar;
+}
 
 #endif // TENSOR_H
