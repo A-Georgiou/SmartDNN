@@ -5,7 +5,7 @@ CMakeCache.txt
 cmake_install.cmake
 CMakeCache.txt
 Makefile
-SmartDNN
+/SmartDNN
 src/
 _deps/
 bin/
