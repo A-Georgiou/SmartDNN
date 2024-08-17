@@ -30,28 +30,28 @@ void ValidateTensorData(const Tensor& tensor, const std::vector<float>& expected
 
 */
 
-TEST(TensorTest, ExpectDefaultShapeInitialisation) {
+TEST(TensorInitialisationTest, ExpectDefaultShapeInitialisation) {
     Tensor a({1, 2, 3});
 
     ValidateTensorShape(a, 3, 6, {1, 2, 3});
     ValidateTensorData(a, std::vector<float>(6, 0.0f));
 }
 
-TEST(TensorTest, ExpectValueFillInitialisation) {
+TEST(TensorInitialisationTest, ExpectValueFillInitialisation) {
     Tensor a({1, 2, 3}, 5.0f);
 
     ValidateTensorShape(a, 3, 6, {1, 2, 3});
     ValidateTensorData(a, std::vector<float>(6, 5.0f));
 }
 
-TEST(TensorTest, ExpectValidDataInitialisation) {
+TEST(TensorInitialisationTest, ExpectValidDataInitialisation) {
     std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
     Tensor a({1, 2, 3}, data);
     ValidateTensorShape(a, 3, 6, {1, 2, 3});
     ValidateTensorData(a, data);
 }
 
-TEST(TensorTest, ExpectValidTensorCopy) {
+TEST(TensorInitialisationTest, ExpectValidTensorCopy) {
     std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
     Tensor a({1, 2, 3}, data);
     Tensor b(a);
@@ -60,7 +60,7 @@ TEST(TensorTest, ExpectValidTensorCopy) {
     ValidateTensorData(b, data);
 }
 
-TEST(TensorTest, ExpectValidTensorMove) {
+TEST(TensorInitialisationTest, ExpectValidTensorMove) {
     std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
     Tensor a({1, 2, 3}, data);
     Tensor b(std::move(a));
@@ -75,7 +75,7 @@ TEST(TensorTest, ExpectValidTensorMove) {
 
 */
 
-TEST(TensorTest, ExpectInvalidShapeInitialisation) {
+TEST(TensorInitialisationTest, ExpectInvalidShapeInitialisation) {
     ASSERT_THROW(Tensor a({-1, -1, -1}), std::invalid_argument);
     ASSERT_THROW(Tensor b({1,1,1}, {1.0f, 1.0f}), std::invalid_argument);
 }
@@ -86,7 +86,7 @@ TEST(TensorTest, ExpectInvalidShapeInitialisation) {
 
 */
 
-TEST(TensorTest, ExpectValidElementAccess) {
+TEST(TensorOperatorTest, ExpectValidElementAccess) {
     Tensor a({1, 2, 3}, 5.0f);
 
     ASSERT_FLOAT_EQ(a({0, 0, 0}), 5.0f);
@@ -97,7 +97,7 @@ TEST(TensorTest, ExpectValidElementAccess) {
     ASSERT_FLOAT_EQ(a({0, 1, 2}), 5.0f);
 }
 
-TEST(TensorTest, ExpectValidElementAssignment) {
+TEST(TensorOperatorTest, ExpectValidElementAssignment) {
     Tensor a({1, 2, 3}, 5.0f);
 
     a({0, 0, 0}) = 1.0f;
@@ -115,7 +115,7 @@ TEST(TensorTest, ExpectValidElementAssignment) {
     ASSERT_FLOAT_EQ(a({0, 1, 2}), 6.0f);
 }
 
-TEST(TensorTest, ExpectValidElementWiseAddition) {
+TEST(TensorOperatorTest, ExpectValidElementWiseAddition) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b({1, 2, 3}, 5.0f);
     Tensor c = a + b;
@@ -124,7 +124,7 @@ TEST(TensorTest, ExpectValidElementWiseAddition) {
     ValidateTensorData(c, std::vector<float>(6, 10.0f));
 }
 
-TEST(TensorTest, ExpectValidElementWiseSubtraction) {
+TEST(TensorOperatorTest, ExpectValidElementWiseSubtraction) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b({2, 3}, 5.0f);
 
@@ -134,7 +134,7 @@ TEST(TensorTest, ExpectValidElementWiseSubtraction) {
     ValidateTensorData(c, std::vector<float>(6, 0.0f));
 }
 
-TEST(TensorTest, ExpectValidElementWiseMultiplication) {
+TEST(TensorOperatorTest, ExpectValidElementWiseMultiplication) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b({1, 2, 3}, 5.0f);
 
@@ -144,7 +144,7 @@ TEST(TensorTest, ExpectValidElementWiseMultiplication) {
     ValidateTensorData(c, std::vector<float>(6, 25.0f));
 }
 
-TEST(TensorTest, ExpectValidElementWiseDivision) {
+TEST(TensorOperatorTest, ExpectValidElementWiseDivision) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b({1, 2, 3}, 5.0f);
 
@@ -154,7 +154,7 @@ TEST(TensorTest, ExpectValidElementWiseDivision) {
     ValidateTensorData(c, std::vector<float>(6, 1.0f));
 }
 
-TEST(TensorTest, ExpectValidElementWiseAdditionAssignment) {
+TEST(TensorOperatorTest, ExpectValidElementWiseAdditionAssignment) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b({1, 2, 3}, 5.0f);
 
@@ -164,7 +164,7 @@ TEST(TensorTest, ExpectValidElementWiseAdditionAssignment) {
     ValidateTensorData(a, std::vector<float>(6, 10.0f));
 }
 
-TEST(TensorTest, ExpectValidElementWiseSubtractionAssignment) {
+TEST(TensorOperatorTest, ExpectValidElementWiseSubtractionAssignment) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b({1, 2, 3}, 5.0f);
 
@@ -174,7 +174,7 @@ TEST(TensorTest, ExpectValidElementWiseSubtractionAssignment) {
     ValidateTensorData(a, std::vector<float>(6, 0.0f));
 }
 
-TEST(TensorTest, ExpectValidElementWiseMultiplicationAssignment) {
+TEST(TensorOperatorTest, ExpectValidElementWiseMultiplicationAssignment) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b({1, 2, 3}, 5.0f);
 
@@ -184,7 +184,7 @@ TEST(TensorTest, ExpectValidElementWiseMultiplicationAssignment) {
     ValidateTensorData(a, std::vector<float>(6, 25.0f));
 }
 
-TEST(TensorTest, ExpectValidElementWiseDivisionAssignment) {
+TEST(TensorOperatorTest, ExpectValidElementWiseDivisionAssignment) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b({1, 2, 3}, 5.0f);
 
@@ -193,6 +193,20 @@ TEST(TensorTest, ExpectValidElementWiseDivisionAssignment) {
     ValidateTensorShape(a, 3, 6, {1, 2, 3});
     ValidateTensorData(a, std::vector<float>(6, 1.0f));
 }
+
+TEST(TensorOperatorTest, ExpectValidScalarAddition) {
+    Tensor a({1, 2, 3}, 5.0f);
+    Tensor b = a + 5.0f;
+
+    ValidateTensorShape(b, 3, 6, {1, 2, 3});
+    ValidateTensorData(b, std::vector<float>(6, 10.0f));
+}
+
+/*
+
+    VALID INVERSE OPERATORS
+
+*/
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
