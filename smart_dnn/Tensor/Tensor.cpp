@@ -9,12 +9,13 @@ INITIALISATION CONSTRUCTORS
 */
 
 Tensor::Tensor(): _shape(), data({}), d_data(nullptr), onGPU(false) {}
-Tensor::Tensor(Shape dimensions): _shape(std::move(dimensions)), data(dimensions.size(), 0.0f), d_data(nullptr), onGPU(false) {}
-Tensor::Tensor(Shape dimensions, float value): _shape(std::move(dimensions)), data(_shape.size(), value), d_data(nullptr), onGPU(false) {}
+Tensor::Tensor(Shape otherShape): _shape(std::move(otherShape)), data(_shape.size(), 0.0f), d_data(nullptr), onGPU(false) {}
+Tensor::Tensor(Shape otherShape, float value): _shape(std::move(otherShape)), data(_shape.size(), value), d_data(nullptr), onGPU(false) {}
 Tensor::Tensor(const Tensor& other): _shape(other._shape), data(other.data), d_data(nullptr), onGPU(false) {}
-Tensor::Tensor(const std::vector<float>& data, const Shape& shape) : _shape(shape), data(data), onGPU(false), d_data(nullptr) {
-    if (data.size() != shape.size()) {
-        throw std::invalid_argument("Data size does not match tensor shape size.");
+Tensor::Tensor(Shape otherShape, std::vector<float> data)
+    : _shape(std::move(otherShape)), data(std::move(data)), onGPU(false), d_data(nullptr) {
+    if (this->data.size() != _shape.size()) {
+        throw std::invalid_argument("Data size does not match tensor shape size. Data size: " + std::to_string(this->data.size()) + ", Shape size: " + std::to_string(_shape.size()));
     }
 }
 
@@ -36,6 +37,17 @@ Tensor::~Tensor() {
     if (onGPU) {
         freeGPUMemory();
     }
+}
+
+std::vector<int> Tensor::size() const {
+    return _shape.dimensions;
+}
+
+int Tensor::size(int axis) const{
+    if (axis < 0 || axis >= _shape.rank()) {
+        throw std::out_of_range("Axis out of bounds, max rank: " + std::to_string(_shape.rank()));
+    }
+    return _shape.dimensions[axis];
 }
 
 /*
@@ -101,7 +113,6 @@ Tensor& Tensor::operator/=(const Tensor& other) {
     return *this;
 }
 
-// Element-wise addition with broadcasting
 Tensor Tensor::operator+(const Tensor& other) const {
     Tensor result;
     applyElementWiseOperation(other, std::plus<float>(), &result);
@@ -127,7 +138,7 @@ Tensor Tensor::operator/(const Tensor& other) const {
 }
 
 
-Tensor Tensor::operator+(float scalar) const {
+Tensor Tensor::operator+(float scalar) {
     Tensor result(_shape);
     for (int i = 0; i < result._shape.size(); ++i) {
         result.data[i] = data[i] + scalar;
@@ -135,7 +146,7 @@ Tensor Tensor::operator+(float scalar) const {
     return result;
 }
 
-Tensor Tensor::operator-(float scalar) const {
+Tensor Tensor::operator-(float scalar) {
     Tensor result(_shape);
     for (int i = 0; i < result._shape.size(); ++i) {
         result.data[i] = data[i] - scalar;
@@ -143,7 +154,7 @@ Tensor Tensor::operator-(float scalar) const {
     return result;
 }
 
-Tensor Tensor::operator*(float scalar) const {
+Tensor Tensor::operator*(float scalar) {
     Tensor result(_shape);
     for (int i = 0; i < result._shape.size(); ++i) {
         result.data[i] = data[i] * scalar;
@@ -151,7 +162,7 @@ Tensor Tensor::operator*(float scalar) const {
     return result;
 }
 
-Tensor Tensor::operator/(float scalar) const {
+Tensor Tensor::operator/(float scalar) {
     Tensor result(_shape);
     for (int i = 0; i < result._shape.size(); ++i) {
         result.data[i] = data[i] / scalar;
@@ -178,7 +189,7 @@ void Tensor::randomize(float min, float max) {
 }
 
 void Tensor::print() const {
-    std::cout << "Tensor: " << _shape.toString() << std::endl;
+    std::cout << "Tensor: " << _shape << std::endl;
 }
 
 /*
@@ -349,9 +360,9 @@ void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(
         std::vector<int> idx2(other.shape().rank(), 0);
         for (int j = 0; j < resultShape.size(); ++j) {
             if (_shape.rank() > j)
-                idx1[_shape.rank() - j - 1] = (_shape.dimensions[_shape.rank() - j - 1] == 1) ? 0 : resultIndices[resultShape.size() - j - 1];
-            if (other.shape().rank() > j)
-                idx2[other.shape().rank() - j - 1] = (other.shape().dimensions[other.shape().rank() - j - 1] == 1) ? 0 : resultIndices[resultShape.size() - j - 1];
+                idx1[_shape.rank() - j - 1] = (_shape[_shape.rank() - j - 1] == 1) ? 0 : resultIndices[resultShape.size() - j - 1];
+            if (other._shape.rank() > j)
+                idx2[other.shape().rank() - j - 1] = (other.shape()[other.shape().rank() - j - 1] == 1) ? 0 : resultIndices[resultShape.size() - j - 1];
         }
 
         int flatIdx1 = TensorOperations::flattenIndex(idx1, _shape);
@@ -363,8 +374,12 @@ void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(
 }
 
 std::vector<int> Tensor::getBroadcastShape(const Tensor& other) const {
+    return getBroadcastShape(other.shape());
+}
+
+std::vector<int> Tensor::getBroadcastShape(const Shape& newShape) const {
     std::vector<int> shape1 = _shape.dimensions;
-    std::vector<int> shape2 = other._shape.dimensions;
+    std::vector<int> shape2 = newShape.dimensions;
     std::vector<int> resultShape;
 
     std::reverse(shape1.begin(), shape1.end());

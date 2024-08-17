@@ -1,5 +1,5 @@
-#ifndef TENSOR_H
-#define TENSOR_H
+#ifndef TENSOR_HPP
+#define TENSOR_HPP
 
 #include <vector>
 #include <numeric>
@@ -17,32 +17,50 @@ struct Shape {
 
     Shape() = default;
     ~Shape() = default;
-    Shape(std::vector<int> dims) : dimensions(dims) {}
-    Shape(std::initializer_list<int> dims) : dimensions(dims) {}
-    Shape(const Shape& other) : dimensions(other.dimensions) {}
-    Shape(Shape&& other) noexcept : dimensions(std::move(other.dimensions)) {}
 
-    int rank() const { return dimensions.size(); }
-    int size() const { return std::accumulate(dimensions.begin(), dimensions.end(), 1, std::multiplies<int>()); }
-    std::string toString() const {
-        std::ostringstream oss;
-        oss << "(";
-        for (size_t i = 0; i < dimensions.size(); ++i) {
-            oss << dimensions[i];
-            if (i != dimensions.size() - 1) {
-                oss << ", ";
-            }
-        }
-        oss << ")";
-        return oss.str();
+    explicit Shape(std::vector<int> dims) : dimensions(std::move(dims)) {
+        validateDimensions();
     }
 
-    Shape operator=(const Shape& other) { dimensions = other.dimensions; return *this; }
+    Shape(std::initializer_list<int> dims) : dimensions(dims) {
+        validateDimensions();
+    }
+
+    Shape(const Shape& other) = default;
+    Shape(Shape&& other) noexcept = default;
+
+    [[nodiscard]] int rank() const { return dimensions.size(); }
+    [[nodiscard]] int size() const { return std::accumulate(dimensions.begin(), dimensions.end(), 1, std::multiplies<int>()); }
+    
+    friend std::ostream& operator<<(std::ostream& os, const Shape& shape) {
+        os << "(";
+        for (size_t i = 0; i < shape.dimensions.size(); ++i) {
+            os << shape.dimensions[i];
+            if (i != shape.dimensions.size() - 1) {
+                os << ", ";
+            }
+        }
+        os << ")";
+        return os;
+    }
+
+    Shape& operator=(const Shape& other) = default;
+    Shape& operator=(Shape&& other) noexcept = default;
 
     int operator[](int index) const { return dimensions[index]; }
-    bool operator==(const Shape& other) const { return std::equal(dimensions.begin(), dimensions.end(), other.dimensions.begin()); }
+    bool operator==(const Shape& other) const { return dimensions == other.dimensions; }
     bool operator!=(const Shape& other) const { return !(*this == other); }
+
+private:
+    void validateDimensions() const {
+        for (int dim : dimensions) {
+            if (dim < 0) {
+                throw std::invalid_argument("Dimensions must be non-negative integers.");
+            }
+        }
+    }
 };
+
 
 /*
     Tensor class to represent a multi-dimensional array of floating-point numbers.
@@ -53,7 +71,7 @@ public:
     Tensor();
     Tensor(Shape dimensions);
     Tensor(Shape dimensions, float value);
-    Tensor(const std::vector<float>& data, const Shape& shape);
+    Tensor(Shape shape, std::vector<float> data);
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept;
     
@@ -64,7 +82,7 @@ public:
 
     void swap(Tensor& other) noexcept;
 
-    Shape shape() const { return _shape; }
+    const Shape& shape() const { return _shape; }
     const std::vector<float>& getData() const { return data; }
     std::vector<float>& getData() { return data; }
 
@@ -81,10 +99,13 @@ public:
     Tensor operator*(const Tensor& other) const;
     Tensor operator/(const Tensor& other) const;
 
-    Tensor operator+(float scalar) const;
-    Tensor operator-(float scalar) const;
-    Tensor operator*(float scalar) const;
-    Tensor operator/(float scalar) const;
+    Tensor operator+(float scalar);
+    Tensor operator-(float scalar);
+    Tensor operator*(float scalar);
+    Tensor operator/(float scalar);
+
+    std::vector<int> size() const;
+    int size(int axis) const;
 
     int sum() const;
     Tensor sqrt() const;
@@ -124,6 +145,7 @@ private:
     void copyToCPU();
 
     std::vector<int> getBroadcastShape(const Tensor& other) const;
+    std::vector<int> getBroadcastShape(const Shape& newShape) const;
     void checkCompatibility(const Tensor& other) const;
     void applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op, Tensor* result) const;
 };
@@ -134,20 +156,29 @@ Inverse operators for scalar-tensor operations.
 
 */
 
-Tensor operator+(float scalar, const Tensor& tensor){
-    return tensor + scalar;
+inline Tensor operator+(float scalar, const Tensor& tensor) {
+    return scalar + tensor;  
 }
 
-Tensor operator-(float scalar, const Tensor& tensor) {
-    return tensor - scalar;
+inline Tensor operator*(float scalar, const Tensor& tensor) {
+    return scalar * tensor;
 }
 
-Tensor operator*(float scalar, const Tensor& tensor) {
-    return tensor * scalar;
+inline Tensor operator-(float scalar, const Tensor& tensor) {
+    Tensor result(tensor.shape());
+    for (size_t i = 0; i < tensor.getData().size(); ++i) {
+        result.getData()[i] = scalar - tensor.getData()[i];
+    }
+    return result;
 }
 
-Tensor operator/(float scalar, const Tensor& tensor) {
-    return tensor / scalar;
+inline Tensor operator/(float scalar, const Tensor& tensor) {
+    // Special handling because scalar/tensor is not commutative
+    Tensor result(tensor.shape());  // Create a new Tensor with the same shape
+    for (size_t i = 0; i < tensor.getData().size(); ++i) {
+        result.getData()[i] = scalar / tensor.getData()[i];
+    }
+    return result;
 }
 
-#endif // TENSOR_H
+#endif // TENSOR_HPP

@@ -23,6 +23,7 @@ public:
 
 private:
     RandomEngine() = default;
+    ~RandomEngine() = default;
 
     RandomEngine(const RandomEngine&) = delete;
     RandomEngine& operator=(const RandomEngine&) = delete;
