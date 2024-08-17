@@ -11,4 +11,4 @@ _deps/
 bin/
 lib/
 CTestTestfile.cmake
-test_tensor
+RunTests

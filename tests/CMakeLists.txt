@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(SmartDNNTesting)
 
+set(CMAKE_CXX_STANDARD 17)
+
 # Enable testing
 enable_testing()
 
@@ -18,11 +20,11 @@ FetchContent_MakeAvailable(googletest)
 include_directories(${PROJECT_SOURCE_DIR}/../smart_dnn/)
 
 # Tensor tests
-add_executable(test_tensor tensor/test_tensor.cpp
+add_executable(RunTests tensor/test_tensor.cpp
                            ../smart_dnn/Tensor/Tensor.cpp)
 
 # Link the test executable against GTest libraries and your main library
-target_link_libraries(test_tensor GTest::gtest GTest::gtest_main)
+target_link_libraries(RunTests GTest::gtest GTest::gtest_main)
 
 # Register the test
-add_test(NAME TensorTests COMMAND test_tensor)
+add_test(NAME TensorTests COMMAND RunTests)

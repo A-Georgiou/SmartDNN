@@ -1,6 +1,7 @@
 #include "../Tensor.hpp"
 #include "../TensorOperations.hpp"
 #include "../Debugging/Logger.hpp"
+#include <utility>
 
 /*
 
@@ -8,22 +9,31 @@ INITIALISATION CONSTRUCTORS
 
 */
 
-Tensor::Tensor(): _shape(), data({}), d_data(nullptr), onGPU(false) {}
-Tensor::Tensor(Shape otherShape): _shape(std::move(otherShape)), data(_shape.size(), 0.0f), d_data(nullptr), onGPU(false) {}
-Tensor::Tensor(Shape otherShape, float value): _shape(std::move(otherShape)), data(_shape.size(), value), d_data(nullptr), onGPU(false) {}
-Tensor::Tensor(const Tensor& other): _shape(other._shape), data(other.data), d_data(nullptr), onGPU(false) {}
+Tensor::Tensor() : _shape(), data(), d_data(nullptr), onGPU(false) {}
+
+Tensor::Tensor(Shape otherShape)
+    : _shape(std::move(otherShape)), data(_shape.size(), 0.0f), d_data(nullptr), onGPU(false) {}
+
+Tensor::Tensor(Shape otherShape, float value)
+    : _shape(std::move(otherShape)), data(_shape.size(), value), d_data(nullptr), onGPU(false) {}
+
+Tensor::Tensor(const Tensor& other)
+    : _shape(other._shape), data(other.data), d_data(nullptr), onGPU(false) {}
+
 Tensor::Tensor(Shape otherShape, std::vector<float> data)
-    : _shape(std::move(otherShape)), data(std::move(data)), onGPU(false), d_data(nullptr) {
+    : _shape(std::move(otherShape)), data(std::move(data)), d_data(nullptr), onGPU(false) {
     if (this->data.size() != _shape.size()) {
-        throw std::invalid_argument("Data size does not match tensor shape size. Data size: " + std::to_string(this->data.size()) + ", Shape size: " + std::to_string(_shape.size()));
+        throw std::invalid_argument("Data size does not match tensor shape size. Data size: " +
+                                    std::to_string(this->data.size()) + ", Shape size: " +
+                                    std::to_string(_shape.size()));
     }
 }
 
-Tensor::Tensor(Tensor&& other) noexcept 
-    : _shape(other._shape), data(std::move(other.data)), d_data(other.d_data), onGPU(other.onGPU) {
-    other.d_data = nullptr;
-    other.onGPU = false;
-}
+Tensor::Tensor(Tensor&& other) noexcept
+    : _shape(std::move(other._shape)), 
+        data(std::move(other.data)), 
+        d_data(std::exchange(other.d_data, nullptr)), 
+        onGPU(std::exchange(other.onGPU, false)) {}
 
 float& Tensor::operator()(std::initializer_list<int> indices) {
         return data[TensorOperations::flattenIndex(indices, _shape)];
@@ -342,7 +352,7 @@ ADDITIONAL ELEMENT WISE OPERATIONS
 
 void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op, Tensor* result) const {
     checkCompatibility(other);
-    std::vector<int> resultShape = getBroadcastShape(other);
+    Shape resultShape{getBroadcastShape(other)};
     bool inPlace = (result == this);
 
     if (!inPlace) {
@@ -350,28 +360,62 @@ void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(
         result->data.resize(result->_shape.size());
     }
 
-    int totalElements = std::accumulate(resultShape.begin(), resultShape.end(), 1, std::multiplies<int>());
-    std::vector<int> resultIndices(resultShape.size(), 0);
+    // Precompute strides for flattening indices
+    std::vector<int> strides1(_shape.rank());
+    std::vector<int> strides2(other.shape().rank());
+    std::vector<int> stridesResult(resultShape.rank());
 
-    for (int i = 0; i < totalElements; ++i) {
-        int temp = TensorOperations::flattenIndex(resultIndices, Shape(resultShape));
+    strides1.back() = 1;
+    for (int i = _shape.rank() - 2; i >= 0; --i) {
+        strides1[i] = strides1[i + 1] * _shape[i + 1];
+    }
 
-        std::vector<int> idx1(_shape.rank(), 0);
-        std::vector<int> idx2(other.shape().rank(), 0);
-        for (int j = 0; j < resultShape.size(); ++j) {
-            if (_shape.rank() > j)
-                idx1[_shape.rank() - j - 1] = (_shape[_shape.rank() - j - 1] == 1) ? 0 : resultIndices[resultShape.size() - j - 1];
-            if (other._shape.rank() > j)
-                idx2[other.shape().rank() - j - 1] = (other.shape()[other.shape().rank() - j - 1] == 1) ? 0 : resultIndices[resultShape.size() - j - 1];
+    strides2.back() = 1;
+    for (int i = other.shape().rank() - 2; i >= 0; --i) {
+        strides2[i] = strides2[i + 1] * other.shape()[i + 1];
+    }
+
+    stridesResult.back() = 1;
+    for (int i = resultShape.rank() - 2; i >= 0; --i) {
+        stridesResult[i] = stridesResult[i + 1] * resultShape[i + 1];
+    }
+
+    // Apply element-wise operation using strides
+    std::vector<int> indices(resultShape.rank(), 0);
+
+    for (int i = 0; i < resultShape.size(); ++i) {
+        int flatIdx1 = 0;
+        int flatIdx2 = 0;
+        int flatResultIdx = 0;
+
+        for (int j = 0; j < resultShape.rank(); ++j) {
+            flatResultIdx += indices[j] * stridesResult[j];
+
+            if (_shape.rank() > j) {
+                if (_shape[j] != 1) {
+                    flatIdx1 += indices[j] * strides1[j];
+                }
+            }
+
+            if (other.shape().rank() > j) {
+                if (other.shape()[j] != 1) {
+                    flatIdx2 += indices[j] * strides2[j];
+                }
+            }
         }
 
-        int flatIdx1 = TensorOperations::flattenIndex(idx1, _shape);
-        int flatIdx2 = TensorOperations::flattenIndex(idx2, other.shape());
-        int flatResultIdx = TensorOperations::flattenIndex(resultIndices, Shape(resultShape));
-
         result->data[flatResultIdx] = op(data[flatIdx1], other.data[flatIdx2]);
+
+        // Increment indices
+        for (int j = resultShape.rank() - 1; j >= 0; --j) {
+            if (++indices[j] < resultShape[j]) {
+                break;
+            }
+            indices[j] = 0;
+        }
     }
 }
+
 
 std::vector<int> Tensor::getBroadcastShape(const Tensor& other) const {
     return getBroadcastShape(other.shape());
