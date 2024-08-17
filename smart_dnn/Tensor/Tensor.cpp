@@ -148,7 +148,7 @@ Tensor Tensor::operator/(const Tensor& other) const {
 }
 
 
-Tensor Tensor::operator+(float scalar) {
+Tensor Tensor::operator+(float scalar) const{
     Tensor result(_shape);
     for (int i = 0; i < result._shape.size(); ++i) {
         result.data[i] = data[i] + scalar;
@@ -156,7 +156,7 @@ Tensor Tensor::operator+(float scalar) {
     return result;
 }
 
-Tensor Tensor::operator-(float scalar) {
+Tensor Tensor::operator-(float scalar) const{
     Tensor result(_shape);
     for (int i = 0; i < result._shape.size(); ++i) {
         result.data[i] = data[i] - scalar;
@@ -164,7 +164,7 @@ Tensor Tensor::operator-(float scalar) {
     return result;
 }
 
-Tensor Tensor::operator*(float scalar) {
+Tensor Tensor::operator*(float scalar) const{
     Tensor result(_shape);
     for (int i = 0; i < result._shape.size(); ++i) {
         result.data[i] = data[i] * scalar;
@@ -172,7 +172,7 @@ Tensor Tensor::operator*(float scalar) {
     return result;
 }
 
-Tensor Tensor::operator/(float scalar) {
+Tensor Tensor::operator/(float scalar) const{
     Tensor result(_shape);
     for (int i = 0; i < result._shape.size(); ++i) {
         result.data[i] = data[i] / scalar;

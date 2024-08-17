@@ -99,10 +99,10 @@ public:
     Tensor operator*(const Tensor& other) const;
     Tensor operator/(const Tensor& other) const;
 
-    Tensor operator+(float scalar);
-    Tensor operator-(float scalar);
-    Tensor operator*(float scalar);
-    Tensor operator/(float scalar);
+    Tensor operator+(float scalar) const;
+    Tensor operator-(float scalar) const;
+    Tensor operator*(float scalar) const;
+    Tensor operator/(float scalar) const;
 
     std::vector<int> size() const;
     int size(int axis) const;
@@ -157,11 +157,11 @@ Inverse operators for scalar-tensor operations.
 */
 
 inline Tensor operator+(float scalar, const Tensor& tensor) {
-    return scalar + tensor;  
+    return tensor + scalar; 
 }
 
 inline Tensor operator*(float scalar, const Tensor& tensor) {
-    return scalar * tensor;
+    return tensor * scalar;
 }
 
 inline Tensor operator-(float scalar, const Tensor& tensor) {
