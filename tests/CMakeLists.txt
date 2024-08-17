@@ -19,11 +19,13 @@ FetchContent_MakeAvailable(googletest)
 # Include directories where your header files are located
 include_directories(${PROJECT_SOURCE_DIR}/../smart_dnn/)
 
-# Tensor tests
-add_executable(RunTests tensor/test_tensor.cpp
-                           ../smart_dnn/Tensor/Tensor.cpp)
+file(GLOB_RECURSE TEST_SOURCES ${PROJECT_SOURCE_DIR}/**/*.cpp)
 
-# Link the test executable against GTest libraries and your main library
+file(GLOB_RECURSE MAIN_SOURCES ${PROJECT_SOURCE_DIR}/../smart_dnn/**/*.cpp)
+
+# Add executable that will run the tests, combining both main sources and test sources
+add_executable(RunTests ${TEST_SOURCES} ${MAIN_SOURCES})
+
 target_link_libraries(RunTests GTest::gtest GTest::gtest_main)
 
 # Register the test

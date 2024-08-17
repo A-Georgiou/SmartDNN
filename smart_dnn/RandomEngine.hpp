@@ -1,5 +1,5 @@
-#ifndef RANDOMENGINE_H
-#define RANDOMENGINE_H
+#ifndef RANDOMENGINE_HPP
+#define RANDOMENGINE_HPP
 
 #include <random>
 
@@ -29,4 +29,4 @@ private:
     RandomEngine& operator=(const RandomEngine&) = delete;
 };
 
-#endif // RANDOMENGINE_H
+#endif // RANDOMENGINE_HPP

@@ -1,5 +1,5 @@
-#ifndef LAYER_H
-#define LAYER_H
+#ifndef LAYER_HPP
+#define LAYER_HPP
 
 #include "Tensor.hpp"
 #include "Optimizer.hpp"
@@ -19,4 +19,4 @@ protected:
     Tensor biasGradients;
 };
 
-#endif // LAYER_H
+#endif // LAYER_HPP

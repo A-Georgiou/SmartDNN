@@ -1,3 +1,6 @@
+#ifndef SMART_DNN_HPP
+#define SMART_DNN_HPP
+
 #include "Layer.hpp"
 #include "Loss.hpp"
 #include "Optimizer.hpp"
@@ -22,3 +25,5 @@ private:
     Loss* lossFunction;
     Optimizer* optimizer;
 };
+
+#endif // SMART_DNN_HPP

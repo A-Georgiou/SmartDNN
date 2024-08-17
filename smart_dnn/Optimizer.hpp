@@ -1,3 +1,6 @@
+#ifndef OPTIMIZER_HPP
+#define OPTIMIZER_HPP
+
 #include <vector>
 #include "Tensor.hpp"
 
@@ -10,3 +13,4 @@ public:
     virtual void load(std::istream& is) = 0;
 };
 
+#endif // OPTIMIZER_HPP

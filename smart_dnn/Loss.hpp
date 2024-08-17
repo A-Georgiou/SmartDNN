@@ -1,3 +1,6 @@
+#ifndef LOSS_HPP
+#define LOSS_HPP
+
 #include "Tensor.hpp"
 
 class Loss {
@@ -9,3 +12,5 @@ public:
     virtual void save(std::ostream& os) const = 0;
     virtual void load(std::istream& is) = 0;
 };
+
+#endif // LOSS_HPP

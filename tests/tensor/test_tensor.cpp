@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include "../smart_dnn/Tensor.hpp"
-#include "../smart_dnn/TensorOperations.hpp"
 
 /*
 
@@ -22,7 +21,6 @@ void ValidateTensorData(const Tensor& tensor, const std::vector<float>& expected
         ASSERT_FLOAT_EQ(tensor.getData()[i], expectedData[i]);
     }
 }
-
 
 /*
 
@@ -249,10 +247,10 @@ TEST(TensorScalarOperatorTest, ExpectValidScalarAdditionInverse) {
 
 TEST(TensorScalarOperatorTest, ExpectValidScalarSubtractionInverse) {
     Tensor a({1, 2, 3}, 5.0f);
-    Tensor b = 5.0f - a;
+    Tensor b = 6.0f - a;
 
     ValidateTensorShape(b, 3, 6, {1, 2, 3});
-    ValidateTensorData(b, std::vector<float>(6, 0.0f));
+    ValidateTensorData(b, std::vector<float>(6, 1.0f));
 }
 
 TEST(TensorScalarOperatorTest, ExpectValidScalarMultiplicationInverse) {
@@ -265,13 +263,8 @@ TEST(TensorScalarOperatorTest, ExpectValidScalarMultiplicationInverse) {
 
 TEST(TensorScalarOperatorTest, ExpectValidScalarDivisionInverse) {
     Tensor a({1, 2, 3}, 5.0f);
-    Tensor b = 5.0f / a;
+    Tensor b = 10.0f / a;
 
     ValidateTensorShape(b, 3, 6, {1, 2, 3});
-    ValidateTensorData(b, std::vector<float>(6, 1.0f));
-}
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    ValidateTensorData(b, std::vector<float>(6, 2.0f));
 }
