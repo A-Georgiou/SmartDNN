@@ -194,7 +194,13 @@ TEST(TensorOperatorTest, ExpectValidElementWiseDivisionAssignment) {
     ValidateTensorData(a, std::vector<float>(6, 1.0f));
 }
 
-TEST(TensorOperatorTest, ExpectValidScalarAddition) {
+/*
+
+    VALID SCALAR OPERATOR TESTS
+
+*/
+
+TEST(TensorScalarOperatorTest, ExpectValidScalarAddition) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b = a + 5.0f;
 
@@ -202,11 +208,68 @@ TEST(TensorOperatorTest, ExpectValidScalarAddition) {
     ValidateTensorData(b, std::vector<float>(6, 10.0f));
 }
 
+TEST(TensorScalarOperatorTest, ExpectValidScalarSubtraction) {
+    Tensor a({1, 2, 3}, 5.0f);
+    Tensor b = a - 5.0f;
+
+    ValidateTensorShape(b, 3, 6, {1, 2, 3});
+    ValidateTensorData(b, std::vector<float>(6, 0.0f));
+}
+
+TEST(TensorScalarOperatorTest, ExpectValidScalarMultiplication) {
+    Tensor a({1, 2, 3}, 5.0f);
+    Tensor b = a * 5.0f;
+
+    ValidateTensorShape(b, 3, 6, {1, 2, 3});
+    ValidateTensorData(b, std::vector<float>(6, 25.0f));
+}
+
+TEST(TensorScalarOperatorTest, ExpectValidScalarDivision) {
+    Tensor a({1, 2, 3}, 5.0f);
+    Tensor b = a / 5.0f;
+
+    ValidateTensorShape(b, 3, 6, {1, 2, 3});
+    ValidateTensorData(b, std::vector<float>(6, 1.0f));
+}
+
+
 /*
 
-    VALID INVERSE OPERATORS
+    VALID INVERSE SCALAR OPERATOR TESTS
 
 */
+
+TEST(TensorScalarOperatorTest, ExpectValidScalarAdditionInverse) {
+    Tensor a({1, 2, 3}, 5.0f);
+    Tensor b = 5.0f + a;
+
+    ValidateTensorShape(b, 3, 6, {1, 2, 3});
+    ValidateTensorData(b, std::vector<float>(6, 10.0f));
+}
+
+TEST(TensorScalarOperatorTest, ExpectValidScalarSubtractionInverse) {
+    Tensor a({1, 2, 3}, 5.0f);
+    Tensor b = 5.0f - a;
+
+    ValidateTensorShape(b, 3, 6, {1, 2, 3});
+    ValidateTensorData(b, std::vector<float>(6, 0.0f));
+}
+
+TEST(TensorScalarOperatorTest, ExpectValidScalarMultiplicationInverse) {
+    Tensor a({1, 2, 3}, 5.0f);
+    Tensor b = 5.0f * a;
+
+    ValidateTensorShape(b, 3, 6, {1, 2, 3});
+    ValidateTensorData(b, std::vector<float>(6, 25.0f));
+}
+
+TEST(TensorScalarOperatorTest, ExpectValidScalarDivisionInverse) {
+    Tensor a({1, 2, 3}, 5.0f);
+    Tensor b = 5.0f / a;
+
+    ValidateTensorShape(b, 3, 6, {1, 2, 3});
+    ValidateTensorData(b, std::vector<float>(6, 1.0f));
+}
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
