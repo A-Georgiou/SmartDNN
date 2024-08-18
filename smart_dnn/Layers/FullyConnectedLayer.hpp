@@ -1,5 +1,6 @@
 #include "../Tensor.hpp"
 #include "../Optimizer.hpp"
+#include "../TensorOperations.hpp"
 #include <vector>
 
 class FullyConnectedLayer {
@@ -9,15 +10,15 @@ public:
         biases.fill(0.0);
     }
 
-    Tensor forward(const Tensor& input) {
+    Tensor forward(Tensor& input) {
         this->input = input;
-        Tensor output = input.matmul(this->weights);  
+        Tensor output = TensorOperations::matmul(input, weights);  
         output.add(this->biases);
         return output;
     }
 
     Tensor backward(const Tensor& gradOutput) {
-
+        
     }
 
     void updateWeights(Optimizer& optimizer) {

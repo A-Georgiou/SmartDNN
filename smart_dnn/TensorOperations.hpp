@@ -6,7 +6,6 @@
 
 class TensorOperations {
     public:
-
         template<typename... Args>
         static Tensor ones(Args... args) {
             Shape dimensions{args...};
@@ -44,6 +43,12 @@ class TensorOperations {
         std::cout << std::endl;
     }
 
+    static Tensor randomn(const Shape& shape) {
+        Tensor result(shape);
+        result.randomize(-3.0f, 3.0f);
+        return result;
+    }
+
     static int flattenIndex(const std::vector<int>& indices, const Shape& shape) {
         int flatIndex = 0;
         int stride = 1;
@@ -63,21 +68,64 @@ class TensorOperations {
         return indices;
     }
 
-    static Tensor dotprod(const Tensor& a, const Tensor& b) {
-        if (a.shape().rank() == 1 && b.shape().rank() == 1) {
-            return {{1}, computeScalar(a, b)};
-        } else if ((a.shape().rank() == 2 && b.shape().rank() == 1)) {
-            return matrixVectProduct(a, b);
-        } else {
-            throw std::invalid_argument("Invalid dimensions for dot product");
+    static Tensor matmul(Tensor& a, Tensor& b) {
+        int aRank = a.shape().rank();
+        int bRank = b.shape().rank();
+
+        if (aRank == 1 && bRank == 1) {
+            return {{1}, matmul1D(a, b)};
         }
 
-        return {};
+        if (aRank == 2 && bRank == 1) {
+            return matmul1D2D(a, b);
+        }
+
+        if (aRank == 1 && bRank == 2) {
+            TensorShapeRestorer restorer(a, {1, a.shape()[0]}); 
+            return matmul2D(a, b);
+        }
+
+        if (aRank == 2 && bRank == 2) {
+            return matmul2D(a, b);
+        }
+
+        if (aRank == 1 && bRank > 2) {
+            TensorShapeRestorer restorer(a, {1, a.shape()[0]}); 
+            return matmulnD(a, b);
+        }
+
+        if (aRank > 2 && bRank == 1) {
+            TensorShapeRestorer restorer(b, {1, b.shape()[0]}); 
+            return matmulnD(a, b);
+        }
+
+        if (aRank > 2 && bRank > 2) {
+            return matmulnD(a, b);
+        }
+
+        throw std::invalid_argument("Invalid tensor ranks for dot product.");
     }
 
     private:
 
-        static float computeScalar(const Tensor& a, const Tensor& b) {
+        // Helper class to restore the original shape of a tensor
+        class TensorShapeRestorer {
+            public:
+                TensorShapeRestorer(Tensor& tensor, const Shape& newShape) 
+                    : tensorRef(tensor), originalShape(tensor.shape()) {
+                        tensorRef.reshape(newShape);
+                    }
+
+                ~TensorShapeRestorer() {
+                    tensorRef.reshape(originalShape);
+                }
+
+            private:
+                Tensor& tensorRef;
+                Shape originalShape;
+        };
+
+        static float matmul1D(const Tensor& a, const Tensor& b) {
             if (a.shape() != b.shape()) {
                 throw std::invalid_argument("Tensors must have the same shape");
             }
@@ -89,20 +137,86 @@ class TensorOperations {
             return result;
         }
 
-        static Tensor matrixVectProduct(const Tensor& matrix, const Tensor& vector) {
+        static Tensor matmul1D2D(const Tensor& matrix, const Tensor& vector) {
             if (matrix.shape()[1] != vector.shape()[0]) {
                 throw std::invalid_argument("Invalid dimensions for vector-matrix multiplication");
             }
 
             std::vector<float> resultData(matrix.shape()[0], 0.0f);
-            for (int i = 0; i < matrix.shape()[0]; ++i) {
-                for (int j = 0; j < vector.shape().size(); ++j){
-                    resultData[i] += vector.data[j] * matrix.data[i * vector.shape().size() + j];
+            const float* vectorData = vector.getData().data();
+            const float* matrixData = matrix.getData().data();
+
+            int numRows = matrix.shape()[0];
+            int numCols = vector.shape()[0];
+
+            for (int i = 0; i < numRows; ++i) {
+                float sum = 0.0f;
+                for (int j = 0; j < numCols; ++j) {
+                    sum += vectorData[j] * matrixData[i * numCols + j];
                 }
+                resultData[i] = sum;
             }
 
             return {{matrix.shape()[0]}, resultData};
         }
+
+        static Tensor matmul2D(const Tensor& a, const Tensor& b) {
+            if (a.shape()[1] != b.shape()[0]) {
+                throw std::invalid_argument("Invalid dimensions for matrix-matrix multiplication: The columns of a must equal the rows of b, but got A:" +
+                std::to_string(a.shape()[1]) + " and B:" + std::to_string(b.shape()[0]));
+            }
+
+            std::vector<int> resultShape = {a.shape()[0], b.shape()[1]};
+            std::vector<float> resultData(resultShape[0] * resultShape[1], 0.0f);
+
+            for (int i = 0; i < a.shape()[0]; ++i) {
+                for (int j = 0; j < b.shape()[1]; ++j) {
+                    for (int k = 0; k < a.shape()[1]; ++k) {
+                        resultData[i * b.shape()[1] + j] += a({i,k}) * b({k,j});
+                    }
+                }
+            }
+
+            return {Shape(resultShape), resultData};
+        }
+
+        // Batched matrix multiplication
+        static Tensor matmulnD(const Tensor& a, const Tensor& b) {
+            if (a.shape().rank() < 2 || b.shape().rank() < 2) {
+                throw std::invalid_argument("Tensors must have at least 2 dimensions for matrix multiplication.");
+            }
+
+            if (a.shape()[a.shape().rank() - 1] != b.shape()[b.shape().rank() - 2]) {
+                throw std::invalid_argument("Inner dimensions must match for batched matrix multiplication.");
+            }
+
+            std::vector<int> batchShape = a.getBroadcastShape(b.shape());
+
+            batchShape.push_back(a.shape()[a.shape().rank() - 2]);
+            batchShape.push_back(b.shape()[b.shape().rank() - 1]);
+
+            Tensor result(Shape(batchShape), std::vector<float>(Shape(batchShape).size(), 0.0f));
+
+            int batchSize = result.shape().size() / (batchShape[batchShape.size() - 2] * batchShape[batchShape.size() - 1]);
+
+            for (int batch = 0; batch < batchSize; ++batch) {
+                for (int i = 0; i < batchShape[batchShape.size() - 2]; ++i) {
+                    for (int j = 0; j < batchShape[batchShape.size() - 1]; ++j) {
+                        float sum = 0.0f;
+                        for (int k = 0; k < a.shape()[a.shape().rank() - 1]; ++k) {
+                            int aIndex = batch * a.shape()[a.shape().rank() - 2] * a.shape()[a.shape().rank() - 1] + i * a.shape()[a.shape().rank() - 1] + k;
+                            int bIndex = batch * b.shape()[b.shape().rank() - 2] * b.shape()[b.shape().rank() - 1] + k * b.shape()[b.shape().rank() - 1] + j;
+                            sum += a.getData()[aIndex] * b.getData()[bIndex];
+                        }
+                        int resultIndex = batch * batchShape[batchShape.size() - 2] * batchShape[batchShape.size() - 1] + i * batchShape[batchShape.size() - 1] + j;
+                        result.getData()[resultIndex] = sum;
+                    }
+                }
+            }
+
+            return result;
+        }
+
 
     TensorOperations() = delete;
 };
