@@ -224,7 +224,7 @@ Tensor Tensor::sqrt() const{
     return result;
 }
 
-int Tensor::sum() const {
+float Tensor::sum() const {
     return std::accumulate(data.begin(), data.end(), 0);
 }
 
@@ -296,6 +296,14 @@ void Tensor::reshape(const Shape& newShape){
 
     _shape = newShape;
 }
+
+Tensor Tensor::apply(std::function<float(float)> op) const {
+        Tensor result = *this;
+        for (size_t i = 0; i < data.size(); ++i) {
+            result.data[i] = op(data[i]); 
+        }
+        return result; 
+    }
 
 /*
 

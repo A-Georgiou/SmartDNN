@@ -107,11 +107,12 @@ public:
     std::vector<int> size() const;
     int size(int axis) const;
 
-    int sum() const;
+    float sum() const;
     Tensor sqrt() const;
     Tensor sum(int axis) const;
     void transpose(int dim1, int dim2);
     void reshape(const Shape& newShape);
+    Tensor apply(std::function<float(float)> op) const;
 
     template<typename... Args>
     void reshape(Args... args) {
