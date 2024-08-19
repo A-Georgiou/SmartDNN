@@ -11,6 +11,11 @@ This is a C++ deep learning library designed to provide a flexible and efficient
 - Rich custom made Tensors library with TensorOperations.
 - Testing environment to ensure clean and easy development.
 
+- Layers: Fully Connected Layer, Activation Layer
+- Optimizer: Adam
+- Loss: Mean Squared Error
+- Activation Functions: Softmax, Sigmoid, Tanh, ReLU, Leaky ReLU
+
 ## Planned Features
 
 - Support for various types of neural network layers, including fully connected, convolutional, recurrent, and more.
