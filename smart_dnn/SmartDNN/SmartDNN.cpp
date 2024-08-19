@@ -49,3 +49,19 @@ void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor
         std::cout << "Epoch " << epoch << " - Loss: " << totalLoss / inputs.size() << std::endl;
     }
 }
+
+Tensor SmartDNN::predict(const Tensor& input) {
+    Tensor prediction = input;
+    for (Layer* layer : layers) {
+        prediction = layer->forward(prediction);
+    }
+    return prediction;
+}
+
+std::vector<Tensor> SmartDNN::predict(const std::vector<Tensor>& inputs) {
+    std::vector<Tensor> predictions;
+    for (const Tensor& input : inputs) {
+        predictions.push_back(predict(input));
+    }
+    return predictions;
+}

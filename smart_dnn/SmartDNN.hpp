@@ -16,6 +16,7 @@ public:
     void compile(Loss* loss, Optimizer* optimizer);
     void train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets, int epochs, float learningRate);
     Tensor predict(const Tensor& input);
+    std::vector<Tensor> predict(const std::vector<Tensor>& inputs);
 
     void saveModel(const std::string& filename) const;
     void loadModel(const std::string& filename);
