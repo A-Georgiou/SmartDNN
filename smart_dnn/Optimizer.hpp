@@ -7,8 +7,8 @@
 class Optimizer {
 public:
     virtual ~Optimizer() = default;
-    virtual void optimize(std::vector<Tensor>& weights, std::vector<Tensor>& gradients, float learningRate) = 0;
-    
+    virtual void optimize(const std::vector<std::reference_wrapper<Tensor>>& weights, const std::vector<std::reference_wrapper<Tensor>>& gradients, float learningRateOverride = -1.0f) = 0;
+
     virtual void save(std::ostream& os) const = 0;
     virtual void load(std::istream& is) = 0;
 };

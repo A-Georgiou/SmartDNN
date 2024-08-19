@@ -1,4 +1,6 @@
 #include "SmartDNN.hpp"
+#include "../Debugging/Logger.hpp"
+#include "../TensorOperations.hpp"
 
 SmartDNN::SmartDNN() {
     lossFunction = nullptr;
@@ -29,13 +31,11 @@ void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor
 
         for (size_t i = 0; i < inputs.size(); ++i) {
             Tensor prediction = inputs[i];
-
             for (Layer* layer : layers) {
                 prediction = layer->forward(prediction);
             }
 
             totalLoss += lossFunction->compute(prediction, targets[i]);
-
             Tensor gradOutput = lossFunction->gradient(prediction, targets[i]);
 
             for (int j = layers.size() - 1; j >= 0; --j) {
@@ -46,7 +46,6 @@ void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor
                 layer->updateWeights(*optimizer);
             }
         }
-
         std::cout << "Epoch " << epoch << " - Loss: " << totalLoss / inputs.size() << std::endl;
     }
 }

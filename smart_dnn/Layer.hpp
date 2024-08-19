@@ -8,8 +8,8 @@ class Layer {
 public:
     virtual ~Layer() = default;
 
-    virtual Tensor forward(const Tensor& input) = 0;
-    virtual Tensor backward(const Tensor& gradOutput) = 0;
+    virtual Tensor forward(Tensor& input) = 0;
+    virtual Tensor backward(Tensor& gradOutput) = 0;
     virtual void updateWeights(Optimizer& optimizer) = 0;
 
 protected:
@@ -17,6 +17,7 @@ protected:
     Tensor weightGradients;
     Tensor biases;
     Tensor biasGradients;
+    Tensor input;
 };
 
 #endif // LAYER_HPP

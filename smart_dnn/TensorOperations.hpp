@@ -49,7 +49,15 @@ class TensorOperations {
         return result;
     }
 
+    static Tensor transpose(Tensor tensor, int dim1, int dim2) {
+        tensor.transpose(dim1, dim2);
+        return tensor;
+    }
+
     static int flattenIndex(const std::vector<int>& indices, const Shape& shape) {
+        if (indices.size() != shape.rank()) {
+            throw std::invalid_argument("Indices size must match the tensor rank");
+        }
         int flatIndex = 0;
         int stride = 1;
         for (int i = shape.rank() - 1; i >= 0; --i) {
@@ -60,12 +68,38 @@ class TensorOperations {
     }
 
     static std::vector<int> getIndices(int flatIndex, const Shape& shape) {
+        if (flatIndex < 0 || flatIndex >= shape.size()) {
+            throw std::out_of_range("Flat index out of range");
+        }
+
         std::vector<int> indices(shape.rank(), 0);
         for (int i = shape.rank() - 1; i >= 0; --i) {
             indices[i] = flatIndex % shape[i];
             flatIndex /= shape[i];
         }
         return indices;
+    }
+
+    static std::vector<int> getBroadcastShape(const std::vector<int>& shape1, const std::vector<int>& shape2) {
+        std::vector<int> resultShape;
+
+        int rank1 = shape1.size();
+        int rank2 = shape2.size();
+        int maxRank = std::max(rank1, rank2);
+
+        for (int i = 0; i < maxRank; ++i) {
+            int dim1 = (i < rank1) ? shape1[rank1 - 1 - i] : 1;
+            int dim2 = (i < rank2) ? shape2[rank2 - 1 - i] : 1;
+
+            if (dim1 == dim2 || dim1 == 1 || dim2 == 1) {
+                resultShape.push_back(std::max(dim1, dim2));
+            } else {
+                throw std::invalid_argument("Tensor dimensions do not match for broadcasting");
+            }
+        }
+
+        std::reverse(resultShape.begin(), resultShape.end());
+        return resultShape;
     }
 
     static Tensor matmul(Tensor& a, Tensor& b) {
@@ -190,16 +224,17 @@ class TensorOperations {
                 throw std::invalid_argument("Inner dimensions must match for batched matrix multiplication.");
             }
 
-            std::vector<int> batchShape = a.getBroadcastShape(b.shape());
+            std::vector<int> aShape = a.shape().dimensions;
+            std::vector<int> bShape = b.shape().dimensions;
+            std::vector<int> batchShape = getBroadcastShape(std::vector<int>(aShape.begin(), aShape.end()- 2),
+                                                            std::vector<int>(bShape.begin(), bShape.end()- 2));
 
             batchShape.push_back(a.shape()[a.shape().rank() - 2]);
             batchShape.push_back(b.shape()[b.shape().rank() - 1]);
 
             Tensor result(Shape(batchShape), std::vector<float>(Shape(batchShape).size(), 0.0f));
 
-            int batchSize = result.shape().size() / (batchShape[batchShape.size() - 2] * batchShape[batchShape.size() - 1]);
-
-            for (int batch = 0; batch < batchSize; ++batch) {
+            for (int batch = 0; batch < result.shape().size() / (batchShape[batchShape.size() - 2] * batchShape[batchShape.size() - 1]); ++batch) {
                 for (int i = 0; i < batchShape[batchShape.size() - 2]; ++i) {
                     for (int j = 0; j < batchShape[batchShape.size() - 1]; ++j) {
                         float sum = 0.0f;
@@ -216,6 +251,7 @@ class TensorOperations {
 
             return result;
         }
+
 
 
     TensorOperations() = delete;

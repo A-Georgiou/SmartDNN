@@ -1,4 +1,8 @@
+#ifndef SIGMOID_HPP
+#define SIGMOID_HPP
+
 #include "../smart_dnn/Activation.hpp"
+#include "../TensorOperations.hpp"
 
 class Sigmoid : public Activation {
 public:
@@ -11,3 +15,5 @@ public:
         return sig * (1.0f - sig) * gradOutput;
     }
 };
+
+#endif // SIGMOID_HPP

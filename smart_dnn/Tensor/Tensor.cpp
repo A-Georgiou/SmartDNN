@@ -17,9 +17,6 @@ Tensor::Tensor(Shape otherShape)
 Tensor::Tensor(Shape otherShape, float value)
     : _shape(std::move(otherShape)), data(_shape.size(), value), d_data(nullptr), onGPU(false) {}
 
-Tensor::Tensor(const Tensor& other)
-    : _shape(other._shape), data(other.data), d_data(nullptr), onGPU(false) {}
-
 Tensor::Tensor(Shape otherShape, std::vector<float> data)
     : _shape(std::move(otherShape)), data(std::move(data)), d_data(nullptr), onGPU(false) {
     if (this->data.size() != _shape.size()) {
@@ -29,12 +26,6 @@ Tensor::Tensor(Shape otherShape, std::vector<float> data)
     }
 }
 
-Tensor::Tensor(Tensor&& other) noexcept
-    : _shape(std::move(other._shape)), 
-        data(std::move(other.data)), 
-        d_data(std::exchange(other.d_data, nullptr)), 
-        onGPU(std::exchange(other.onGPU, false)) {}
-
 float& Tensor::operator()(std::initializer_list<int> indices) {
         return data[TensorOperations::flattenIndex(indices, _shape)];
     }
@@ -42,12 +33,6 @@ float& Tensor::operator()(std::initializer_list<int> indices) {
 const float& Tensor::operator()(std::initializer_list<int> indices) const {
         return data[TensorOperations::flattenIndex(indices, _shape)];
     }
-
-Tensor::~Tensor() {
-    if (onGPU) {
-        freeGPUMemory();
-    }
-}
 
 std::vector<int> Tensor::size() const {
     return _shape.dimensions;
@@ -71,30 +56,6 @@ void Tensor::swap(Tensor& other) noexcept {
     std::swap(data, other.data);
     std::swap(d_data, other.d_data);
     std::swap(onGPU, other.onGPU);
-}
-
-Tensor& Tensor::operator=(const Tensor& other) {
-    freeGPUMemory();
-    if (this != &other) {  // Avoid self-assignment
-        Tensor temp(other);  // Use the copy constructor
-        swap(temp);  // Swap the contents
-    }
-    return *this;
-}
-
-Tensor& Tensor::operator=(Tensor&& other) noexcept {
-    if (this != &other) {
-        freeGPUMemory();
-        _shape = other._shape;
-        data.resize(_shape.size());
-        data = std::move(other.data);
-        d_data = other.d_data;
-        onGPU = other.onGPU;
-        
-        other.d_data = nullptr;
-        other.onGPU = false;
-    }
-    return *this;
 }
 
 /*
@@ -247,34 +208,27 @@ Tensor Tensor::sum(int axis) const {
 
     return result;
 }
-
 void Tensor::transpose(int dim1, int dim2) {
     if (dim1 < 0 || dim1 >= _shape.rank() || dim2 < 0 || dim2 >= _shape.rank()) {
-        throw std::out_of_range("Dimensions out of bounds");
+        throw std::out_of_range("Dimensions out of bounds: (" + std::to_string(dim1) + ", " + std::to_string(dim2) + ") for shape with rank: " + std::to_string(_shape.rank()));
     }
 
-    if (dim1 == dim2) return; 
+    if (dim1 == dim2) return;
 
-    std::swap(_shape.dimensions[dim1], _shape.dimensions[dim2]);
-    std::vector<bool> visited(_shape.size(), false);
+    std::vector<int> oldShape = _shape.dimensions;
+    std::swap(oldShape[dim1], oldShape[dim2]);
+
+    std::vector<float> newData(data.size());
 
     for (int i = 0; i < _shape.size(); ++i) {
-        if (visited[i]) continue;
-
-        int current = i;
-        do {
-            visited[current] = true;
-            std::vector<int> indices = TensorOperations::getIndices(current, _shape);
-            std::swap(indices[dim1], indices[dim2]);
-            int next = TensorOperations::flattenIndex(indices, _shape);
-
-            if (next != i) {
-                std::swap(data[current], data[next]);
-            }
-
-            current = next;
-        } while (current != i);
+        std::vector<int> indices = TensorOperations::getIndices(i, _shape);
+        std::swap(indices[dim1], indices[dim2]);
+        int newIndex = TensorOperations::flattenIndex(indices, Shape(oldShape));
+        newData[newIndex] = data[i];
     }
+
+    _shape.dimensions = oldShape;
+    data = std::move(newData);
 }
 
 
@@ -297,8 +251,18 @@ void Tensor::reshape(const Shape& newShape){
     _shape = newShape;
 }
 
+Tensor Tensor::reshape(const Shape& newShape) const {
+    if (newShape.size() != _shape.size()) {
+        throw std::invalid_argument("New dimensions must have the same size as the current tensor: " +
+        std::to_string(_shape.size()) + " != " + std::to_string(newShape.size()));
+    }
+
+    Tensor reshapedTensor(newShape, this->data);
+    return reshapedTensor;
+}
+
 Tensor Tensor::apply(std::function<float(float)> op) const {
-        Tensor result = *this;
+        Tensor result(_shape, this->data);
         for (size_t i = 0; i < data.size(); ++i) {
             result.data[i] = op(data[i]); 
         }

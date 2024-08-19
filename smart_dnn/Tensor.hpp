@@ -17,6 +17,8 @@ struct Shape {
 
     Shape() = default;
     ~Shape() = default;
+    Shape(const Shape& other) = default;
+    Shape(Shape&& other) noexcept = default;
 
     explicit Shape(std::vector<int> dims) : dimensions(std::move(dims)) {
         validateDimensions();
@@ -25,9 +27,6 @@ struct Shape {
     Shape(std::initializer_list<int> dims) : dimensions(dims) {
         validateDimensions();
     }
-
-    Shape(const Shape& other) = default;
-    Shape(Shape&& other) noexcept = default;
 
     [[nodiscard]] int rank() const { return dimensions.size(); }
     [[nodiscard]] int size() const { return std::accumulate(dimensions.begin(), dimensions.end(), 1, std::multiplies<int>()); }
@@ -42,6 +41,12 @@ struct Shape {
         }
         os << ")";
         return os;
+    }
+
+    std::string toString() const {
+        std::ostringstream oss;
+        oss << *this;
+        return oss.str();
     }
 
     Shape& operator=(const Shape& other) = default;
@@ -72,10 +77,10 @@ public:
     Tensor(Shape dimensions);
     Tensor(Shape dimensions, float value);
     Tensor(Shape shape, std::vector<float> data);
-    Tensor(const Tensor& other);
-    Tensor(Tensor&& other) noexcept;
-    
-    virtual ~Tensor();
+
+    Tensor(const Tensor& other) = default;
+    Tensor(Tensor&& other) noexcept = default;
+    ~Tensor() = default;
 
     float& operator()(std::initializer_list<int> indices);
     const float& operator()(std::initializer_list<int> indices) const;
@@ -86,8 +91,8 @@ public:
     const std::vector<float>& getData() const { return data; }
     std::vector<float>& getData() { return data; }
 
-    Tensor& operator=(const Tensor& other);
-    Tensor& operator=(Tensor&& other) noexcept;
+    Tensor& operator=(const Tensor& other) = default;
+    Tensor& operator=(Tensor&& other) noexcept = default;
 
     Tensor& operator+=(const Tensor& other);
     Tensor& operator-=(const Tensor& other);
@@ -112,6 +117,7 @@ public:
     Tensor sum(int axis) const;
     void transpose(int dim1, int dim2);
     void reshape(const Shape& newShape);
+    Tensor reshape(const Shape& newShape) const;
     Tensor apply(std::function<float(float)> op) const;
 
     template<typename... Args>
@@ -174,8 +180,7 @@ inline Tensor operator-(float scalar, const Tensor& tensor) {
 }
 
 inline Tensor operator/(float scalar, const Tensor& tensor) {
-    // Special handling because scalar/tensor is not commutative
-    Tensor result(tensor.shape());  // Create a new Tensor with the same shape
+    Tensor result(tensor.shape());  
     for (size_t i = 0; i < tensor.getData().size(); ++i) {
         result.getData()[i] = scalar / tensor.getData()[i];
     }
