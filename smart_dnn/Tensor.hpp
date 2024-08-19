@@ -111,6 +111,7 @@ public:
 
     std::vector<int> size() const;
     int size(int axis) const;
+    std::string toString() const;
 
     float sum() const;
     Tensor sqrt() const;
@@ -139,6 +140,7 @@ public:
     void subtract(const Tensor& other);
 
     friend class TensorOperations;
+    friend std::ostream& operator<<(std::ostream& os, const Tensor& tensor);
 
 private:
     Shape _shape;

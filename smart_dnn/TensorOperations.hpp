@@ -21,26 +21,7 @@ class TensorOperations {
         }
 
     static void printTensor(const Tensor& tensor) {
-        std::cout << "Tensor Shape: " << tensor.shape() << std::endl;
-        int nDims = tensor.shape().rank();
-        std::vector<int> indices(nDims, 0);
-        std::vector<float> data = tensor.getData();
-        std::stack<int> bracketStack;
-
-        for (int i = 0; i < data.size(); ++i) {
-            std::cout << data[i] << " ";
-            indices[nDims - 1] += 1;
-            for (int j = nDims - 1; j >= 0; --j) {
-                if (indices[j] == tensor.shape()[j]) {
-                    indices[j] = 0;
-                    if (j > 0) {
-                        std::cout << std::endl;
-                        indices[j - 1] += 1;
-                    }
-                }
-            }
-        }
-        std::cout << std::endl;
+        std::cout << tensor << std::endl;
     }
 
     static Tensor randomn(const Shape& shape) {

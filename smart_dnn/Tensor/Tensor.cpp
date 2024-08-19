@@ -45,6 +45,36 @@ int Tensor::size(int axis) const{
     return _shape.dimensions[axis];
 }
 
+std::ostream& operator<<(std::ostream& os, const Tensor& tensor){
+    os << "Tensor Shape: " << tensor.shape() << std::endl;
+    int nDims = tensor.shape().rank();
+    std::vector<int> indices(nDims, 0);
+    std::vector<float> data = tensor.getData();
+    std::stack<int> bracketStack;
+
+    for (int i = 0; i < data.size(); ++i) {
+        os << data[i] << " ";
+        indices[nDims - 1] += 1;
+        for (int j = nDims - 1; j >= 0; --j) {
+            if (indices[j] == tensor.shape()[j]) {
+                indices[j] = 0;
+                if (j > 0) {
+                    os << std::endl;
+                    indices[j - 1] += 1;
+                }
+            }
+        }
+    }
+    os << std::endl;
+    return os;
+}
+
+std::string Tensor::toString() const {
+    std::ostringstream oss;
+    oss << *this;
+    return oss.str();
+}
+
 /*
 
 COPY AND MOVE OPERATORS OVERLOADING
