@@ -59,6 +59,18 @@ To install the library, follow these steps:
 
 4. Run the program with command `./SmartDNN`
 
+## Running your models (With Docker)
+
+To create your first model and run using docker, follow these steps:
+
+1. Clone the repository: `git clone https://github.com/A-Georgiou/SmartDNN.git`
+
+2. Create a `src/main.cpp` file where your model creation code should exist, feel free to copy an example from the `Examples/` folder.
+
+3. Build the Docker Image by running the command `docker build -f .docker/Dockerfile -t smartdnn-app .`
+
+4. Run the project with the command `docker run --rm -it smartdnn-app`
+
 ## Contributing
 
 Contributions are welcome! If you would like to contribute to the project, please reach out to me via my contact information below.
