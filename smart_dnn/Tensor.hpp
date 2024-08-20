@@ -43,6 +43,11 @@ public:
     Tensor& operator*=(const Tensor& other);
     Tensor& operator/=(const Tensor& other);
 
+    Tensor& operator+=(float scalar);
+    Tensor& operator-=(float scalar);
+    Tensor& operator*=(float scalar);
+    Tensor& operator/=(float scalar);
+
     Tensor operator+(const Tensor& other) const;
     Tensor operator-(const Tensor& other) const;
     Tensor operator*(const Tensor& other) const;

@@ -114,6 +114,34 @@ Tensor& Tensor::operator/=(const Tensor& other) {
     return *this;
 }
 
+Tensor& Tensor::operator+=(float scalar) {
+    for (auto& value : data) {
+        value += scalar;
+    }
+    return *this;
+}
+
+Tensor& Tensor::operator-=(float scalar) {
+    for (auto& value : data) {
+        value -= scalar;
+    }
+    return *this;
+}
+
+Tensor& Tensor::operator*=(float scalar) {
+    for (auto& value : data) {
+        value *= scalar;
+    }
+    return *this;
+}
+
+Tensor& Tensor::operator/=(float scalar) {
+    for (auto& value : data) {
+        value /= scalar;
+    }
+    return *this;
+}
+
 Tensor Tensor::operator+(const Tensor& other) const {
     Tensor result;
     applyElementWiseOperation(other, std::plus<float>(), &result);

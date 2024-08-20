@@ -10,16 +10,10 @@ public:
         Tensor output = input;
 
         float maxVal = *std::max_element(output.getData().begin(), output.getData().end());
-
-        float sum = 0.0f;
-        for (float& val : output.getData()) {
-            val = std::exp(val - maxVal);
-            sum += val;
-        }
-
-        for (float& val : output.getData()) {
-            val /= sum;
-        }
+        output -= maxVal;
+        output = output.apply([](float x) { return std::exp(x); });
+        float sum = std::accumulate(output.getData().begin(), output.getData().end(), 0.0f);
+        output /= sum;
 
         return output;
     }
@@ -29,12 +23,14 @@ public:
         Tensor gradInput(input.shape());
 
         for (size_t i = 0; i < gradInput.getData().size(); ++i) {
+            float softmaxI = output.getData()[i];
             float gradient = 0.0f;
             for (size_t j = 0; j < gradInput.getData().size(); ++j) {
+                float softmaxJ = output.getData()[j];
                 if (i == j) {
-                    gradient += output.getData()[i] * (1.0f - output.getData()[i]) * gradOutput.getData()[j];
+                    gradient += softmaxI * (1.0f - softmaxJ) * gradOutput.getData()[j];
                 } else {
-                    gradient -= output.getData()[i] * output.getData()[j] * gradOutput.getData()[j];
+                    gradient -= softmaxI * softmaxJ * gradOutput.getData()[j];
                 }
             }
             gradInput.getData()[i] = gradient;
