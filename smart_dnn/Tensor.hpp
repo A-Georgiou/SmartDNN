@@ -6,66 +6,9 @@
 #include <iostream>
 #include <sstream>
 #include "RandomEngine.hpp"
+#include "Shape.hpp"
 
 class TensorOperations;
-
-/*
-    Shape class to represent the dimensions of a tensor.
-*/
-struct Shape {
-    std::vector<int> dimensions;
-
-    Shape() = default;
-    ~Shape() = default;
-    Shape(const Shape& other) = default;
-    Shape(Shape&& other) noexcept = default;
-
-    explicit Shape(std::vector<int> dims) : dimensions(std::move(dims)) {
-        validateDimensions();
-    }
-
-    Shape(std::initializer_list<int> dims) : dimensions(dims) {
-        validateDimensions();
-    }
-
-    [[nodiscard]] int rank() const { return dimensions.size(); }
-    [[nodiscard]] int size() const { return std::accumulate(dimensions.begin(), dimensions.end(), 1, std::multiplies<int>()); }
-    
-    friend std::ostream& operator<<(std::ostream& os, const Shape& shape) {
-        os << "(";
-        for (size_t i = 0; i < shape.dimensions.size(); ++i) {
-            os << shape.dimensions[i];
-            if (i != shape.dimensions.size() - 1) {
-                os << ", ";
-            }
-        }
-        os << ")";
-        return os;
-    }
-
-    std::string toString() const {
-        std::ostringstream oss;
-        oss << *this;
-        return oss.str();
-    }
-
-    Shape& operator=(const Shape& other) = default;
-    Shape& operator=(Shape&& other) noexcept = default;
-
-    int operator[](int index) const { return dimensions[index]; }
-    bool operator==(const Shape& other) const { return dimensions == other.dimensions; }
-    bool operator!=(const Shape& other) const { return !(*this == other); }
-
-private:
-    void validateDimensions() const {
-        for (int dim : dimensions) {
-            if (dim < 0) {
-                throw std::invalid_argument("Dimensions must be non-negative integers.");
-            }
-        }
-    }
-};
-
 
 /*
     Tensor class to represent a multi-dimensional array of floating-point numbers.
@@ -84,8 +27,6 @@ public:
 
     float& operator()(std::initializer_list<int> indices);
     const float& operator()(std::initializer_list<int> indices) const;
-
-    void swap(Tensor& other) noexcept;
 
     const Shape& shape() const { return _shape; }
     const std::vector<float>& getData() const { return data; }
@@ -109,33 +50,80 @@ public:
     Tensor operator*(float scalar) const;
     Tensor operator/(float scalar) const;
 
+    // Get the shape dimensions of the tensor.
     std::vector<int> size() const;
+
+    // Get the size of the tensor along the specified axis.
+    // Parameters:
+    // axis: The axis to get the size of
     int size(int axis) const;
+
+    // Basic toString implementation using osstringstream.
     std::string toString() const;
 
+    // Compute the sum of the tensor across all axis.
     float sum() const;
+
+    // Compute the sqrt of each value in the tensor.
     Tensor sqrt() const;
+
+    // Compute the sum of the tensor along the specified axis.
+    // Parameters:
+    // axis: The axis to sum along
     Tensor sum(int axis) const;
+    
+    // Transpose the tensor along the specified dimensions.
+    // Parameters:
+    // dim1: The first dimension to transpose
+    // dim2: The second dimension to transpose
     void transpose(int dim1, int dim2);
+
+    // Reshape the tensor to the specified dimensions.
+    // Parameters:
+    // newShape: The dimensions of the new shape
     void reshape(const Shape& newShape);
+
+    // Reshape the tensor to the specified dimensions.
+    // Parameters:
+    // newShape: The dimensions of the new shape
     Tensor reshape(const Shape& newShape) const;
+
+    // Apply a function to each element of the tensor.
+    // Parameters:
+    // op: The function to apply
     Tensor apply(std::function<float(float)> op) const;
 
+    // Reshape the tensor to the specified dimensions.
+    // Parameters:
+    // args: The dimensions of the new shape
     template<typename... Args>
     void reshape(Args... args) {
         _shape = Shape{args...};
         reshape(_shape);
     }
 
+    // Fill the tensor with a specific value.
+    // Parameters:
+    // value: The value to fill the tensor with
     void fill(float value);
+
+    // Fill the tensor with random values in the range [min, max].
+    // Parameters:
+    // min: The minimum value of the range
+    // max: The maximum value of the range
     void randomize(float min, float max);
+
+    // Print the tensor to the console.
     void print() const;
 
+    // To-be-implemented: GPU support through CUDA API.
     void toGPU();
     void toCPU();
     bool isOnGPU() const;
 
-    // Add CUDA-based matrix operations
+    // Element-wise operations.
+    // Parameters:
+    // other: The tensor to perform the operation with
     void add(const Tensor& other);
     void subtract(const Tensor& other);
 
@@ -152,6 +140,8 @@ private:
     void freeGPUMemory();
     void copyToGPU();
     void copyToCPU();
+
+    void swap(Tensor& other) noexcept;
 
     std::vector<int> getBroadcastShape(const Tensor& other) const;
     std::vector<int> getBroadcastShape(const Shape& newShape) const;
