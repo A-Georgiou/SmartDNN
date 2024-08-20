@@ -65,3 +65,17 @@ std::vector<Tensor> SmartDNN::predict(const std::vector<Tensor>& inputs) {
     }
     return predictions;
 }
+
+void SmartDNN::trainingMode() {
+    setTrainingMode(true);
+}
+
+void SmartDNN::evalMode() {
+    setTrainingMode(false);
+}
+
+void SmartDNN::setTrainingMode(bool trainingMode) {
+    for (Layer* layer : layers) {
+        layer->setTrainingMode(true);
+    }
+}

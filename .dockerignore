@@ -1,0 +1,14 @@
+.vscode/
+CMakeFiles/
+CMakeScripts/
+CMakeCache.txt
+cmake_install.cmake
+CMakeCache.txt
+Makefile
+/SmartDNN
+_deps/
+bin/
+lib/
+CTestTestfile.cmake
+RunTests
+build/

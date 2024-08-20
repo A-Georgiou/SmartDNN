@@ -26,6 +26,8 @@ int main() {
     // Train the model on the dataset for 100 epochs with a learning rate of 0.01f.
     model.train(dataset.first, dataset.second, 100, 0.01f);
 
+    model.evalMode();
+
     // Predict the output of the model for an input of 10.0f.
     Tensor input(Shape{1}, std::vector<float>{10.0f});
 

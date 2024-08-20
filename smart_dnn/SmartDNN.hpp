@@ -18,10 +18,15 @@ public:
     Tensor predict(const Tensor& input);
     std::vector<Tensor> predict(const std::vector<Tensor>& inputs);
 
+    void trainingMode();
+    void evalMode();
+
     void saveModel(const std::string& filename) const;
     void loadModel(const std::string& filename);
 
 private:
+    void setTrainingMode(bool trainingMode);
+
     std::vector<Layer*> layers;
     Loss* lossFunction;
     Optimizer* optimizer;
