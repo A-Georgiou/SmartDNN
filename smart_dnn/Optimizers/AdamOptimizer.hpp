@@ -5,8 +5,10 @@
 
 class AdamOptimizer : public Optimizer {
 public:
-    AdamOptimizer(float learningRate = 0.001f, float beta1 = 0.9f, float beta2 = 0.999f, float epsilon = 1e-8f)
-        : learningRate(learningRate), beta1(beta1), beta2(beta2), epsilon(epsilon), t(0) {}
+    AdamOptimizer(float learningRate = 0.001f, float beta1 = 0.9f, float beta2 = 0.999f,
+                    float epsilon = 1e-8f, float l1_strength = 0.0f, float l2_strength = 0.0f)
+        : learningRate(learningRate), beta1(beta1), beta2(beta2), epsilon(epsilon), t(0),
+            l1_strength(l1_strength), l2_strength(l2_strength) {}
 
     void optimize(const std::vector<std::reference_wrapper<Tensor>>& weights, const std::vector<std::reference_wrapper<Tensor>>& gradients, float learningRateOverride = -1.0f) override {
         if (weights.size() != gradients.size()) {
@@ -20,7 +22,6 @@ public:
             Tensor& w = weights[i].get();
             const Tensor& g = gradients[i].get();
 
-            // Use the address of the weight tensor as a unique key
             size_t key = reinterpret_cast<size_t>(&w);
 
             if (m.find(key) == m.end()) {
@@ -38,7 +39,15 @@ public:
             Tensor m_hat = m[key] / (1.0f - std::pow(beta1, t));
             Tensor v_hat = v[key] / (1.0f - std::pow(beta2, t));
 
-            // Update weights
+            // Apply L1 and L2 regularization
+            if (l1_strength > 0.0f) {
+                w -= lr * l1_strength * w.apply([](float x) { return x > 0 ? 1.0f : -1.0f; });
+            }
+            if (l2_strength > 0.0f) {
+                w -= lr * l2_strength * w;
+            }
+
+            // Update weights with Adam
             w -= lr * m_hat / (v_hat.sqrt() + epsilon);
         }
     }
@@ -57,6 +66,8 @@ private:
     float beta2;
     float epsilon;
     int t;
+    float l1_strength;
+    float l2_strength;
     
     std::unordered_map<size_t, Tensor> m; // First moment estimate
     std::unordered_map<size_t, Tensor> v; // Second moment estimate
