@@ -1,7 +1,7 @@
 #ifndef TEST_TENSOR_CPP
 #define TEST_TENSOR_CPP
 
-#include "tensor_helpers.hpp"
+#include "../utils/tensor_helpers.hpp"
 
 /*
 

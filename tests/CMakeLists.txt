@@ -15,9 +15,11 @@ FetchContent_MakeAvailable(googletest)
 
 include_directories(${PROJECT_SOURCE_DIR}/../smart_dnn/)
 
-file(GLOB_RECURSE TEST_SOURCES main.cpp tensor/test_tensor.cpp tensor/test_tensor_operations.cpp)
+file(GLOB_RECURSE TEST_SOURCES main.cpp **/*.cpp)
 
 file(GLOB_RECURSE MAIN_SOURCES ${PROJECT_SOURCE_DIR}/../smart_dnn/**/*.cpp)
+
+list(FILTER TEST_SOURCES EXCLUDE REGEX ".*CMakeFiles/.*.cpp$")
 
 message("Test Sources: ${TEST_SOURCES}")
 message("Main Sources: ${MAIN_SOURCES}")

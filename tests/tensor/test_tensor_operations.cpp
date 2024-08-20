@@ -2,7 +2,7 @@
 #define TEST_TENSOR_OPERATIONS_CPP
 
 #include "../smart_dnn/TensorOperations.hpp"
-#include "tensor_helpers.hpp"
+#include "../utils/tensor_helpers.hpp"
 
 /*
 

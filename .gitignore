@@ -12,3 +12,4 @@ bin/
 lib/
 CTestTestfile.cmake
 RunTests
+build/
