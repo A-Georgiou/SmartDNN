@@ -3,12 +3,20 @@
 #include "Optimizer.hpp"
 #include "../TensorOperations.hpp"
 
+struct AdamOptions {
+    float learningRate = 0.001f;
+    float beta1 = 0.9f;
+    float beta2 = 0.999f;
+    float epsilon = 1e-8f;
+    float l1_strength = 0.0f;
+    float l2_strength = 0.0f;
+};
+
 class AdamOptimizer : public Optimizer {
 public:
-    AdamOptimizer(float learningRate = 0.001f, float beta1 = 0.9f, float beta2 = 0.999f,
-                    float epsilon = 1e-8f, float l1_strength = 0.0f, float l2_strength = 0.0f)
-        : learningRate(learningRate), beta1(beta1), beta2(beta2), epsilon(epsilon), t(0),
-            l1_strength(l1_strength), l2_strength(l2_strength) {}
+    AdamOptimizer(AdamOptions options = {})
+        : learningRate(options.learningRate), beta1(options.beta1), beta2(options.beta2),
+          epsilon(options.epsilon), l1_strength(options.l1_strength), l2_strength(options.l2_strength), t(0) {}
 
     void optimize(const std::vector<std::reference_wrapper<Tensor>>& weights, const std::vector<std::reference_wrapper<Tensor>>& gradients, float learningRateOverride = -1.0f) override {
         if (weights.size() != gradients.size()) {
