@@ -5,36 +5,39 @@
 #include <numeric>
 #include <iostream>
 #include <sstream>
-#include "RandomEngine.hpp"
+#include <functional>
 #include "Shape.hpp"
+#include "RandomEngine.hpp"
 
+// Forward declaration for TensorOperations
 class TensorOperations;
 
-/*
-    Tensor class to represent a multi-dimensional array of floating-point numbers.
-    Performs element-wise operations and supports basic linear algebra operations.
-*/
+/**
+ * Tensor class represents a multi-dimensional array of floating-point numbers.
+ * It supports element-wise operations, linear algebra operations, and other tensor manipulations.
+ */
 class Tensor {
 public:
+    // Constructors
     Tensor();
-    Tensor(Shape dimensions);
-    Tensor(Shape dimensions, float value);
-    Tensor(Shape shape, std::vector<float> data);
-
+    explicit Tensor(Shape dimensions);
+    Tensor(Shape otherShape, float value);
+    Tensor(Shape otherShape, std::vector<float> data);
     Tensor(const Tensor& other) = default;
     Tensor(Tensor&& other) noexcept = default;
+
+    // Destructor
     ~Tensor() = default;
 
-    float& operator()(std::initializer_list<int> indices);
-    const float& operator()(std::initializer_list<int> indices) const;
-
-    const Shape& shape() const { return _shape; }
-    const std::vector<float>& getData() const { return data; }
-    std::vector<float>& getData() { return data; }
-
+    // Assignment operators
     Tensor& operator=(const Tensor& other) = default;
     Tensor& operator=(Tensor&& other) noexcept = default;
 
+    // Element access
+    float& operator()(std::initializer_list<int> indices);
+    const float& operator()(std::initializer_list<int> indices) const;
+
+    // Basic operations
     Tensor& operator+=(const Tensor& other);
     Tensor& operator-=(const Tensor& other);
     Tensor& operator*=(const Tensor& other);
@@ -50,91 +53,48 @@ public:
     Tensor operator*(float scalar) const;
     Tensor operator/(float scalar) const;
 
-    // Get the shape dimensions of the tensor.
+    // Shape and size
+    const Shape& shape() const { return _shape; }
     std::vector<int> size() const;
-
-    // Get the size of the tensor along the specified axis.
-    // Parameters:
-    // axis: The axis to get the size of
     int size(int axis) const;
 
-    // Basic toString implementation using osstringstream.
-    std::string toString() const;
-
-    // Compute the sum of the tensor across all axis.
-    float sum() const;
-
-    // Compute the sqrt of each value in the tensor.
-    Tensor sqrt() const;
-
-    // Compute the sum of the tensor along the specified axis.
-    // Parameters:
-    // axis: The axis to sum along
+    // Tensor manipulations
+    float sum () const;
     Tensor sum(int axis) const;
-    
-    // Transpose the tensor along the specified dimensions.
-    // Parameters:
-    // dim1: The first dimension to transpose
-    // dim2: The second dimension to transpose
+    Tensor sqrt() const;
+    Tensor apply(std::function<float(float)> op) const;
     void transpose(int dim1, int dim2);
-
-    // Reshape the tensor to the specified dimensions.
-    // Parameters:
-    // newShape: The dimensions of the new shape
     void reshape(const Shape& newShape);
-
-    // Reshape the tensor to the specified dimensions.
-    // Parameters:
-    // newShape: The dimensions of the new shape
     Tensor reshape(const Shape& newShape) const;
 
-    // Apply a function to each element of the tensor.
-    // Parameters:
-    // op: The function to apply
-    Tensor apply(std::function<float(float)> op) const;
-
-    // Reshape the tensor to the specified dimensions.
-    // Parameters:
-    // args: The dimensions of the new shape
     template<typename... Args>
     void reshape(Args... args) {
         _shape = Shape{args...};
         reshape(_shape);
     }
 
-    // Fill the tensor with a specific value.
-    // Parameters:
-    // value: The value to fill the tensor with
+    // Initialization and data management
     void fill(float value);
-
-    // Fill the tensor with random values in the range [min, max].
-    // Parameters:
-    // min: The minimum value of the range
-    // max: The maximum value of the range
     void randomize(float min, float max);
-
-    // Print the tensor to the console.
+    const std::vector<float>& getData() const { return data; }
+    std::vector<float>& getData() { return data; }
+    std::string toString() const;
     void print() const;
 
-    // To-be-implemented: GPU support through CUDA API.
+    // GPU support (to be implemented)
     void toGPU();
     void toCPU();
     bool isOnGPU() const;
 
-    // Element-wise operations.
-    // Parameters:
-    // other: The tensor to perform the operation with
-    void add(const Tensor& other);
-    void subtract(const Tensor& other);
-
-    friend class TensorOperations;
+    // Friends and helpers
     friend std::ostream& operator<<(std::ostream& os, const Tensor& tensor);
+    friend class TensorOperations;
 
 private:
     Shape _shape;
     std::vector<float> data;
-    float* d_data; // Pointer to GPU memory
-    bool onGPU;
+    float* d_data = nullptr;
+    bool onGPU = false;
 
     void allocateGPUMemory();
     void freeGPUMemory();
@@ -143,40 +103,16 @@ private:
 
     void swap(Tensor& other) noexcept;
 
+    void checkCompatibility(const Tensor& other) const;
     std::vector<int> getBroadcastShape(const Tensor& other) const;
     std::vector<int> getBroadcastShape(const Shape& newShape) const;
-    void checkCompatibility(const Tensor& other) const;
     void applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op, Tensor* result) const;
 };
 
-/*
-
-Inverse operators for scalar-tensor operations.
-
-*/
-
-inline Tensor operator+(float scalar, const Tensor& tensor) {
-    return tensor + scalar; 
-}
-
-inline Tensor operator*(float scalar, const Tensor& tensor) {
-    return tensor * scalar;
-}
-
-inline Tensor operator-(float scalar, const Tensor& tensor) {
-    Tensor result(tensor.shape());
-    for (size_t i = 0; i < tensor.getData().size(); ++i) {
-        result.getData()[i] = scalar - tensor.getData()[i];
-    }
-    return result;
-}
-
-inline Tensor operator/(float scalar, const Tensor& tensor) {
-    Tensor result(tensor.shape());  
-    for (size_t i = 0; i < tensor.getData().size(); ++i) {
-        result.getData()[i] = scalar / tensor.getData()[i];
-    }
-    return result;
-}
+// Scalar-Tensor operations
+Tensor operator+(float scalar, const Tensor& tensor);
+Tensor operator*(float scalar, const Tensor& tensor);
+Tensor operator-(float scalar, const Tensor& tensor);
+Tensor operator/(float scalar, const Tensor& tensor);
 
 #endif // TENSOR_HPP

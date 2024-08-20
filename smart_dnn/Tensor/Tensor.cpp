@@ -9,7 +9,7 @@ INITIALISATION CONSTRUCTORS
 
 */
 
-Tensor::Tensor() : _shape(), data(), d_data(nullptr), onGPU(false) {}
+Tensor::Tensor() : Tensor(Shape(), 0.0f) {}
 
 Tensor::Tensor(Shape otherShape)
     : _shape(std::move(otherShape)), data(_shape.size(), 0.0f), d_data(nullptr), onGPU(false) {}
@@ -198,14 +198,6 @@ void Tensor::print() const {
 TENSOR MATHEMATIC FUNCTIONS
 
 */
-
-void Tensor::add(const Tensor& other){
-    *this += other;
-}
-
-void Tensor::subtract(const Tensor& other){
-    *this -= other;
-}
 
 Tensor Tensor::sqrt() const{
     Tensor result(_shape);
@@ -450,3 +442,28 @@ std::vector<int> Tensor::getBroadcastShape(const Shape& newShape) const {
 void Tensor::checkCompatibility(const Tensor& other) const {
     getBroadcastShape(other);
 }
+
+Tensor operator+(float scalar, const Tensor& tensor) {
+    return tensor + scalar; 
+}
+
+Tensor operator*(float scalar, const Tensor& tensor) {
+    return tensor * scalar;
+}
+
+Tensor operator-(float scalar, const Tensor& tensor) {
+    Tensor result(tensor.shape());
+    for (size_t i = 0; i < tensor.getData().size(); ++i) {
+        result.getData()[i] = scalar - tensor.getData()[i];
+    }
+    return result;
+}
+
+Tensor operator/(float scalar, const Tensor& tensor) {
+    Tensor result(tensor.shape());  
+    for (size_t i = 0; i < tensor.getData().size(); ++i) {
+        result.getData()[i] = scalar / tensor.getData()[i];
+    }
+    return result;
+}
+
