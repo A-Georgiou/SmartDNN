@@ -37,13 +37,10 @@ model.train(dataset.first, dataset.second, epochs, learningRate);
 -   **Loss Functions**: Implements Mean Squared Error (MSE) for regression tasks.
 -   **Activation Functions**: Includes popular activation functions like Softmax, Sigmoid, Tanh, ReLU, and Leaky ReLU.
 
-## Roadmap
+## Example Models
 
--   **Extended Layer Support**: Upcoming support for additional layers, including Convolutional, Recurrent, and more.
--   **Advanced Network Architectures**: Flexible and customizable network architectures with user-friendly APIs.
--   **GPU Acceleration**: Future integration of CUDA for efficient GPU-based training and inference.
--   **Comprehensive Documentation**: Detailed documentation and examples to accelerate your development process.
-
+- [Simple Linear Regression model with dataset generator](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/SimpleLinearRegressionModel.cpp) - [Fully Connected Layer, ReLU, Mean Squared Error Loss, Adam Optimizer]
+- [Convolutional Neural Network for training MNist Dataset](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/MNistModel.cpp) - [Convolutional 2D Layer, ReLU, Max Pooling 2D Layer, Flatten Layer, Softmax, Categorical Cross Entropy Loss, Adam Optimizer]
 
 ## Installation
 
@@ -70,6 +67,13 @@ To create your first model and run using docker, follow these steps:
 3. Build the Docker Image by running the command `docker build -f .docker/Dockerfile -t smartdnn-app .`
 
 4. Run the project with the command `docker run --rm -it smartdnn-app`
+
+## Roadmap
+
+-   **Extended Layer Support**: Upcoming support for additional layers, including Convolutional, Recurrent, and more.
+-   **Advanced Network Architectures**: Flexible and customizable network architectures with user-friendly APIs.
+-   **GPU Acceleration**: Future integration of CUDA for efficient GPU-based training and inference.
+-   **Comprehensive Documentation**: Detailed documentation and examples to accelerate your development process.
 
 ## Contributing
 
