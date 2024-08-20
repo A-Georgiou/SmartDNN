@@ -8,6 +8,10 @@ class ActivationLayer : public Layer {
 public:
     ActivationLayer(Activation* activation) : activation(activation) {}
 
+    ~ActivationLayer() {
+        delete activation;
+    }
+
     Tensor forward(Tensor& input) override {
         this->input = input;
         return activation->forward(input);

@@ -1,3 +1,6 @@
+#ifndef ADAM_OPTIMIZER_HPP
+#define ADAM_OPTIMIZER_HPP
+
 #include <unordered_map>
 #include "../Tensor.hpp"
 #include "Optimizer.hpp"
@@ -80,3 +83,6 @@ private:
     std::unordered_map<size_t, Tensor> m; // First moment estimate
     std::unordered_map<size_t, Tensor> v; // Second moment estimate
 };
+
+
+#endif // ADAM_OPTIMIZER_HPP

@@ -121,6 +121,14 @@ class TensorOperations {
         throw std::invalid_argument("Invalid tensor ranks for dot product.");
     }
 
+    static Tensor reshape(const Tensor& tensor, const Shape& newShape) {
+        if (tensor.shape().size() != newShape.size()) {
+            throw std::invalid_argument("New shape must have the same number of elements as the original tensor");
+        }
+
+        return {newShape, tensor.getData()};
+    }
+
     private:
 
         // Helper class to restore the original shape of a tensor

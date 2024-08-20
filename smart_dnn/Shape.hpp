@@ -58,7 +58,7 @@ private:
     void validateDimensions() const {
         for (int dim : dimensions) {
             if (dim < 0) {
-                throw std::invalid_argument("Dimensions must be non-negative integers.");
+                throw std::invalid_argument("Dimensions must be non-negative integers. Got: " + toString());
             }
         }
     }
