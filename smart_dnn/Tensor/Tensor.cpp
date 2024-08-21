@@ -49,7 +49,7 @@ std::ostream& operator<<(std::ostream& os, const Tensor& tensor){
     os << "Tensor Shape: " << tensor.shape() << std::endl;
     int nDims = tensor.shape().rank();
     std::vector<int> indices(nDims, 0);
-    std::vector<float> data = tensor.getData();
+    const auto& data = tensor.getData();
     std::stack<int> bracketStack;
 
     for (int i = 0; i < data.size(); ++i) {
@@ -143,25 +143,29 @@ Tensor& Tensor::operator/=(float scalar) {
 }
 
 Tensor Tensor::operator+(const Tensor& other) const {
-    Tensor result;
+    Shape resultShape(getBroadcastShape(other));
+    Tensor result(resultShape);
     applyElementWiseOperation(other, std::plus<float>(), &result);
     return result;
 }
 
 Tensor Tensor::operator-(const Tensor& other) const {
-    Tensor result;
+    Shape resultShape(getBroadcastShape(other));
+    Tensor result(resultShape);
     applyElementWiseOperation(other, std::minus<float>(), &result);
     return result;
 }
 
 Tensor Tensor::operator*(const Tensor& other) const {
-    Tensor result;
+    Shape resultShape(getBroadcastShape(other));
+    Tensor result(resultShape);
     applyElementWiseOperation(other, std::multiplies<float>(), &result);
     return result;
 }
 
 Tensor Tensor::operator/(const Tensor& other) const {
-    Tensor result;
+    Shape resultShape(getBroadcastShape(other));
+    Tensor result(resultShape);
     applyElementWiseOperation(other, std::divides<float>(), &result);
     return result;
 }
@@ -307,16 +311,15 @@ Tensor Tensor::reshape(const Shape& newShape) const {
         std::to_string(_shape.size()) + " != " + std::to_string(newShape.size()));
     }
 
-    Tensor reshapedTensor(newShape, this->data);
-    return reshapedTensor;
+    return Tensor(newShape, data);  
 }
 
 Tensor Tensor::apply(std::function<float(float)> op) const {
-        Tensor result(_shape, this->data);
+        Tensor result(_shape);  // No initial copy
         for (size_t i = 0; i < data.size(); ++i) {
-            result.data[i] = op(data[i]); 
+            result.data[i] = op(data[i]);
         }
-        return result; 
+        return result;
     }
 
 /*
@@ -376,11 +379,6 @@ void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(
     checkCompatibility(other);
     Shape resultShape{getBroadcastShape(other)};
     bool inPlace = (result == this);
-
-    if (!inPlace) {
-        result->_shape = Shape(resultShape);
-        result->data.resize(result->_shape.size());
-    }
 
     // Precompute strides for flattening indices
     std::vector<int> strides1(_shape.rank());
