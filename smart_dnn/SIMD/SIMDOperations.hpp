@@ -1,9 +1,9 @@
 #ifndef SIMD_OPERATIONS_HPP
 #define SIMD_OPERATIONS_HPP
 
+#include "../Tensor.hpp"
 #include "SIMDTypes.hpp"
 #include "SIMDSelection.hpp"
-#include "../Tensor.hpp"
 
 template<typename SIMDType>
 struct SIMDOperations {
@@ -595,6 +595,7 @@ struct SIMDOperations<NEON> {
         for (; i < a.getData().size(); ++i) {
             result.getData()[i] = a.getData()[i] / scalar;
         }
+    }
 
     static void sqrt(const Tensor& a, Tensor& result) {
         size_t i = 0;

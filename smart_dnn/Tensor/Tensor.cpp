@@ -2,7 +2,6 @@
 #include "../TensorOperations.hpp"
 #include "../Debugging/Logger.hpp"
 #include <utility>
-
 #include "SIMD/SIMDOperations.hpp"
 
 /*
@@ -173,7 +172,6 @@ Tensor Tensor::operator/(const Tensor& other) const {
     applyElementWiseOperation(other, result, '/');
     return result;
 }
-
 
 Tensor Tensor::operator+(float scalar) const{
     Tensor result(_shape);
