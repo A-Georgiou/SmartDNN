@@ -12,3 +12,4 @@ lib/
 CTestTestfile.cmake
 RunTests
 build/
+.datasets/
