@@ -1,0 +1,18 @@
+function(check_and_set_flag flag_name macro_name)
+    if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm*|aarch64*")
+        check_cxx_compiler_flag(${flag_name} ${macro_name})
+        if(${macro_name})
+            add_compile_options(${flag_name})
+            add_definitions(-D${macro_name})
+        endif()
+    endif()
+endfunction()
+
+check_and_set_flag("-mavx512f" HAS_MAVX512F)
+check_and_set_flag("-mavx2" HAS_MAVX2)
+check_and_set_flag("-msse4.2" HAS_MSSE4_2)
+
+# Automatically define NEON support on ARM architectures (e.g., Apple Silicon M1/M2)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm*|aarch64*")
+    add_definitions(-DHAS_MFPU_NEON)
+endif()

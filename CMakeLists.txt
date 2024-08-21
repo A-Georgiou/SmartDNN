@@ -4,6 +4,9 @@ project(SmartDNN)
 set(CMAKE_CXX_STANDARD 17)
 
 include_directories(smart_dnn)
+include(CheckCXXCompilerFlag)
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+include(SIMDDetection)
 
 add_executable(SmartDNN
     smart_dnn/Tensor/Tensor.cpp
