@@ -2,6 +2,7 @@
 #include "../TensorOperations.hpp"
 #include "../Debugging/Logger.hpp"
 #include <utility>
+
 #include "SIMD/SIMDOperations.hpp"
 
 /*
@@ -176,33 +177,25 @@ Tensor Tensor::operator/(const Tensor& other) const {
 
 Tensor Tensor::operator+(float scalar) const{
     Tensor result(_shape);
-    for (int i = 0; i < result._shape.size(); ++i) {
-        result.data[i] = data[i] + scalar;
-    }
+    SIMDOperations<SIMDType>::add(*this, scalar, result);
     return result;
 }
 
 Tensor Tensor::operator-(float scalar) const{
     Tensor result(_shape);
-    for (int i = 0; i < result._shape.size(); ++i) {
-        result.data[i] = data[i] - scalar;
-    }
+    SIMDOperations<SIMDType>::sub(*this, scalar, result);
     return result;
 }
 
 Tensor Tensor::operator*(float scalar) const{
     Tensor result(_shape);
-    for (int i = 0; i < result._shape.size(); ++i) {
-        result.data[i] = data[i] * scalar;
-    }
+    SIMDOperations<SIMDType>::mul(*this, scalar, result);
     return result;
 }
 
 Tensor Tensor::operator/(float scalar) const{
     Tensor result(_shape);
-    for (int i = 0; i < result._shape.size(); ++i) {
-        result.data[i] = data[i] / scalar;
-    }
+    SIMDOperations<SIMDType>::div(*this, scalar, result);
     return result;
 }
 
@@ -236,9 +229,7 @@ TENSOR MATHEMATIC FUNCTIONS
 
 Tensor Tensor::sqrt() const{
     Tensor result(_shape);
-    for (int i = 0; i < _shape.size(); ++i) {
-        result.data[i] = std::sqrt(data[i]);
-    }
+    SIMDOperations<SIMDType>::sqrt(*this, result);
     return result;
 }
 
@@ -389,49 +380,18 @@ void Tensor::applyElementWiseOperation(const Tensor& other, Tensor& result, char
         result.data.resize(result._shape.size());
     }
 
-    size_t simdWidth = SIMDOperations<DefaultSIMD>::width();
     size_t resultSize = resultShape.size();
 
-    for (size_t i = 0; i < resultSize; i += simdWidth) {
-        size_t flatIdx1 = 0;
-        size_t flatIdx2 = 0;
-
-        // Calculate flat indices with broadcasting logic
-        for (size_t j = 0; j < resultShape.rank(); ++j) {
-            if (_shape[j] != 1) {
-                flatIdx1 += (i / _shape[j]) % _shape[j];
-            }
-            if (other.shape()[j] != 1) {
-                flatIdx2 += (i / other.shape()[j]) % other.shape()[j];
-            }
-        }
-
-        if (operation == '+') {
-            SIMDOperations<DefaultSIMD>::add(*this, other, result);
-        } else if (operation == '-') {
-            SIMDOperations<DefaultSIMD>::sub(*this, other, result);
-        } else if (operation == '*') {
-            SIMDOperations<DefaultSIMD>::mul(*this, other, result);
-        } else if (operation == '/') {
-            SIMDOperations<DefaultSIMD>::div(*this, other, result);
-        }
-
-        // Handle the remaining elements without SIMD
-        for (size_t k = i + simdWidth; k < resultSize; ++k) {
-            if (operation == '+') {
-                result.data[k] = data[flatIdx1] + other.data[flatIdx2];
-            } else if (operation == '-') {
-                result.data[k] = data[flatIdx1] - other.data[flatIdx2];
-            } else if (operation == '*') {
-                result.data[k] = data[flatIdx1] * other.data[flatIdx2];
-            } else if (operation == '/') {
-                result.data[k] = data[flatIdx1] / other.data[flatIdx2];
-            }
-        }
+    if (operation == '+') {
+        SIMDOperations<SIMDType>::add(*this, other, result);
+    } else if (operation == '-') {
+        SIMDOperations<SIMDType>::sub(*this, other, result);
+    } else if (operation == '*') {
+        SIMDOperations<SIMDType>::mul(*this, other, result);
+    } else if (operation == '/') {
+        SIMDOperations<SIMDType>::div(*this, other, result);
     }
 }
-
-
 
 std::vector<int> Tensor::getBroadcastShape(const Tensor& other) const {
     return getBroadcastShape(other.shape());

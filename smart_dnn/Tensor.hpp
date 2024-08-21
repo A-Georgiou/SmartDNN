@@ -8,7 +8,6 @@
 #include <functional>
 #include "Shape.hpp"
 #include "RandomEngine.hpp"
-#include "SIMD/SIMDSelection.hpp"
 
 // Forward declaration for TensorOperations
 class TensorOperations;
@@ -45,6 +44,8 @@ public:
     // Element access
     float& operator()(std::initializer_list<int> indices);
     const float& operator()(std::initializer_list<int> indices) const;
+
+    float& operator[](int index){ return data[index]; };
 
     // Basic operations
     Tensor& operator+=(const Tensor& other);

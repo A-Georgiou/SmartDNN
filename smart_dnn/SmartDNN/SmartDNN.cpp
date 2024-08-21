@@ -1,6 +1,7 @@
 #include "SmartDNN.hpp"
 #include "../Debugging/Logger.hpp"
 #include "../TensorOperations.hpp"
+#include <chrono>
 
 SmartDNN::SmartDNN() {
     lossFunction = nullptr;
@@ -26,10 +27,16 @@ void SmartDNN::compile(Loss* loss, Optimizer* optimizer) {
 }
 
 void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets, int epochs, float learningRate) {
+    
+
     for (int epoch = 0; epoch < epochs; ++epoch) {
         float totalLoss = 0.0f;
 
         for (size_t i = 0; i < inputs.size(); ++i) {
+            std::cout << "Training on sample " << i << std::endl;
+            // Start measuring time
+            auto start = std::chrono::high_resolution_clock::now();
+
             Tensor prediction = inputs[i];
             for (Layer* layer : layers) {
                 prediction = layer->forward(prediction);
@@ -45,6 +52,14 @@ void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor
             for (Layer* layer : layers) {
                 layer->updateWeights(*optimizer);
             }
+            // Stop measuring time
+            auto end = std::chrono::high_resolution_clock::now();
+
+            // Calculate the duration
+            std::chrono::duration<double> duration = end - start;
+
+            // Output the duration in seconds
+            std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
         }
         std::cout << "Epoch " << epoch << " - Loss: " << totalLoss / inputs.size() << std::endl;
     }
