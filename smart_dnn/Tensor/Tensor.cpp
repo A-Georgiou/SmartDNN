@@ -2,6 +2,7 @@
 #include "../TensorOperations.hpp"
 #include "../Debugging/Logger.hpp"
 #include <utility>
+#include "SIMD/SIMDOperations.hpp"
 
 /*
 
@@ -25,6 +26,12 @@ Tensor::Tensor(Shape otherShape, std::vector<float> data)
                                     std::to_string(_shape.size()));
     }
 }
+
+static Tensor ones(std::initializer_list<int> dimensions) {
+    Shape shape(dimensions);
+    return Tensor(shape, 1.0f);
+}
+
 
 float& Tensor::operator()(std::initializer_list<int> indices) {
         return data[TensorOperations::flattenIndex(indices, _shape)];
@@ -95,22 +102,22 @@ LOGIC OPERATORS OVERLOADING
 */
 
 Tensor& Tensor::operator+=(const Tensor& other) {
-    applyElementWiseOperation(other, std::plus<float>(), this);
+    applyElementWiseOperation(other, *this, '+');
     return *this;
 }
 
 Tensor& Tensor::operator-=(const Tensor& other) {
-    applyElementWiseOperation(other, std::minus<float>(), this);
+    applyElementWiseOperation(other, *this, '-');
     return *this;
 }
 
 Tensor& Tensor::operator*=(const Tensor& other) {
-    applyElementWiseOperation(other, std::multiplies<float>(), this);
+    applyElementWiseOperation(other, *this, '*');
     return *this;
 }
 
 Tensor& Tensor::operator/=(const Tensor& other) {
-    applyElementWiseOperation(other, std::divides<float>(), this);
+    applyElementWiseOperation(other, *this, '/');
     return *this;
 }
 
@@ -144,25 +151,25 @@ Tensor& Tensor::operator/=(float scalar) {
 
 Tensor Tensor::operator+(const Tensor& other) const {
     Tensor result;
-    applyElementWiseOperation(other, std::plus<float>(), &result);
+    applyElementWiseOperation(other, result, '+');
     return result;
 }
 
 Tensor Tensor::operator-(const Tensor& other) const {
     Tensor result;
-    applyElementWiseOperation(other, std::minus<float>(), &result);
+    applyElementWiseOperation(other, result, '-');
     return result;
 }
 
 Tensor Tensor::operator*(const Tensor& other) const {
     Tensor result;
-    applyElementWiseOperation(other, std::multiplies<float>(), &result);
+    applyElementWiseOperation(other, result, '*');
     return result;
 }
 
 Tensor Tensor::operator/(const Tensor& other) const {
     Tensor result;
-    applyElementWiseOperation(other, std::divides<float>(), &result);
+    applyElementWiseOperation(other, result, '/');
     return result;
 }
 
@@ -372,71 +379,58 @@ ADDITIONAL ELEMENT WISE OPERATIONS
 
 */
 
-void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op, Tensor* result) const {
+void Tensor::applyElementWiseOperation(const Tensor& other, Tensor& result, char operation) const {
     checkCompatibility(other);
     Shape resultShape{getBroadcastShape(other)};
-    bool inPlace = (result == this);
+    bool inPlace = (&result == this);
 
     if (!inPlace) {
-        result->_shape = Shape(resultShape);
-        result->data.resize(result->_shape.size());
+        result._shape = Shape(resultShape);
+        result.data.resize(result._shape.size());
     }
 
-    // Precompute strides for flattening indices
-    std::vector<int> strides1(_shape.rank());
-    std::vector<int> strides2(other.shape().rank());
-    std::vector<int> stridesResult(resultShape.rank());
+    size_t simdWidth = SIMDOperations<DefaultSIMD>::width();
+    size_t resultSize = resultShape.size();
 
-    strides1.back() = 1;
-    for (int i = _shape.rank() - 2; i >= 0; --i) {
-        strides1[i] = strides1[i + 1] * _shape[i + 1];
-    }
+    for (size_t i = 0; i < resultSize; i += simdWidth) {
+        size_t flatIdx1 = 0;
+        size_t flatIdx2 = 0;
 
-    strides2.back() = 1;
-    for (int i = other.shape().rank() - 2; i >= 0; --i) {
-        strides2[i] = strides2[i + 1] * other.shape()[i + 1];
-    }
-
-    stridesResult.back() = 1;
-    for (int i = resultShape.rank() - 2; i >= 0; --i) {
-        stridesResult[i] = stridesResult[i + 1] * resultShape[i + 1];
-    }
-
-    // Apply element-wise operation using strides
-    std::vector<int> indices(resultShape.rank(), 0);
-
-    for (int i = 0; i < resultShape.size(); ++i) {
-        int flatIdx1 = 0;
-        int flatIdx2 = 0;
-        int flatResultIdx = 0;
-
-        for (int j = 0; j < resultShape.rank(); ++j) {
-            flatResultIdx += indices[j] * stridesResult[j];
-
-            if (_shape.rank() > j) {
-                if (_shape[j] != 1) {
-                    flatIdx1 += indices[j] * strides1[j];
-                }
+        // Calculate flat indices with broadcasting logic
+        for (size_t j = 0; j < resultShape.rank(); ++j) {
+            if (_shape[j] != 1) {
+                flatIdx1 += (i / _shape[j]) % _shape[j];
             }
-
-            if (other.shape().rank() > j) {
-                if (other.shape()[j] != 1) {
-                    flatIdx2 += indices[j] * strides2[j];
-                }
+            if (other.shape()[j] != 1) {
+                flatIdx2 += (i / other.shape()[j]) % other.shape()[j];
             }
         }
 
-        result->data[flatResultIdx] = op(data[flatIdx1], other.data[flatIdx2]);
+        if (operation == '+') {
+            SIMDOperations<DefaultSIMD>::add(*this, other, result);
+        } else if (operation == '-') {
+            SIMDOperations<DefaultSIMD>::sub(*this, other, result);
+        } else if (operation == '*') {
+            SIMDOperations<DefaultSIMD>::mul(*this, other, result);
+        } else if (operation == '/') {
+            SIMDOperations<DefaultSIMD>::div(*this, other, result);
+        }
 
-        // Increment indices
-        for (int j = resultShape.rank() - 1; j >= 0; --j) {
-            if (++indices[j] < resultShape[j]) {
-                break;
+        // Handle the remaining elements without SIMD
+        for (size_t k = i + simdWidth; k < resultSize; ++k) {
+            if (operation == '+') {
+                result.data[k] = data[flatIdx1] + other.data[flatIdx2];
+            } else if (operation == '-') {
+                result.data[k] = data[flatIdx1] - other.data[flatIdx2];
+            } else if (operation == '*') {
+                result.data[k] = data[flatIdx1] * other.data[flatIdx2];
+            } else if (operation == '/') {
+                result.data[k] = data[flatIdx1] / other.data[flatIdx2];
             }
-            indices[j] = 0;
         }
     }
 }
+
 
 
 std::vector<int> Tensor::getBroadcastShape(const Tensor& other) const {

@@ -27,6 +27,13 @@ public:
     Tensor(Shape otherShape, std::vector<float> data);
     Tensor(const Tensor& other) = default;
     Tensor(Tensor&& other) noexcept = default;
+    
+    static Tensor ones (std::initializer_list<int> dimensions);
+    template<typename... Args>
+    static Tensor ones(Args... args) {
+        Shape shape({args...});
+        return Tensor(shape, 1.0f);
+    }
 
     // Destructor
     ~Tensor() = default;
@@ -113,7 +120,7 @@ private:
     void checkCompatibility(const Tensor& other) const;
     std::vector<int> getBroadcastShape(const Tensor& other) const;
     std::vector<int> getBroadcastShape(const Shape& newShape) const;
-    void applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op, Tensor* result) const;
+    void applyElementWiseOperation(const Tensor& other, Tensor& result, char operation) const;
 };
 
 // Scalar-Tensor operations
