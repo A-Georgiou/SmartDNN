@@ -38,7 +38,7 @@ int main() {
 
     AdamOptions adamOptions;
     adamOptions.learningRate = learningRate;
-    model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(adamOptions);
+    model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(adamOptions));
 
     // Download the MNist dataset from http://yann.lecun.com/exdb/mnist/
     std::string imagesPath = ".datasets/train-images-idx3-ubyte";
