@@ -6,10 +6,7 @@
 // Include the SIMD types that match the architecture
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
     // x86/64 Architecture
-    #if defined(HAS_MAVX512F)
-        #include <immintrin.h>
-        using DefaultSIMD = AVX512;
-    #elif defined(HAS_MAVX2)
+    #if defined(HAS_MAVX2)
         #include <immintrin.h>
         using DefaultSIMD = AVX2;
     #elif defined(HAS_MSSE4_2)
