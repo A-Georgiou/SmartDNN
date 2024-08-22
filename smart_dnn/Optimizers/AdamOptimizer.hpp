@@ -3,7 +3,7 @@
 
 #include <unordered_map>
 #include "../Tensor.hpp"
-#include "Optimizer.hpp"
+#include "../Optimizer.hpp"
 #include "../TensorOperations.hpp"
 
 struct AdamOptions {
