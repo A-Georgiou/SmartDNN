@@ -1,8 +1,8 @@
 #ifndef MSELOSS_HPP
 #define MSELOSS_HPP
 
-#include "Loss.hpp"
-#include "Tensor.hpp"
+#include "../Loss.hpp"
+#include "../Tensor.hpp"
 #include <cmath>
 
 class MSELoss : public Loss {

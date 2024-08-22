@@ -1,8 +1,8 @@
 #ifndef CATEGORICAL_CROSS_ENTROPY_LOSS_HPP
 #define CATEGORICAL_CROSS_ENTROPY_LOSS_HPP
 
-#include "Loss.hpp"
-#include "Tensor.hpp"
+#include "../Loss.hpp"
+#include "../Tensor.hpp"
 #include <cmath>
 
 class CategoricalCrossEntropyLoss : public Loss {
