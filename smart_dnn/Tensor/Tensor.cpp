@@ -1,6 +1,5 @@
 #include "../Tensor.hpp"
 #include "../TensorOperations.hpp"
-#include "../Debugging/Logger.hpp"
 #include <utility>
 #include <execution>
 /*
