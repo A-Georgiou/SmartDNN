@@ -3,6 +3,9 @@
 #include "../Debugging/Logger.hpp"
 #include <utility>
 #include <execution>
+
+#include "../smart_dnn/SIMD/SIMDOperations.hpp"
+
 /*
 
 INITIALISATION CONSTRUCTORS
@@ -120,22 +123,38 @@ Tensor& Tensor::operator/=(const Tensor& other) {
 }
 
 Tensor& Tensor::operator+=(float scalar) noexcept {
-    std::transform(data.begin(), data.end(), data.begin(), [scalar](float& val) { return val + scalar; });
+    if (data.size() > MIN_PARALLEL_SIZE) {
+        SIMDOperations<SIMDType>::add(*this, scalar, *this);
+    } else {
+        std::transform(data.begin(), data.end(), data.begin(), [scalar](float val) { return val + scalar; });
+    }
     return *this;
 }
 
 Tensor& Tensor::operator-=(float scalar) noexcept {
-    std::transform(data.begin(), data.end(), data.begin(), [scalar](float& val) { return val - scalar; });
+    if (data.size() > MIN_PARALLEL_SIZE) {
+        SIMDOperations<SIMDType>::sub(*this, scalar, *this);
+    } else {
+        std::transform(data.begin(), data.end(), data.begin(), [scalar](float val) { return val - scalar; });
+    }
     return *this;
 }
 
 Tensor& Tensor::operator*=(float scalar) noexcept {
-    std::transform(data.begin(), data.end(), data.begin(), [scalar](float& val) { return val * scalar; });
+    if (data.size() > MIN_PARALLEL_SIZE) {
+        SIMDOperations<SIMDType>::mul(*this, scalar, *this);
+    } else {
+        std::transform(data.begin(), data.end(), data.begin(), [scalar](float val) { return val * scalar; });
+    }
     return *this;
 }
 
 Tensor& Tensor::operator/=(float scalar) noexcept {
-    std::transform(data.begin(), data.end(), data.begin(), [scalar](float& val) { return val / scalar; });
+    if (data.size() > MIN_PARALLEL_SIZE) {
+        SIMDOperations<SIMDType>::div(*this, scalar, *this);
+    } else {
+        std::transform(data.begin(), data.end(), data.begin(), [scalar](float val) { return val / scalar; });
+    }
     return *this;
 }
 
@@ -222,7 +241,11 @@ TENSOR MATHEMATIC FUNCTIONS
 
 Tensor Tensor::sqrt() const{
     Tensor result(_shape);
-    std::transform(data.begin(), data.end(), result.data.begin(), [](float val) { return std::sqrt(val); });
+    if (data.size() > MIN_PARALLEL_SIZE) {
+        SIMDOperations<SIMDType>::sqrt(*this, result);
+    } else {
+        std::transform(data.begin(), data.end(), result.data.begin(), [](float val) { return std::sqrt(val); });
+    }
     return result;
 }
 
