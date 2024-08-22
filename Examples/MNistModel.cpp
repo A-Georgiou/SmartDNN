@@ -39,8 +39,8 @@ int main() {
     model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(AdamOptions{.learningRate = learningRate}));
 
     // Download the MNist dataset from http://yann.lecun.com/exdb/mnist/
-    std::string imagesPath = "/train-images.idx3-ubyte";
-    std::string labelsPath = "/train-labels.idx1-ubyte";
+    std::string imagesPath = ".datasets/train-images-idx3-ubyte";
+    std::string labelsPath = ".datasets/train-labels-idx1-ubyte";
 
     // Load your MNIST dataset here
     MNISTLoader dataLoader = MNISTLoader(imagesPath, labelsPath);
