@@ -36,7 +36,9 @@ int main() {
     model.addLayer(new FullyConnectedLayer(128, 10));           // Output layer with 10 neurons (for the 10 classes)
     model.addLayer(new ActivationLayer(new Softmax()));         // Softmax activation to produce class probabilities
 
-    model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(AdamOptions{.learningRate = learningRate}));
+    AdamOptions adamOptions;
+    adamOptions.learningRate = learningRate;
+    model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(adamOptions);
 
     // Download the MNist dataset from http://yann.lecun.com/exdb/mnist/
     std::string imagesPath = ".datasets/train-images-idx3-ubyte";

@@ -3,8 +3,6 @@
 #include "../Debugging/Logger.hpp"
 #include <utility>
 #include <execution>
-#include "SIMD/SIMDOperations.hpp"
-
 /*
 
 INITIALISATION CONSTRUCTORS
@@ -32,13 +30,6 @@ static Tensor ones(std::initializer_list<int> dimensions) {
     Shape shape(dimensions);
     return Tensor(shape, 1.0f);
 }
-
-
-static Tensor ones(std::initializer_list<int> dimensions) {
-    Shape shape(dimensions);
-    return Tensor(shape, 1.0f);
-}
-
 
 float& Tensor::operator()(std::initializer_list<int> indices){
         return data[TensorOperations::flattenIndex(indices, _shape)];

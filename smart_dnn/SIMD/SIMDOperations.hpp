@@ -344,7 +344,7 @@ struct SIMDOperations<AVX2> {
 // Specialization for SSE4.2
 #if defined(__SSE4_2__)
 template<>
-struct SIMDOperations<SSE4_2> {
+struct SIMDOperations<SSE42> {
     static constexpr size_t width() { return 4; }
 
     static void add(const Tensor& a, const Tensor& b, Tensor& result) {
