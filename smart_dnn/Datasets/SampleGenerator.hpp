@@ -17,8 +17,8 @@ std::pair<std::vector<Tensor>, std::vector<Tensor>> generateLinearDataset(int nu
 
         float y = 2.0f * x + 3.0f + noise_dist(gen);
 
-        Tensor input(Shape{1}, std::vector<float>{x}); 
-        Tensor target(Shape{1}, std::vector<float>{y});
+        Tensor input(Shape{1}, x); 
+        Tensor target(Shape{1}, y);
         inputs.push_back(input);
         targets.push_back(target);
     }

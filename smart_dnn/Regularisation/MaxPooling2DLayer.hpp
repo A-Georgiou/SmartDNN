@@ -6,6 +6,7 @@
 #include "../TensorOperations.hpp"
 #include <algorithm>
 #include <limits>
+#include "../TensorWrapper.hpp"
 
 class MaxPooling2DLayer : public Layer {
 public:
@@ -52,12 +53,18 @@ public:
     }
 
     Tensor backward(Tensor& gradOutput) override {
-        Tensor gradInput(input.shape(), 0.0f);
+        if(!input.valid()){
+            throw std::runtime_error("MaxPooling2DLayer: input tensor is not set");
+        }
 
-        int batchSize = input.shape()[0];
-        int inputChannels = input.shape()[1];
-        int inputHeight = input.shape()[2];
-        int inputWidth = input.shape()[3];
+        Tensor& tensorValue = *input;
+
+        Tensor gradInput(tensorValue.shape(), 0.0f);
+
+        int batchSize = tensorValue.shape()[0];
+        int inputChannels = tensorValue.shape()[1];
+        int inputHeight = tensorValue.shape()[2];
+        int inputWidth = tensorValue.shape()[3];
 
         int outputHeight = gradOutput.shape()[2];
         int outputWidth = gradOutput.shape()[3];
@@ -75,7 +82,7 @@ public:
                                 int ih = oh * stride + ph;
                                 int iw = ow * stride + pw;
                                 if (ih < inputHeight && iw < inputWidth) {
-                                    float val = input({n, ic, ih, iw});
+                                    float val = tensorValue({n, ic, ih, iw});
                                     if (val > maxVal) {
                                         maxVal = val;
                                         maxIh = ih;
@@ -99,7 +106,7 @@ public:
 private:
     int poolSize;
     int stride;
-    Tensor input;
+    TensorWrapper input;
 };
 
 #endif // MAX_POOLING_2D_LAYER_HPP

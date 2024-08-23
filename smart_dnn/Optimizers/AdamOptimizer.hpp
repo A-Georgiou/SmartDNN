@@ -5,6 +5,7 @@
 #include "../Tensor.hpp"
 #include "../Optimizer.hpp"
 #include "../TensorOperations.hpp"
+#include "../TensorWrapper.hpp" 
 
 struct AdamOptions {
     float learningRate = 0.001f;
@@ -40,15 +41,18 @@ public:
                 v[key] = Tensor(w.shape(), 0.0f);
             }
 
+            Tensor& m_v = *m[key];
+            Tensor& v_v = *v[key];
+
             // Update biased first moment estimate
-            m[key] = beta1 * m[key] + (1.0f - beta1) * g;
+            m[key] = beta1 * m_v + (1.0f - beta1) * g;
 
             // Update biased second moment estimate
-            v[key] = beta2 * v[key] + (1.0f - beta2) * g * g;
+            v[key] = beta2 * v_v + (1.0f - beta2) * g * g;
 
             // Compute bias-corrected first and second moment estimates
-            Tensor m_hat = m[key] / (1.0f - std::pow(beta1, t));
-            Tensor v_hat = v[key] / (1.0f - std::pow(beta2, t));
+            Tensor m_hat = m_v / (1.0f - std::pow(beta1, t));
+            Tensor v_hat = v_v / (1.0f - std::pow(beta2, t));
 
             // Apply L1 and L2 regularization
             if (l1_strength > 0.0f) {
@@ -80,8 +84,8 @@ private:
     float l1_strength;
     float l2_strength;
     
-    std::unordered_map<size_t, Tensor> m; // First moment estimate
-    std::unordered_map<size_t, Tensor> v; // Second moment estimate
+    std::unordered_map<size_t, TensorWrapper> m; // First moment estimate
+    std::unordered_map<size_t, TensorWrapper> v; // Second moment estimate
 };
 
 

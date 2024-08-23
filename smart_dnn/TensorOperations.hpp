@@ -121,6 +121,10 @@ class TensorOperations {
         throw std::invalid_argument("Invalid tensor ranks for dot product.");
     }
 
+    static Tensor reshape(const Tensor& tensor, const std::vector<int> newShape) {
+        return reshape(tensor, Shape(newShape));
+    }
+
     static Tensor reshape(const Tensor& tensor, const Shape& newShape) {
         if (tensor.shape().size() != newShape.size()) {
             throw std::invalid_argument("New shape must have the same number of elements as the original tensor");
@@ -166,8 +170,8 @@ class TensorOperations {
             }
 
             std::vector<float> resultData(matrix.shape()[0], 0.0f);
-            const float* vectorData = vector.getData().data();
-            const float* matrixData = matrix.getData().data();
+            const float* vectorData = vector.getData();
+            const float* matrixData = matrix.getData();
 
             int numRows = matrix.shape()[0];
             int numCols = vector.shape()[0];
@@ -180,13 +184,12 @@ class TensorOperations {
                 resultData[i] = sum;
             }
 
-            return {{matrix.shape()[0]}, resultData};
+            return {{matrix.shape()[0]}, resultData.data()};
         }
 
         static Tensor matmul2D(const Tensor& a, const Tensor& b) {
             if (a.shape()[1] != b.shape()[0]) {
-                throw std::invalid_argument("Invalid dimensions for matrix-matrix multiplication: The columns of a must equal the rows of b, but got A:" +
-                std::to_string(a.shape()[1]) + " and B:" + std::to_string(b.shape()[0]));
+                throw std::invalid_argument("Invalid dimensions for matrix-matrix multiplication");
             }
 
             std::vector<int> resultShape = {a.shape()[0], b.shape()[1]};
@@ -200,7 +203,7 @@ class TensorOperations {
                 }
             }
 
-            return {Shape(resultShape), resultData};
+            return {Shape(resultShape), resultData.data()};
         }
 
         // Batched matrix multiplication
@@ -213,15 +216,15 @@ class TensorOperations {
                 throw std::invalid_argument("Inner dimensions must match for batched matrix multiplication.");
             }
 
-            std::vector<int> aShape = a.shape().dimensions;
-            std::vector<int> bShape = b.shape().dimensions;
+            std::vector<int> aShape = a.shape().getDimensions();
+            std::vector<int> bShape = b.shape().getDimensions();
             std::vector<int> batchShape = getBroadcastShape(std::vector<int>(aShape.begin(), aShape.end()- 2),
                                                             std::vector<int>(bShape.begin(), bShape.end()- 2));
 
             batchShape.push_back(a.shape()[a.shape().rank() - 2]);
             batchShape.push_back(b.shape()[b.shape().rank() - 1]);
 
-            Tensor result(Shape(batchShape), std::vector<float>(Shape(batchShape).size(), 0.0f));
+            Tensor result{Shape(batchShape), 0.0f};
 
             for (int batch = 0; batch < result.shape().size() / (batchShape[batchShape.size() - 2] * batchShape[batchShape.size() - 1]); ++batch) {
                 for (int i = 0; i < batchShape[batchShape.size() - 2]; ++i) {
@@ -240,8 +243,6 @@ class TensorOperations {
 
             return result;
         }
-
-
 
     TensorOperations() = delete;
 };

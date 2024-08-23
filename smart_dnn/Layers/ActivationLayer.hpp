@@ -3,6 +3,7 @@
 
 #include "../Layer.hpp"
 #include "../Activation.hpp"
+#include <optional>
 
 class ActivationLayer : public Layer {
 public:
@@ -18,7 +19,10 @@ public:
     }
 
     Tensor backward(Tensor& gradOutput) override {
-        return activation->backward(input, gradOutput);
+        if (!input.has_value()) {
+            throw std::runtime_error("Backward called before forward");
+        }
+        return activation->backward(input.value(), gradOutput);
     }
 
     void updateWeights(Optimizer& optimizer) override {
@@ -27,7 +31,7 @@ public:
 
 private:
     Activation* activation;
-    Tensor input;
+    std::optional<Tensor> input;
 };
 
 #endif // ACTIVATION_LAYER_HPP
