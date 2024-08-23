@@ -256,6 +256,38 @@ Tensor Tensor::sqrt() const {
     return result;
 }
 
+Tensor Tensor::mean(int axis) const {
+    if (axis < 0 || axis >= _shape.rank()) {
+        throw std::out_of_range("Axis out of bounds");
+    }
+
+    std::vector<int> newShape = _shape.getDimensions();
+    newShape.erase(newShape.begin() + axis);
+
+    Tensor result(Shape(newShape), 0.0f);
+
+    for (int i = 0; i < _shape.size(); ++i) {
+        std::vector<int> indices = TensorOperations::getIndices(i, _shape);
+        indices.erase(indices.begin() + axis);
+        int flatIdx = TensorOperations::flattenIndex(indices, Shape(newShape));
+        result.data[flatIdx] += data[i];
+    }
+
+    result /= _shape[axis];
+    return result;
+}
+
+Tensor Tensor::var(int axis) const {
+    if (axis < 0 || axis >= _shape.rank()) {
+        throw std::out_of_range("Axis out of bounds");
+    }
+
+    Tensor mean = this->mean(axis);
+    Tensor squared = *this - mean;
+    squared *= squared;
+    return squared.mean(axis);
+}
+
 float Tensor::sum() const {
     return std::accumulate(data.get(), data.get() + _shape.size(), 0.0f);
 }

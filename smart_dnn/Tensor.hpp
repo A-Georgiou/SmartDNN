@@ -66,6 +66,8 @@ public:
     // Tensor manipulations
     float sum() const;
     Tensor sum(int axis) const;
+    Tensor mean(int axis) const;
+    Tensor var(int axis) const;
     Tensor sqrt() const;
     Tensor apply(std::function<float(float)> op) const;
     void transpose(int dim1, int dim2);

@@ -30,7 +30,7 @@ void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor
         float totalLoss = 0.0f;
 
         for (size_t i = 0; i < inputs.size(); ++i) {
-            Logger::log(Logger::Level::INFO, "Training on sample " + std::to_string(i));
+            Logger::log(Logger::Level::INFO, "Training on sample " + std::to_string(i) + "/" + std::to_string(inputs.size()));
             Tensor prediction = inputs[i];
             for (Layer* layer : layers) {
                 prediction = layer->forward(prediction);

@@ -6,19 +6,25 @@
 
 class TensorOperations {
     public:
-        template<typename... Args>
-        static Tensor ones(Args... args) {
-            Shape dimensions{args...};
-            return {dimensions, 1.0f};
-        }
+    template<typename... Args>
+    static Tensor ones(Args... args) {
+        Shape dimensions{args...};
+        return {dimensions, 1.0f};
+    }
 
-        static Tensor identity(int size) {
-            Tensor result{{size, size}};
-            for (int i = 0; i < size; ++i) {
-                result.data[i * size + i] = 1.0f;
-            }
-            return result;
+    template<typename... Args>
+    static Tensor zeros(Args... args) {
+        Shape dimensions{args...};
+        return {dimensions, 0.0f};
+    }
+
+    static Tensor identity(int size) {
+        Tensor result{{size, size}};
+        for (int i = 0; i < size; ++i) {
+            result.data[i * size + i] = 1.0f;
         }
+        return result;
+    }
 
     static void printTensor(const Tensor& tensor) {
         std::cout << tensor << std::endl;
