@@ -11,7 +11,7 @@ class CategoricalCrossEntropyLoss : public Loss {
 public:
     float compute(const Tensor& prediction, const Tensor& target) override {
         if (prediction.shape() != target.shape()) {
-            throw std::invalid_argument("Prediction and target shapes must match");
+            throw std::invalid_argument("Prediction and target shapes must match, mismatch: " + std::to_string(prediction.shape().size()) + " != " + std::to_string(target.shape().size()));
         }
 
         const float* predData = prediction.getData();

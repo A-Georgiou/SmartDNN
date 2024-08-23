@@ -127,7 +127,7 @@ class TensorOperations {
 
     static Tensor reshape(const Tensor& tensor, const Shape& newShape) {
         if (tensor.shape().size() != newShape.size()) {
-            throw std::invalid_argument("New shape must have the same number of elements as the original tensor");
+            throw std::invalid_argument("New shape must have the same number of elements as the original tensor, mismatch: tensor: " + std::to_string(tensor.shape().size()) + ", new shape: " + std::to_string(newShape.size()));
         }
 
         return {newShape, tensor.getData()};
@@ -189,7 +189,7 @@ class TensorOperations {
 
         static Tensor matmul2D(const Tensor& a, const Tensor& b) {
             if (a.shape()[1] != b.shape()[0]) {
-                throw std::invalid_argument("Invalid dimensions for matrix-matrix multiplication");
+                throw std::invalid_argument("Invalid dimensions for matrix-matrix multiplication, a: " + a.shape().toString() + ", b: " + b.shape().toString());
             }
 
             std::vector<int> resultShape = {a.shape()[0], b.shape()[1]};

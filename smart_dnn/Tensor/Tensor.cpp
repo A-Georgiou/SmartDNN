@@ -3,8 +3,6 @@
 #include <utility>
 #include <execution>
 
-#include <cblas.h>
-
 /*
 
 INITIALISATION CONSTRUCTORS
@@ -157,24 +155,22 @@ Tensor& Tensor::operator/=(const Tensor& other) {
 }
 
 Tensor& Tensor::operator+=(float scalar) noexcept {
-    cblas_saxpy(_shape.size(), 1.0f, &scalar, 0, data.get(), 1);
+    std::transform(data.get(), data.get() + _shape.size(), data.get(), [scalar](float x) { return x + scalar;});
     return *this;
 }
 
 Tensor& Tensor::operator-=(float scalar) noexcept {
-    float negScalar = -scalar;
-    cblas_saxpy(_shape.size(), 1.0f, &negScalar, 0, data.get(), 1);
+    std::transform(data.get(), data.get() + _shape.size(), data.get(), [scalar](float x) { return x - scalar;});
     return *this;
 }
 
 Tensor& Tensor::operator*=(float scalar) noexcept {
-    cblas_sscal(_shape.size(), scalar, data.get(), 1);
+    std::transform(data.get(), data.get() + _shape.size(), data.get(), [scalar](float x) { return x * scalar;});
     return *this;
 }
 
 Tensor& Tensor::operator/=(float scalar) noexcept {
-    float invScalar = 1.0f / scalar;
-    cblas_sscal(_shape.size(), invScalar, data.get(), 1);
+    std::transform(data.get(), data.get() + _shape.size(), data.get(), [scalar](float x) { return x / scalar;});
     return *this;
 }
 
@@ -208,31 +204,22 @@ Tensor Tensor::operator/(const Tensor& other) const {
 
 Tensor Tensor::operator+(float scalar) const noexcept {
     Tensor result(_shape, data.get());
-    cblas_saxpy(_shape.size(), 1.0f, &scalar, 0, result.getData(), 1);
-    return result;
+    return result += scalar;
 }
 
 Tensor Tensor::operator-(float scalar) const noexcept {
     Tensor result(_shape, data.get());
-    float negScalar = -scalar;
-    cblas_saxpy(_shape.size(), 1.0f, &negScalar, 0, result.getData(), 1);
-    return result;
+    return result -= scalar;
 }
 
 Tensor Tensor::operator*(float scalar) const noexcept {
     Tensor result(_shape);
-    for (int i = 0; i < _shape.size(); ++i) {
-        result.data[i] = data[i] * scalar;
-    }
-    return result;
+    return result *= scalar;
 }
 
 Tensor Tensor::operator/(float scalar) const noexcept {
     Tensor result(_shape);
-    for (int i = 0; i < _shape.size(); ++i) {
-        result.data[i] = data[i] / scalar;
-    }
-    return result;
+    return result /= scalar;
 }
 
 /*
@@ -270,8 +257,7 @@ Tensor Tensor::sqrt() const {
 }
 
 float Tensor::sum() const {
-    float sum = cblas_sdot(_shape.size(), this->getData(), 1, this->getData(), 0);
-    return sum;
+    return std::accumulate(data.get(), data.get() + _shape.size(), 0.0f);
 }
 
 Tensor Tensor::sum(int axis) const {
@@ -436,26 +422,7 @@ void BlasOperationOnTensor(const Tensor& tensor, const Tensor& other, Tensor* re
     const float* a = tensor.getData();
     const float* b = other.getData();
     float* c = result->getData();
-
-    if (op.target<std::plus<float>>()) {
-        cblas_scopy(size, a, 1, c, 1);
-        cblas_saxpy(size, 1.0f, b, 1, c, 1);
-    } 
-    else if (op.target<std::minus<float>>()) {
-        cblas_scopy(size, a, 1, c, 1);
-        cblas_saxpy(size, -1.0f, b, 1, c, 1);
-    } 
-    else if (op.target<std::multiplies<float>>()) {
-        std::transform(a, a + size, b, c, std::multiplies<float>());
-    } 
-    else if (op.target<std::divides<float>>()) {
-        std::transform(a, a + size, b, c, [](float x, float y) {
-            return (y != 0.0f) ? x / y : std::numeric_limits<float>::quiet_NaN();
-        });
-    } 
-    else {
-        std::transform(a, a + size, b, c, op);
-    }
+    std::transform(a, a + size, b, c, op);
 }
 
 void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op, Tensor* result) const {

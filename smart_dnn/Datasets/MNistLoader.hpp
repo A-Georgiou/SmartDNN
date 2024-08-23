@@ -74,7 +74,7 @@ private:
             Tensor label({batchSize, 10}, 0.0f);
             for (int j = 0; j < batchSize; ++j) { 
                 unsigned char digit = file.get();
-                label({j, digit}) = 1.0f;  // One-hot encoding
+                label({j, digit}) = 1.0f;
             }
             labels.push_back(label);
         }
