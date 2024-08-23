@@ -18,11 +18,11 @@ public:
     Conv2DLayer(int inputChannels, int outputChannels, int kernelHeight, int kernelWidth, int stride = 1, int padding = 0) 
         : kernelHeight(kernelHeight), kernelWidth(kernelWidth), stride(stride), padding(padding) {
         
-        weights = Tensor({outputChannels, inputChannels, kernelHeight, kernelWidth});
-        biases = Tensor({outputChannels, 1});
+        this->weights = Tensor({outputChannels, inputChannels, kernelHeight, kernelWidth});
+        this->biases = Tensor({outputChannels, 1});
 
-        weights.get().randomize(-1.0f, 1.0f);
-        biases.get().fill(0.0f);
+        (weights.get()).randomize(-1.0f, 1.0f);
+        (biases.get()).fill(0.0f);
     }
 
     Tensor forward(Tensor& input) override {
@@ -77,8 +77,6 @@ public:
         Tensor& inputTensor = (*input);
         Tensor& weightsTensor = (*weights);
         Tensor& biasesTensor = (*biases);
-        Tensor& biasGradTensor = (*biasGradients);
-        Tensor& weightGradTensor = (*weightGradients);
 
         Shape inputShape = inputTensor.shape();
         Shape weightsShape = weightsTensor.shape();
@@ -92,8 +90,10 @@ public:
         int outputHeight = (inputHeight - kernelHeight + 2 * padding) / stride + 1;
         int outputWidth = (inputWidth - kernelWidth + 2 * padding) / stride + 1;
 
-        weightGradTensor = Tensor(weightsShape);
-        biasGradTensor = Tensor(biasesTensor.shape());
+        weightGradients = Tensor(weightsShape);
+        biasGradients = Tensor(biasesTensor.shape());
+        Tensor weightGradTensor = (*weightGradients);
+        Tensor biasGradTensor = (*biasGradients);
         Tensor gradInput(inputShape);
 
         for (int n = 0; n < batchSize; ++n) {

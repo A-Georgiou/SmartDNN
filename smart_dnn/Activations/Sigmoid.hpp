@@ -1,7 +1,7 @@
 #ifndef SIGMOID_HPP
 #define SIGMOID_HPP
 
-#include "../smart_dnn/Activation.hpp"
+#include "..Activation.hpp"
 #include "../TensorOperations.hpp"
 
 class Sigmoid : public Activation {

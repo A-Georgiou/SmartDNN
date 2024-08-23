@@ -1,7 +1,7 @@
 #ifndef LEAKY_RELU_HPP
 #define LEAKY_RELU_HPP
 
-#include "../smart_dnn/Activation.hpp"
+#include "..Activation.hpp"
 #include "../Tensor.hpp"
 #include <algorithm>
 

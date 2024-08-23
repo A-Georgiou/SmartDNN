@@ -1,7 +1,7 @@
 #ifndef SOFTMAX_HPP
 #define SOFTMAX_HPP
 
-#include "../smart_dnn/Activation.hpp"
+#include "../Activation.hpp"
 #include "../Tensor.hpp"
 #include <cmath>
 #include <algorithm>

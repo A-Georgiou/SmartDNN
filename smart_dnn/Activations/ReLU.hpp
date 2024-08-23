@@ -1,7 +1,7 @@
 #ifndef RELU_HPP
 #define RELU_HPP
 
-#include "../smart_dnn/Activation.hpp"
+#include "../Activation.hpp"
 #include "../TensorOperations.hpp"
 
 class ReLU : public Activation {
