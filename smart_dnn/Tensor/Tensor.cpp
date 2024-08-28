@@ -3,7 +3,8 @@
 #include <utility>
 #include <execution>
 
-#include <cblas.h>
+#include "immintrin.h"
+
 /*
 
 INITIALISATION CONSTRUCTORS
@@ -11,25 +12,25 @@ INITIALISATION CONSTRUCTORS
 */
 
 Tensor::Tensor(Shape otherShape) noexcept
-    : _shape(std::move(otherShape)), data(new float[_shape.size()]{}), d_data(nullptr), onGPU(false) {}
+    : _shape(std::move(otherShape)), _data(new float[_shape.size()]{}), d_data(nullptr), onGPU(false) {}
 
 Tensor::Tensor(Shape otherShape, float value) noexcept
-    : _shape(std::move(otherShape)), data(new float[_shape.size()]), d_data(nullptr), onGPU(false) {
-    std::fill_n(data.get(), _shape.size(), value);
+    : _shape(std::move(otherShape)), _data(new float[_shape.size()]), d_data(nullptr), onGPU(false) {
+    std::fill_n(_data.get(), _shape.size(), value);
 }
 
 Tensor::Tensor(Shape otherShape, const float* inputData)
-    : _shape(std::move(otherShape)), data(new float[_shape.size()]), d_data(nullptr), onGPU(false) {
-    std::copy_n(inputData, _shape.size(), data.get());
+    : _shape(std::move(otherShape)), _data(new float[_shape.size()]), d_data(nullptr), onGPU(false) {
+    std::copy_n(inputData, _shape.size(), _data.get());
 }
 
 Tensor::Tensor(const Tensor& other)
-    : _shape(other._shape), data(new float[other._shape.size()]), d_data(nullptr), onGPU(false) {
-    std::copy_n(other.data.get(), _shape.size(), data.get());
+    : _shape(other._shape), _data(new float[other._shape.size()]), d_data(nullptr), onGPU(false) {
+    std::copy_n(other._data.get(), _shape.size(), _data.get());
 }
 
 Tensor::Tensor(Tensor&& other) noexcept
-    : _shape(std::move(other._shape)), data(std::move(other.data)), d_data(other.d_data), onGPU(other.onGPU) {
+    : _shape(std::move(other._shape)), _data(std::move(other._data )), d_data(other.d_data), onGPU(other.onGPU) {
     other.d_data = nullptr;
     other.onGPU = false;
 }
@@ -43,8 +44,8 @@ Tensor::~Tensor() {
 Tensor& Tensor::operator=(const Tensor& other) {
     if (this != &other) {
         _shape = other._shape;
-        data.reset(new float[_shape.size()]);
-        std::copy_n(other.data.get(), _shape.size(), data.get());
+        _data.reset(new float[_shape.size()]);
+        std::copy_n(other._data.get(), _shape.size(), _data.get());
         if (d_data) {
             freeGPUMemory();
         }
@@ -57,7 +58,7 @@ Tensor& Tensor::operator=(const Tensor& other) {
 Tensor& Tensor::operator=(Tensor&& other) noexcept {
     if (this != &other) {
         _shape = std::move(other._shape);
-        data = std::move(other.data);
+        _data = std::move(other._data);
         d_data = other.d_data;
         onGPU = other.onGPU;
         other.d_data = nullptr;
@@ -72,11 +73,11 @@ static Tensor ones(std::initializer_list<int> dimensions) {
 }
 
 float& Tensor::operator()(std::initializer_list<int> indices) {
-    return data[TensorOperations::flattenIndex(indices, _shape)];
+    return _data[TensorOperations::flattenIndex(indices, _shape)];
 }
 
 const float& Tensor::operator()(std::initializer_list<int> indices) const {
-    return data[TensorOperations::flattenIndex(indices, _shape)];
+    return _data[TensorOperations::flattenIndex(indices, _shape)];
 }
 
 inline std::vector<int> Tensor::size() const noexcept {
@@ -129,7 +130,7 @@ COPY AND MOVE OPERATORS OVERLOADING
 
 void Tensor::swap(Tensor& other) noexcept {
     std::swap(_shape, other._shape);
-    std::swap(data, other.data);
+    std::swap(_data, other._data);
     std::swap(d_data, other.d_data);
     std::swap(onGPU, other.onGPU);
 }
@@ -141,82 +142,85 @@ LOGIC OPERATORS OVERLOADING
 */
 
 Tensor& Tensor::operator+=(const Tensor& other) {
-    size_t size = data.size();
-    if (size != other.getData().size()) {
+    size_t size = _shape.size();
+    size_t other_size = other._shape.size();
+    if (size != other_size) {
         throw std::invalid_argument("Tensors must have the same shape");
     }
 
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
-        __m256 vec_a = _mm256_loadu_ps(&data[i]);
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
         __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
         __m256 result = _mm256_add_ps(vec_a, vec_b);
-        _mm256_storeu_ps(&data[i], result);
+        _mm256_storeu_ps(&_data[i], result);
     }
 
     for (; i < size; ++i) {
-        data[i] += other.getData()[i];
+        _data[i] += other.getData()[i];
     }
 
     return *this;
 }
 
 Tensor& Tensor::operator-=(const Tensor& other) {
-    size_t size = data.size();
-    if (size != other.getData().size()) {
+    size_t size = _shape.size();
+    size_t other_size = other._shape.size();
+    if (size != other_size) {
         throw std::invalid_argument("Tensors must have the same shape");
     }
 
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
-        __m256 vec_a = _mm256_loadu_ps(&data[i]);
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
         __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
         __m256 result = _mm256_sub_ps(vec_a, vec_b);
-        _mm256_storeu_ps(&data[i], result);
+        _mm256_storeu_ps(&_data[i], result);
     }
 
     for (; i < size; ++i) {
-        data[i] -= other.getData()[i];
+        _data[i] -= other.getData()[i];
     }
     return *this;
 }
 
 Tensor& Tensor::operator*=(const Tensor& other) {
-    size_t size = data.size();
-    if (size != other.getData().size()) {
+    size_t size = _shape.size();
+    size_t other_size = other._shape.size();
+    if (size != other_size) {
         throw std::invalid_argument("Tensors must have the same shape");
     }
-
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
-        __m256 vec_a = _mm256_loadu_ps(&data[i]);
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
         __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
         __m256 result = _mm256_mul_ps(vec_a, vec_b);
-        _mm256_storeu_ps(&data[i], result);
+        _mm256_storeu_ps(&_data[i], result);
     }
 
     for (; i < size; ++i) {
-        data[i] *= other.getData()[i];
+        _data[i] *= other.getData()[i];
     }
     return *this;
 }
 
 Tensor& Tensor::operator/=(const Tensor& other) {
-    size_t size = data.size();
-    if (size != other.getData().size()) {
+    size_t size = _shape.size();
+    size_t other_size = other._shape.size();
+    if (size != other_size) {
         throw std::invalid_argument("Tensors must have the same shape");
     }
 
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
-        __m256 vec_a = _mm256_loadu_ps(&data[i]);
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
         __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
         __m256 result = _mm256_div_ps(vec_a, vec_b);
-        _mm256_storeu_ps(&data[i], result);
+        _mm256_storeu_ps(&_data[i], result);
     }
 
     for (; i < size; ++i) {
-        data[i] /= other.getData()[i];
+        _data[i] /= other.getData()[i];
     }
 
     return *this;
@@ -225,24 +229,72 @@ Tensor& Tensor::operator/=(const Tensor& other) {
 
 // Optimised scalar addition using AVX2 SIMD instructions
 Tensor& Tensor::operator+=(float scalar) noexcept {
-    cblas_saxpy(_shape.size(), 1.0f, &scalar, 0, data.get(), 1);
+    size_t size = _shape.size();
+    __m256 scalar8 = _mm256_set1_ps(scalar);
+
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
+        __m256 result = _mm256_add_ps(vec_a, scalar8);
+        _mm256_storeu_ps(&_data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        _data[i] += scalar;
+    }
+
     return *this;
 }
 
 Tensor& Tensor::operator-=(float scalar) noexcept {
-    float negScalar = -scalar;
-    cblas_saxpy(_shape.size(), 1.0f, &negScalar, 0, data.get(), 1);
+    size_t size = _shape.size();
+    __m256 scalar8 = _mm256_set1_ps(scalar);
+
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
+        __m256 result = _mm256_sub_ps(vec_a, scalar8);
+        _mm256_storeu_ps(&_data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        _data[i] -= scalar;
+    }
+
     return *this;
 }
 
 Tensor& Tensor::operator*=(float scalar) noexcept {
-    cblas_sscal(_shape.size(), scalar, data.get(), 1);
+    size_t size = _shape.size();
+    __m256 scalar8 = _mm256_set1_ps(scalar);
+
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
+        __m256 result = _mm256_mul_ps(vec_a, scalar8);
+        _mm256_storeu_ps(&_data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        _data[i] *= scalar;
+    }
     return *this;
 }
 
 Tensor& Tensor::operator/=(float scalar) noexcept {
-    float invScalar = 1.0f / scalar;
-    cblas_sscal(_shape.size(), invScalar, data.get(), 1);
+    size_t size = _shape.size();
+    __m256 scalar8 = _mm256_set1_ps(scalar);
+
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
+        __m256 result = _mm256_div_ps(vec_a, scalar8);
+        _mm256_storeu_ps(&_data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        _data[i] /= scalar;
+    }
     return *this;
 }
 
@@ -283,31 +335,26 @@ Tensor Tensor::operator/(const Tensor& other) const {
 }
 
 Tensor Tensor::operator+(float scalar) const noexcept {
-    Tensor result(_shape, data.get());
-    cblas_saxpy(_shape.size(), 1.0f, &scalar, 0, result.getData(), 1);
+    Tensor result(_shape, _data.get());
+    result += scalar;
     return result;
 }
 
 Tensor Tensor::operator-(float scalar) const noexcept {
-    Tensor result(_shape, data.get());
-    float negScalar = -scalar;
-    cblas_saxpy(_shape.size(), 1.0f, &negScalar, 0, result.getData(), 1);
+    Tensor result(_shape, _data.get());
+    result -= scalar;
     return result;
 }
 
 Tensor Tensor::operator*(float scalar) const noexcept {
-    Tensor result(_shape);
-    for (int i = 0; i < _shape.size(); ++i) {
-        result.data[i] = data[i] * scalar;
-    }
+    Tensor result(_shape, _data.get());
+    result *= scalar;
     return result;
 }
 
 Tensor Tensor::operator/(float scalar) const noexcept {
-    Tensor result(_shape);
-    for (int i = 0; i < _shape.size(); ++i) {
-        result.data[i] = data[i] / scalar;
-    }
+    Tensor result(_shape, _data.get());
+    result /= scalar;
     return result;
 }
 
@@ -318,12 +365,12 @@ UTILITY FUNCTIONS
 */
 
 void Tensor::fill(float value) noexcept {
-    std::fill_n(data.get(), _shape.size(), value);
+    std::fill_n(_data.get(), _shape.size(), value);
 }
 
 void Tensor::randomize(float min, float max) {
     for (int i = 0; i < _shape.size(); ++i) {
-        data[i] = RandomEngine::getRandRange(min, max);
+        _data[i] = RandomEngine::getRandRange(min, max);
     }
 }
 
@@ -337,17 +384,27 @@ TENSOR MATHEMATIC FUNCTIONS
 
 */
 
+// optimised sqrt using simd instructions
 Tensor Tensor::sqrt() const {
     Tensor result(_shape);
-    for (int i = 0; i < _shape.size(); ++i) {
-        result.data[i] = std::sqrt(data[i]);
+    size_t size = _shape.size();
+    size_t i;
+
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
+        __m256 output = _mm256_sqrt_ps(vec_a);
+        _mm256_storeu_ps(&result._data[i], output);
     }
+
+    for (; i < size; ++i) {
+        result._data[i] = std::sqrt(_data[i]);
+    }
+
     return result;
 }
 
 float Tensor::sum() const {
-    float sum = cblas_sdot(_shape.size(), this->getData(), 1, this->getData(), 0);
-    return sum;
+    return std::accumulate(_data.get(), _data.get() + _shape.size(), 0.0f);
 }
 
 Tensor Tensor::sum(int axis) const {
@@ -364,7 +421,7 @@ Tensor Tensor::sum(int axis) const {
         std::vector<int> indices = TensorOperations::getIndices(i, _shape);
         indices.erase(indices.begin() + axis);
         int flatIdx = TensorOperations::flattenIndex(indices, Shape(newShape));
-        result.data[flatIdx] += data[i];
+        result._data[flatIdx] += _data[i];
     }
 
     return result;
@@ -387,11 +444,11 @@ void Tensor::transpose(int dim1, int dim2) {
         std::vector<int> indices = TensorOperations::getIndices(i, _shape);
         std::swap(indices[dim1], indices[dim2]);
         int newIndex = TensorOperations::flattenIndex(indices, Shape(oldShape));
-        newData[newIndex] = data[i];
+        newData[newIndex] = _data[i];
     }
 
     _shape.setDimensions(oldShape);
-    data = std::move(newData);
+    _data = std::move(newData);
 }
 
 void Tensor::reshape(const Shape& newShape) {
@@ -419,7 +476,7 @@ Tensor Tensor::reshape(const Shape& newShape) const {
         std::to_string(_shape.size()) + " != " + std::to_string(newShape.size()));
     }
 
-    return Tensor(std::move(newShape), data.get());
+    return Tensor(std::move(newShape), _data.get());
 }
 
 Tensor Tensor::apply(std::function<float(float)> op) const {
@@ -427,11 +484,11 @@ Tensor Tensor::apply(std::function<float(float)> op) const {
     if (_shape.size() > MIN_PARALLEL_SIZE) {
         #pragma omp parallel for
         for (int i = 0; i < _shape.size(); ++i) {
-            result.data[i] = op(data[i]);
+            result._data[i] = op(_data[i]);
         }
     } else {
         for (int i = 0; i < _shape.size(); ++i) {
-            result.data[i] = op(data[i]);
+            result._data[i] = op(_data[i]);
         }
     }
 
@@ -503,43 +560,7 @@ Tensor Tensor::applyElementWiseOperation(const Tensor& other, std::function<floa
     return result;
 }
 
-void BlasOperationOnTensor(const Tensor& tensor, const Tensor& other, Tensor* result, const std::function<float(float, float)>& op) {
-    if (tensor.shape() != other.shape() || tensor.shape() != result->shape()) {
-        throw std::invalid_argument("All tensors must have the same shape for element-wise operations.");
-    }
-
-    size_t size = tensor.shape().size();
-    const float* a = tensor.getData();
-    const float* b = other.getData();
-    float* c = result->getData();
-
-    if (op.target<std::plus<float>>()) {
-        cblas_scopy(size, a, 1, c, 1);
-        cblas_saxpy(size, 1.0f, b, 1, c, 1);
-    } 
-    else if (op.target<std::minus<float>>()) {
-        cblas_scopy(size, a, 1, c, 1);
-        cblas_saxpy(size, -1.0f, b, 1, c, 1);
-    } 
-    else if (op.target<std::multiplies<float>>()) {
-        std::transform(a, a + size, b, c, std::multiplies<float>());
-    } 
-    else if (op.target<std::divides<float>>()) {
-        std::transform(a, a + size, b, c, [](float x, float y) {
-            return (y != 0.0f) ? x / y : std::numeric_limits<float>::quiet_NaN();
-        });
-    } 
-    else {
-        std::transform(a, a + size, b, c, op);
-    }
-}
-
 void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op, Tensor* result) const {
-    if (result->shape() == other.shape() && result->shape() == _shape) {
-        BlasOperationOnTensor(*this, other, result, op);
-        return;
-    }
-    
     Shape resultShape{getBroadcastShape(other)};
 
     auto strides1 = computeStrides(_shape.getDimensions());
@@ -569,7 +590,7 @@ void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(
             }
         }
 
-        result->data[flatResultIdx] = op(data[flatIdx1], other.data[flatIdx2]);
+        result->_data[flatResultIdx] = op(_data[flatIdx1], other._data[flatIdx2]);
 
         for (int j = resultShape.rank() - 1; j >= 0; --j) {
             if (++indices[j] < resultShape[j]) {

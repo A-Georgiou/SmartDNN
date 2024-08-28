@@ -34,8 +34,8 @@ public:
     float& operator()(std::initializer_list<int> indices);
     const float& operator()(std::initializer_list<int> indices) const;
 
-    float& operator[](int index){ return data[index]; };
-    const float& operator[](int index) const { return data[index]; };
+    float& operator[](int index){ return _data[index]; };
+    const float& operator[](int index) const { return _data[index]; };
 
     // Basic operations
     Tensor& operator+=(const Tensor& other);
@@ -81,8 +81,8 @@ public:
     // Initialization and data management
     void fill(float value) noexcept;
     void randomize(float min, float max);
-    const float* getData() const { return data.get(); }
-    float* getData() { return data.get(); }
+    const float* getData() const { return _data.get(); }
+    float* getData() { return _data.get(); }
     std::string toString() const;
     void print() const noexcept;
 
@@ -97,7 +97,7 @@ public:
 
 private:
     Shape _shape;
-    std::unique_ptr<float[]> data;
+    std::unique_ptr<float[]> _data;
     float* d_data = nullptr;
     bool onGPU = false;
 

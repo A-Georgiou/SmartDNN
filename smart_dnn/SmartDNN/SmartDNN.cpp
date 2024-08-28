@@ -30,30 +30,24 @@ void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor
     std::cout << "Begin training" << std::endl;
 
     for (int epoch = 0; epoch < epochs; ++epoch) {
-        std::cout << "Epoch " << epoch << std::endl;
         float totalLoss = 0.0f;
 
         for (size_t i = 0; i < inputs.size(); ++i) {
             Logger::log(Logger::Level::INFO, "Training on sample " + std::to_string(i));
             Tensor prediction = inputs[i];
             for (Layer* layer : layers) {
-                std::cout << "Forwarding through layer" << std::endl;
                 prediction = layer->forward(prediction);
             }
 
-            std::cout << "Computing loss" << std::endl;
             totalLoss += lossFunction->compute(prediction, targets[i]);
 
-            std::cout << "Computing gradient" << std::endl;
             Tensor gradOutput = lossFunction->gradient(prediction, targets[i]);
 
             for (int j = layers.size() - 1; j >= 0; --j) {
-                std::cout << "Backwarding through layer" << std::endl;
                 gradOutput = layers[j]->backward(gradOutput);
             }
 
             for (Layer* layer : layers) {
-                std::cout << "Updating weights" << std::endl;
                 layer->updateWeights(*optimizer);
             }
         }
