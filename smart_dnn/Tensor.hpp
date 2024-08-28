@@ -1,46 +1,34 @@
 #ifndef TENSOR_HPP
 #define TENSOR_HPP
 
-#include <vector>
-#include <numeric>
 #include <iostream>
 #include <sstream>
 #include <functional>
+#include <memory>
 #include "Shape.hpp"
 #include "RandomEngine.hpp"
 
 // Forward declaration for TensorOperations
 class TensorOperations;
 
-/**
- * Tensor class represents a multi-dimensional array of floating-point numbers.
- * It supports element-wise operations, linear algebra operations, and other tensor manipulations.
- */
 class Tensor {
     #define MIN_PARALLEL_SIZE 1000
 
 public:
     // Constructors
-    Tensor() noexcept;
+    Tensor() = delete;  // Disable default constructor
     explicit Tensor(Shape dimensions) noexcept;
     Tensor(Shape otherShape, float value) noexcept;
-    Tensor(Shape otherShape, std::vector<float> data);
-    Tensor(const Tensor& other) = default;
-    Tensor(Tensor&& other) noexcept = default;
-    
-    static Tensor ones (std::initializer_list<int> dimensions);
-    template<typename... Args>
-    static Tensor ones(Args... args) {
-        Shape shape({args...});
-        return Tensor(shape, 1.0f);
-    }
+    Tensor(Shape otherShape, const float* data);
+    Tensor(const Tensor& other);
+    Tensor(Tensor&& other) noexcept;
 
     // Destructor
-    ~Tensor() = default;
+    ~Tensor();
 
     // Assignment operators
-    Tensor& operator=(const Tensor& other) = default;
-    Tensor& operator=(Tensor&& other) noexcept = default;
+    Tensor& operator=(const Tensor& other);
+    Tensor& operator=(Tensor&& other) noexcept;
 
     // Element access
     float& operator()(std::initializer_list<int> indices);
@@ -70,13 +58,13 @@ public:
     Tensor operator*(float scalar) const noexcept;
     Tensor operator/(float scalar) const noexcept;
 
-    // Shape and size
-    const Shape& shape() const { return _shape; }
+    // Shape and size, return a copy so that the user cannot modify the shape.
+    const Shape shape() const { return _shape; }
     inline std::vector<int> size() const noexcept;
     inline int size(int axis) const;
 
     // Tensor manipulations
-    float sum () const;
+    float sum() const;
     Tensor sum(int axis) const;
     Tensor sqrt() const;
     Tensor apply(std::function<float(float)> op) const;
@@ -93,8 +81,8 @@ public:
     // Initialization and data management
     void fill(float value) noexcept;
     void randomize(float min, float max);
-    const std::vector<float>& getData() const { return data; }
-    std::vector<float>& getData() { return data; }
+    const float* getData() const { return data.get(); }
+    float* getData() { return data.get(); }
     std::string toString() const;
     void print() const noexcept;
 
@@ -109,7 +97,7 @@ public:
 
 private:
     Shape _shape;
-    std::vector<float> data;
+    std::unique_ptr<float[]> data;
     float* d_data = nullptr;
     bool onGPU = false;
 

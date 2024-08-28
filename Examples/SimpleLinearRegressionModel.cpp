@@ -29,7 +29,7 @@ int main() {
     model.evalMode();
 
     // Predict the output of the model for an input of 10.0f.
-    Tensor input(Shape{1}, std::vector<float>{10.0f});
+    Tensor input(Shape{1}, 10.0f);
 
     // Print the prediction.
     Tensor prediction = model.predict(input);

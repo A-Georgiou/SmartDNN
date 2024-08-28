@@ -1,7 +1,7 @@
 #ifndef TANH_HPP
 #define TANH_HPP
 
-#include "../smart_dnn/Activation.hpp"
+#include "../Activation.hpp"
 
 class Tanh : public Activation {
     public:

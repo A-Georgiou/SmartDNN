@@ -1,31 +1,69 @@
 #include "../Tensor.hpp"
 #include "../TensorOperations.hpp"
-#include "../Debugging/Logger.hpp"
 #include <utility>
 #include <execution>
-#include "immintrin.h"
 
+#include <cblas.h>
 /*
 
 INITIALISATION CONSTRUCTORS
 
 */
 
-Tensor::Tensor() noexcept : Tensor(Shape(), 0.0f) {}
-
 Tensor::Tensor(Shape otherShape) noexcept
-    : _shape(std::move(otherShape)), data(_shape.size(), 0.0f), d_data(nullptr), onGPU(false) {}
+    : _shape(std::move(otherShape)), data(new float[_shape.size()]{}), d_data(nullptr), onGPU(false) {}
 
 Tensor::Tensor(Shape otherShape, float value) noexcept
-    : _shape(std::move(otherShape)), data(_shape.size(), value), d_data(nullptr), onGPU(false) {}
+    : _shape(std::move(otherShape)), data(new float[_shape.size()]), d_data(nullptr), onGPU(false) {
+    std::fill_n(data.get(), _shape.size(), value);
+}
 
-Tensor::Tensor(Shape otherShape, std::vector<float> data)
-    : _shape(std::move(otherShape)), data(std::move(data)), d_data(nullptr), onGPU(false) {
-    if (this->data.size() != _shape.size()) {
-        throw std::invalid_argument("Data size does not match tensor shape size. Data size: " +
-                                    std::to_string(this->data.size()) + ", Shape size: " +
-                                    std::to_string(_shape.size()));
+Tensor::Tensor(Shape otherShape, const float* inputData)
+    : _shape(std::move(otherShape)), data(new float[_shape.size()]), d_data(nullptr), onGPU(false) {
+    std::copy_n(inputData, _shape.size(), data.get());
+}
+
+Tensor::Tensor(const Tensor& other)
+    : _shape(other._shape), data(new float[other._shape.size()]), d_data(nullptr), onGPU(false) {
+    std::copy_n(other.data.get(), _shape.size(), data.get());
+}
+
+Tensor::Tensor(Tensor&& other) noexcept
+    : _shape(std::move(other._shape)), data(std::move(other.data)), d_data(other.d_data), onGPU(other.onGPU) {
+    other.d_data = nullptr;
+    other.onGPU = false;
+}
+
+Tensor::~Tensor() {
+    if (d_data) {
+        freeGPUMemory();
     }
+}
+
+Tensor& Tensor::operator=(const Tensor& other) {
+    if (this != &other) {
+        _shape = other._shape;
+        data.reset(new float[_shape.size()]);
+        std::copy_n(other.data.get(), _shape.size(), data.get());
+        if (d_data) {
+            freeGPUMemory();
+        }
+        d_data = nullptr;
+        onGPU = false;
+    }
+    return *this;
+}
+
+Tensor& Tensor::operator=(Tensor&& other) noexcept {
+    if (this != &other) {
+        _shape = std::move(other._shape);
+        data = std::move(other.data);
+        d_data = other.d_data;
+        onGPU = other.onGPU;
+        other.d_data = nullptr;
+        other.onGPU = false;
+    }
+    return *this;
 }
 
 static Tensor ones(std::initializer_list<int> dimensions) {
@@ -33,37 +71,38 @@ static Tensor ones(std::initializer_list<int> dimensions) {
     return Tensor(shape, 1.0f);
 }
 
-float& Tensor::operator()(std::initializer_list<int> indices){
-        return data[TensorOperations::flattenIndex(indices, _shape)];
-    }
-
-const float& Tensor::operator()(std::initializer_list<int> indices) const {
-        return data[TensorOperations::flattenIndex(indices, _shape)];
-    }
-
-inline std::vector<int> Tensor::size() const noexcept {
-    return _shape.dimensions;
+float& Tensor::operator()(std::initializer_list<int> indices) {
+    return data[TensorOperations::flattenIndex(indices, _shape)];
 }
 
-inline int Tensor::size(int axis) const{
+const float& Tensor::operator()(std::initializer_list<int> indices) const {
+    return data[TensorOperations::flattenIndex(indices, _shape)];
+}
+
+inline std::vector<int> Tensor::size() const noexcept {
+    return _shape.getDimensions();
+}
+
+inline int Tensor::size(int axis) const {
     if (axis < 0 || axis >= _shape.rank()) {
         throw std::out_of_range("Axis out of bounds, max rank: " + std::to_string(_shape.rank()));
     }
-    return _shape.dimensions[axis];
+    return _shape[axis];
 }
 
-std::ostream& operator<<(std::ostream& os, const Tensor& tensor){
+std::ostream& operator<<(std::ostream& os, const Tensor& tensor) {
     os << "Tensor Shape: " << tensor.shape() << std::endl;
     int nDims = tensor.shape().rank();
     std::vector<int> indices(nDims, 0);
-    const auto& data = tensor.getData();
+    const float* data = tensor.getData();
+    int size = tensor.shape().size();
     std::stack<int> bracketStack;
 
-    for (int i = 0; i < data.size(); ++i) {
+    for (int i = 0; i < size; ++i) {
         os << data[i] << " ";
         indices[nDims - 1] += 1;
         for (int j = nDims - 1; j >= 0; --j) {
-            if (indices[j] == tensor.shape()[j]) {
+            if (indices[j] == (tensor.shape())[j]) {
                 indices[j] = 0;
                 if (j > 0) {
                     os << std::endl;
@@ -186,74 +225,26 @@ Tensor& Tensor::operator/=(const Tensor& other) {
 
 // Optimised scalar addition using AVX2 SIMD instructions
 Tensor& Tensor::operator+=(float scalar) noexcept {
-    __m256 scalar_vec = _mm256_set1_ps(scalar);
-
-    size_t len = data.size();
-    size_t i;
-    for (i = 0; i + 7 < len; i += 8){
-        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
-        __m256 result = _mm256_add_ps(vec_chunk, scalar_vec);
-        _mm256_storeu_ps(&data[i], result);
-    }
-
-    for (; i < len; ++i){
-        data[i] += scalar;
-    }
-
+    cblas_saxpy(_shape.size(), 1.0f, &scalar, 0, data.get(), 1);
     return *this;
 }
 
 Tensor& Tensor::operator-=(float scalar) noexcept {
-    __m256 scalar_vec = _mm256_set1_ps(scalar);
-
-    size_t len = data.size();
-    size_t i;
-    for (i = 0; i + 7 < len; i += 8){
-        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
-        __m256 result = _mm256_sub_ps(vec_chunk, scalar_vec);
-        _mm256_storeu_ps(&data[i], result);
-    }
-
-    for (; i < len; ++i){
-        data[i] -= scalar;
-    }
+    float negScalar = -scalar;
+    cblas_saxpy(_shape.size(), 1.0f, &negScalar, 0, data.get(), 1);
     return *this;
 }
 
 Tensor& Tensor::operator*=(float scalar) noexcept {
-    __m256 scalar_vec = _mm256_set1_ps(scalar);
-
-    size_t len = data.size();
-    size_t i;
-    for (i = 0; i + 7 < len; i += 8){
-        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
-        __m256 result = _mm256_mul_ps(vec_chunk, scalar_vec);
-        _mm256_storeu_ps(&data[i], result);
-    }
-
-    for (; i < len; ++i){
-        data[i] *= scalar;
-    }
+    cblas_sscal(_shape.size(), scalar, data.get(), 1);
     return *this;
 }
 
 Tensor& Tensor::operator/=(float scalar) noexcept {
-    __m256 scalar_vec = _mm256_set1_ps(scalar);
-
-    size_t len = data.size();
-    size_t i;
-    for (i = 0; i + 7 < len; i += 8){
-        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
-        __m256 result = _mm256_div_ps(vec_chunk, scalar_vec);
-        _mm256_storeu_ps(&data[i], result);
-    }
-
-    for (; i < len; ++i){
-        data[i] /= scalar;
-    }
+    float invScalar = 1.0f / scalar;
+    cblas_sscal(_shape.size(), invScalar, data.get(), 1);
     return *this;
 }
-
 
 Tensor Tensor::operator+(const Tensor& other) const {
     Shape resultShape(getBroadcastShape(other));
@@ -291,36 +282,32 @@ Tensor Tensor::operator/(const Tensor& other) const {
     return result;
 }
 
-
-Tensor Tensor::operator+(float scalar) const noexcept{
-    Tensor result(_shape);
-    
-    result += scalar;
-
+Tensor Tensor::operator+(float scalar) const noexcept {
+    Tensor result(_shape, data.get());
+    cblas_saxpy(_shape.size(), 1.0f, &scalar, 0, result.getData(), 1);
     return result;
 }
 
-Tensor Tensor::operator-(float scalar) const noexcept{
-    Tensor result(_shape);
-    
-    result -= scalar;
-
+Tensor Tensor::operator-(float scalar) const noexcept {
+    Tensor result(_shape, data.get());
+    float negScalar = -scalar;
+    cblas_saxpy(_shape.size(), 1.0f, &negScalar, 0, result.getData(), 1);
     return result;
 }
 
-Tensor Tensor::operator*(float scalar) const noexcept{
+Tensor Tensor::operator*(float scalar) const noexcept {
     Tensor result(_shape);
-    
-    result *= scalar;
-
+    for (int i = 0; i < _shape.size(); ++i) {
+        result.data[i] = data[i] * scalar;
+    }
     return result;
 }
 
-Tensor Tensor::operator/(float scalar) const noexcept{
+Tensor Tensor::operator/(float scalar) const noexcept {
     Tensor result(_shape);
-
-    result /= scalar;
-
+    for (int i = 0; i < _shape.size(); ++i) {
+        result.data[i] = data[i] / scalar;
+    }
     return result;
 }
 
@@ -330,17 +317,17 @@ UTILITY FUNCTIONS
 
 */
 
-void Tensor::fill(float value) noexcept{
-    std::fill(data.begin(), data.end(), value);
+void Tensor::fill(float value) noexcept {
+    std::fill_n(data.get(), _shape.size(), value);
 }
 
 void Tensor::randomize(float min, float max) {
-    for (auto& value : data) {
-        value = RandomEngine::getRandRange(min, max);
+    for (int i = 0; i < _shape.size(); ++i) {
+        data[i] = RandomEngine::getRandRange(min, max);
     }
 }
 
-void Tensor::print() const noexcept{
+void Tensor::print() const noexcept {
     std::cout << "Tensor: " << _shape << std::endl;
 }
 
@@ -350,25 +337,17 @@ TENSOR MATHEMATIC FUNCTIONS
 
 */
 
-Tensor Tensor::sqrt() const{
+Tensor Tensor::sqrt() const {
     Tensor result(_shape);
-
-    size_t i;
-    for (i = 0; i + 7 < data.size(); i += 8){
-        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
-        __m256 result_chunk = _mm256_sqrt_ps(vec_chunk);
-        _mm256_storeu_ps(&result.data[i], result_chunk);
-    }
-
-    for (; i < data.size(); ++i){
+    for (int i = 0; i < _shape.size(); ++i) {
         result.data[i] = std::sqrt(data[i]);
     }
-    
     return result;
 }
 
 float Tensor::sum() const {
-    return std::accumulate(data.begin(), data.end(), 0.0f);
+    float sum = cblas_sdot(_shape.size(), this->getData(), 1, this->getData(), 0);
+    return sum;
 }
 
 Tensor Tensor::sum(int axis) const {
@@ -376,7 +355,7 @@ Tensor Tensor::sum(int axis) const {
         throw std::out_of_range("Axis out of bounds");
     }
 
-    std::vector<int> newShape = _shape.dimensions;
+    std::vector<int> newShape = _shape.getDimensions();
     newShape.erase(newShape.begin() + axis);
 
     Tensor result(Shape(newShape), 0.0f);
@@ -390,18 +369,20 @@ Tensor Tensor::sum(int axis) const {
 
     return result;
 }
+
 void Tensor::transpose(int dim1, int dim2) {
     if (dim1 < 0 || dim1 >= _shape.rank() || dim2 < 0 || dim2 >= _shape.rank()) {
-        throw std::out_of_range("Dimensions out of bounds: (" + std::to_string(dim1) + ", " + std::to_string(dim2) + ") for shape with rank: " + std::to_string(_shape.rank()));
+        throw std::out_of_range("Dimensions out of bounds");
     }
 
     if (dim1 == dim2) return;
 
-    std::vector<int> oldShape = _shape.dimensions;
+    std::vector<int> oldShape = _shape.getDimensions();
     std::swap(oldShape[dim1], oldShape[dim2]);
 
-    std::vector<float> newData(data.size());
+    std::unique_ptr<float[]> newData(new float[_shape.size()]);
 
+    #pragma omp parallel for
     for (int i = 0; i < _shape.size(); ++i) {
         std::vector<int> indices = TensorOperations::getIndices(i, _shape);
         std::swap(indices[dim1], indices[dim2]);
@@ -409,14 +390,13 @@ void Tensor::transpose(int dim1, int dim2) {
         newData[newIndex] = data[i];
     }
 
-    _shape.dimensions = oldShape;
+    _shape.setDimensions(oldShape);
     data = std::move(newData);
 }
 
-
-void Tensor::reshape(const Shape& newShape){
-    if (newShape.dimensions.size() == 1 && newShape.dimensions[0] == -1){
-        _shape.dimensions = {_shape.size()};
+void Tensor::reshape(const Shape& newShape) {
+    if (newShape.getDimensions().size() == 1 && newShape[0] == -1) {
+        _shape = {_shape.size()};
         return;
     }
 
@@ -425,7 +405,7 @@ void Tensor::reshape(const Shape& newShape){
         std::to_string(_shape.size()) + " != " + std::to_string(newShape.size()));
     }
 
-    for (int num : newShape.dimensions) {
+    for (int num : newShape.getDimensions()) {
         if (num <= 0)
             throw std::invalid_argument("New dimensions must be positive");
     }
@@ -439,24 +419,24 @@ Tensor Tensor::reshape(const Shape& newShape) const {
         std::to_string(_shape.size()) + " != " + std::to_string(newShape.size()));
     }
 
-    return Tensor(std::move(newShape), data); 
+    return Tensor(std::move(newShape), data.get());
 }
 
 Tensor Tensor::apply(std::function<float(float)> op) const {
-        Tensor result(_shape);  // No initial copy
-        if (data.size() > MIN_PARALLEL_SIZE) {
-            #pragma omp parallel for
-            for (size_t i = 0; i < data.size(); ++i) {
-                result.data[i] = op(data[i]);
-            }
-        } else {
-            for (size_t i = 0; i < data.size(); ++i) {
-                result.data[i] = op(data[i]);
-            }
+    Tensor result(_shape);
+    if (_shape.size() > MIN_PARALLEL_SIZE) {
+        #pragma omp parallel for
+        for (int i = 0; i < _shape.size(); ++i) {
+            result.data[i] = op(data[i]);
         }
-
-        return result;
+    } else {
+        for (int i = 0; i < _shape.size(); ++i) {
+            result.data[i] = op(data[i]);
+        }
     }
+
+    return result;
+}
 
 /*
 
@@ -464,13 +444,13 @@ CPU / GPU MEMORY MANAGEMENT
 
 */
 
-void Tensor::toGPU(){
+void Tensor::toGPU() {
     if (!onGPU) {
         onGPU = true;
     }
 }
 
-void Tensor::toCPU(){
+void Tensor::toCPU() {
     if (onGPU) {
         onGPU = false;
     }
@@ -480,26 +460,25 @@ bool Tensor::isOnGPU() const {
     return onGPU;
 }
 
-
-void Tensor::allocateGPUMemory(){
+void Tensor::allocateGPUMemory() {
     if (!onGPU) {
         onGPU = true;
     }
 }
 
-void Tensor::freeGPUMemory(){
+void Tensor::freeGPUMemory() {
     if (onGPU) {
         onGPU = false;
     }
 }
 
-void Tensor::copyToGPU(){
+void Tensor::copyToGPU() {
     if (!onGPU) {
         allocateGPUMemory();
     }
 }
 
-void Tensor::copyToCPU(){
+void Tensor::copyToCPU() {
     if (onGPU) {
         onGPU = false;
     }
@@ -510,7 +489,6 @@ void Tensor::copyToCPU(){
 ADDITIONAL ELEMENT WISE OPERATIONS
 
 */
-
 inline std::vector<int> computeStrides(const std::vector<int>& shape) {
     std::vector<int> strides(shape.size(), 1);
     for (int i = shape.size() - 2; i >= 0; --i) {
@@ -519,24 +497,54 @@ inline std::vector<int> computeStrides(const std::vector<int>& shape) {
     return strides;
 }
 
-
 Tensor Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op) const {
-    Tensor result(Shape(getBroadcastShape(other)), data);
+    Tensor result(Shape(getBroadcastShape(other)));
     applyElementWiseOperation(other, op, &result);
     return result;
 }
 
+void BlasOperationOnTensor(const Tensor& tensor, const Tensor& other, Tensor* result, const std::function<float(float, float)>& op) {
+    if (tensor.shape() != other.shape() || tensor.shape() != result->shape()) {
+        throw std::invalid_argument("All tensors must have the same shape for element-wise operations.");
+    }
+
+    size_t size = tensor.shape().size();
+    const float* a = tensor.getData();
+    const float* b = other.getData();
+    float* c = result->getData();
+
+    if (op.target<std::plus<float>>()) {
+        cblas_scopy(size, a, 1, c, 1);
+        cblas_saxpy(size, 1.0f, b, 1, c, 1);
+    } 
+    else if (op.target<std::minus<float>>()) {
+        cblas_scopy(size, a, 1, c, 1);
+        cblas_saxpy(size, -1.0f, b, 1, c, 1);
+    } 
+    else if (op.target<std::multiplies<float>>()) {
+        std::transform(a, a + size, b, c, std::multiplies<float>());
+    } 
+    else if (op.target<std::divides<float>>()) {
+        std::transform(a, a + size, b, c, [](float x, float y) {
+            return (y != 0.0f) ? x / y : std::numeric_limits<float>::quiet_NaN();
+        });
+    } 
+    else {
+        std::transform(a, a + size, b, c, op);
+    }
+}
+
 void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(float, float)> op, Tensor* result) const {
-    if ((*result).shape() == other.shape()) {
-        std::transform(data.begin(), data.end(), other.data.begin(), (*result).data.begin(), op);
+    if (result->shape() == other.shape() && result->shape() == _shape) {
+        BlasOperationOnTensor(*this, other, result, op);
         return;
     }
     
     Shape resultShape{getBroadcastShape(other)};
 
-    auto strides1 = computeStrides(_shape.dimensions);
-    auto strides2 = computeStrides(other.shape().dimensions);
-    auto stridesResult = computeStrides(result->shape().dimensions);
+    auto strides1 = computeStrides(_shape.getDimensions());
+    auto strides2 = computeStrides(other.shape().getDimensions());
+    auto stridesResult = computeStrides(result->shape().getDimensions());
 
     std::vector<int> indices(resultShape.rank(), 0);
 
@@ -572,14 +580,13 @@ void Tensor::applyElementWiseOperation(const Tensor& other, std::function<float(
     }
 }
 
-
 std::vector<int> Tensor::getBroadcastShape(const Tensor& other) const {
     return getBroadcastShape(other.shape());
 }
 
 inline std::vector<int> Tensor::getBroadcastShape(const Shape& newShape) const {
-    std::vector<int> shape1 = _shape.dimensions;
-    std::vector<int> shape2 = newShape.dimensions;
+    std::vector<int> shape1 = _shape.getDimensions();
+    std::vector<int> shape2 = newShape.getDimensions();
     std::vector<int> resultShape;
 
     std::reverse(shape1.begin(), shape1.end());
@@ -609,15 +616,31 @@ Tensor operator*(float scalar, const Tensor& tensor) {
     return tensor * scalar;
 }
 
-Tensor operator-(float scalar, const Tensor& tensor) noexcept{
+Tensor operator-(float scalar, const Tensor& tensor) noexcept {
     Tensor result(tensor.shape());
-    std::transform(tensor.getData().begin(), tensor.getData().end(), result.getData().begin(), [scalar](float val) { return scalar - val; });
+    float* resultData = result.getData();
+    const float* tensorData = tensor.getData();
+    int size = tensor.shape().size();
+
+    #pragma omp parallel for
+    for (int i = 0; i < size; ++i) {
+        resultData[i] = scalar - tensorData[i];
+    }
+
     return result;
 }
 
-Tensor operator/(float scalar, const Tensor& tensor) noexcept{
-    Tensor result(tensor.shape());  
-    std::transform(tensor.getData().begin(), tensor.getData().end(), result.getData().begin(), [scalar](float val) { return scalar / val; });
+Tensor operator/(float scalar, const Tensor& tensor) noexcept {
+    Tensor result(tensor.shape());
+    float* resultData = result.getData();
+    const float* tensorData = tensor.getData();
+    int size = tensor.shape().size();
+
+    #pragma omp parallel for
+    for (int i = 0; i < size; ++i) {
+        resultData[i] = scalar / tensorData[i];
+    }
+
     return result;
 }
 

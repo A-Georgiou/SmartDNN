@@ -16,3 +16,6 @@ RunTests
 build/
 .datasets/
 .vs/
+generated/
+external/
+external/OpenBLAS

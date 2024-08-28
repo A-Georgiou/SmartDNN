@@ -3,6 +3,8 @@
 
 #include "../Layer.hpp"
 #include "../Activation.hpp"
+#include <optional>
+#include "../TensorWrapper.hpp"
 
 class ActivationLayer : public Layer {
 public:
@@ -18,7 +20,7 @@ public:
     }
 
     Tensor backward(Tensor& gradOutput) override {
-        return activation->backward(input, gradOutput);
+        return activation->backward(*input, gradOutput);
     }
 
     void updateWeights(Optimizer& optimizer) override {
@@ -27,7 +29,7 @@ public:
 
 private:
     Activation* activation;
-    Tensor input;
+    TensorWrapper input;
 };
 
 #endif // ACTIVATION_LAYER_HPP

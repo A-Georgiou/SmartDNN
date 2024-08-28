@@ -17,12 +17,6 @@ public:
     virtual void updateWeights(Optimizer& optimizer) = 0;
 
 protected:
-    Tensor weights;
-    Tensor weightGradients;
-    Tensor biases;
-    Tensor biasGradients;
-    Tensor input;
-
     bool trainingMode = true;
 };
 

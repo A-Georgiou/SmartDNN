@@ -1,39 +1,56 @@
 #ifndef SOFTMAX_HPP
 #define SOFTMAX_HPP
 
-#include "../smart_dnn/Activation.hpp"
+#include "../Activation.hpp"
 #include "../Tensor.hpp"
+#include <cmath>
+#include <algorithm>
+#include <numeric>
 
 class Softmax : public Activation {
 public:
     Tensor forward(const Tensor& input) const override {
-        Tensor output = input;
+        Tensor output(input.shape());
+        const float* inputData = input.getData();
+        float* outputData = output.getData();
+        int size = input.shape().size();
 
-        float maxVal = *std::max_element(output.getData().begin(), output.getData().end());
-        output -= maxVal;
-        output = output.apply([](float x) { return std::exp(x); });
-        float sum = std::accumulate(output.getData().begin(), output.getData().end(), 0.0f);
-        output /= sum;
+        float maxVal = *std::max_element(inputData, inputData + size);
+
+        float sum = 0.0f;
+        for (int i = 0; i < size; ++i) {
+            outputData[i] = std::exp(inputData[i] - maxVal);
+            sum += outputData[i];
+        }
+
+        for (int i = 0; i < size; ++i) {
+            outputData[i] /= sum;
+        }
 
         return output;
     }
 
     Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
-        Tensor output = forward(input);
+        Tensor forwardOutput = forward(input);
         Tensor gradInput(input.shape());
 
-        for (size_t i = 0; i < gradInput.getData().size(); ++i) {
-            float softmaxI = output.getData()[i];
+        const float* outputData = forwardOutput.getData();
+        const float* gradOutputData = gradOutput.getData();
+        float* gradInputData = gradInput.getData();
+        int size = input.shape().size();
+
+        for (int i = 0; i < size; ++i) {
+            float softmaxI = outputData[i];
             float gradient = 0.0f;
-            for (size_t j = 0; j < gradInput.getData().size(); ++j) {
-                float softmaxJ = output.getData()[j];
+            for (int j = 0; j < size; ++j) {
+                float softmaxJ = outputData[j];
                 if (i == j) {
-                    gradient += softmaxI * (1.0f - softmaxJ) * gradOutput.getData()[j];
+                    gradient += softmaxI * (1.0f - softmaxJ) * gradOutputData[j];
                 } else {
-                    gradient -= softmaxI * softmaxJ * gradOutput.getData()[j];
+                    gradient -= softmaxI * softmaxJ * gradOutputData[j];
                 }
             }
-            gradInput.getData()[i] = gradient;
+            gradInputData[i] = gradient;
         }
 
         return gradInput;

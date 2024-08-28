@@ -16,12 +16,12 @@ class FlattenLayer : public Layer {
                 return input;
             }
 
-            this->originalShape = input.shape();
+            this->originalShape = input.shape().getDimensions();
 
             int batchSize = input.shape()[0];
-            int flattenedSize = std::accumulate(input.shape().dimensions.begin() + 1, input.shape().dimensions.end(), 1, std::multiplies<int>());
+            int flattenedSize = input.shape().size();
             
-            return TensorOperations::reshape(input, {batchSize, flattenedSize});
+            return TensorOperations::reshape(input, Shape({batchSize, flattenedSize}));
         }
 
         Tensor backward(Tensor& gradOutput) override {
@@ -32,7 +32,7 @@ class FlattenLayer : public Layer {
             // No weights to update in a flatten layer.
         }
     private:
-        Shape originalShape;
+        std::vector<int> originalShape;
 };
 
 #endif // FLATTEN_LAYER_HPP
