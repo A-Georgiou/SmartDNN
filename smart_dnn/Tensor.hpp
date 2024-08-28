@@ -9,8 +9,6 @@
 #include "Shape.hpp"
 #include "RandomEngine.hpp"
 
-#include "SIMD/SIMDSelection.hpp"
-
 // Forward declaration for TensorOperations
 class TensorOperations;
 
@@ -19,8 +17,6 @@ class TensorOperations;
  * It supports element-wise operations, linear algebra operations, and other tensor manipulations.
  */
 class Tensor {
-    using SIMDType = DefaultSIMD;
-
     #define MIN_PARALLEL_SIZE 1000
 
 public:

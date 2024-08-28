@@ -3,8 +3,7 @@
 #include "../Debugging/Logger.hpp"
 #include <utility>
 #include <execution>
-
-#include "../smart_dnn/SIMD/SIMDOperations.hpp"
+#include "immintrin.h"
 
 /*
 
@@ -103,113 +102,225 @@ LOGIC OPERATORS OVERLOADING
 */
 
 Tensor& Tensor::operator+=(const Tensor& other) {
-    applyElementWiseOperation(other, std::plus<float>(), this);
+    size_t size = data.size();
+    if (size != other.getData().size()) {
+        throw std::invalid_argument("Tensors must have the same shape");
+    }
+
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&data[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
+        __m256 result = _mm256_add_ps(vec_a, vec_b);
+        _mm256_storeu_ps(&data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        data[i] += other.getData()[i];
+    }
+
     return *this;
 }
 
 Tensor& Tensor::operator-=(const Tensor& other) {
-    applyElementWiseOperation(other, std::minus<float>(), this);
-    return *this;
-}
+    size_t size = data.size();
+    if (size != other.getData().size()) {
+        throw std::invalid_argument("Tensors must have the same shape");
+    }
 
-Tensor& Tensor::operator*=(const Tensor& other) {
-    applyElementWiseOperation(other, std::multiplies<float>(), this);
-    return *this;
-}
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&data[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
+        __m256 result = _mm256_sub_ps(vec_a, vec_b);
+        _mm256_storeu_ps(&data[i], result);
+    }
 
-Tensor& Tensor::operator/=(const Tensor& other) {
-    applyElementWiseOperation(other, std::divides<float>(), this);
-    return *this;
-}
-
-Tensor& Tensor::operator+=(float scalar) noexcept {
-    if (data.size() > MIN_PARALLEL_SIZE) {
-        SIMDOperations<SIMDType>::add(*this, scalar, *this);
-    } else {
-        std::transform(data.begin(), data.end(), data.begin(), [scalar](float val) { return val + scalar; });
+    for (; i < size; ++i) {
+        data[i] -= other.getData()[i];
     }
     return *this;
 }
 
+Tensor& Tensor::operator*=(const Tensor& other) {
+    size_t size = data.size();
+    if (size != other.getData().size()) {
+        throw std::invalid_argument("Tensors must have the same shape");
+    }
+
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&data[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
+        __m256 result = _mm256_mul_ps(vec_a, vec_b);
+        _mm256_storeu_ps(&data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        data[i] *= other.getData()[i];
+    }
+    return *this;
+}
+
+Tensor& Tensor::operator/=(const Tensor& other) {
+    size_t size = data.size();
+    if (size != other.getData().size()) {
+        throw std::invalid_argument("Tensors must have the same shape");
+    }
+
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&data[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
+        __m256 result = _mm256_div_ps(vec_a, vec_b);
+        _mm256_storeu_ps(&data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        data[i] /= other.getData()[i];
+    }
+
+    return *this;
+}
+
+
+// Optimised scalar addition using AVX2 SIMD instructions
+Tensor& Tensor::operator+=(float scalar) noexcept {
+    __m256 scalar_vec = _mm256_set1_ps(scalar);
+
+    size_t len = data.size();
+    size_t i;
+    for (i = 0; i + 7 < len; i += 8){
+        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
+        __m256 result = _mm256_add_ps(vec_chunk, scalar_vec);
+        _mm256_storeu_ps(&data[i], result);
+    }
+
+    for (; i < len; ++i){
+        data[i] += scalar;
+    }
+
+    return *this;
+}
+
 Tensor& Tensor::operator-=(float scalar) noexcept {
-    if (data.size() > MIN_PARALLEL_SIZE) {
-        SIMDOperations<SIMDType>::sub(*this, scalar, *this);
-    } else {
-        std::transform(data.begin(), data.end(), data.begin(), [scalar](float val) { return val - scalar; });
+    __m256 scalar_vec = _mm256_set1_ps(scalar);
+
+    size_t len = data.size();
+    size_t i;
+    for (i = 0; i + 7 < len; i += 8){
+        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
+        __m256 result = _mm256_sub_ps(vec_chunk, scalar_vec);
+        _mm256_storeu_ps(&data[i], result);
+    }
+
+    for (; i < len; ++i){
+        data[i] -= scalar;
     }
     return *this;
 }
 
 Tensor& Tensor::operator*=(float scalar) noexcept {
-    if (data.size() > MIN_PARALLEL_SIZE) {
-        SIMDOperations<SIMDType>::mul(*this, scalar, *this);
-    } else {
-        std::transform(data.begin(), data.end(), data.begin(), [scalar](float val) { return val * scalar; });
+    __m256 scalar_vec = _mm256_set1_ps(scalar);
+
+    size_t len = data.size();
+    size_t i;
+    for (i = 0; i + 7 < len; i += 8){
+        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
+        __m256 result = _mm256_mul_ps(vec_chunk, scalar_vec);
+        _mm256_storeu_ps(&data[i], result);
+    }
+
+    for (; i < len; ++i){
+        data[i] *= scalar;
     }
     return *this;
 }
 
 Tensor& Tensor::operator/=(float scalar) noexcept {
-    if (data.size() > MIN_PARALLEL_SIZE) {
-        SIMDOperations<SIMDType>::div(*this, scalar, *this);
-    } else {
-        std::transform(data.begin(), data.end(), data.begin(), [scalar](float val) { return val / scalar; });
+    __m256 scalar_vec = _mm256_set1_ps(scalar);
+
+    size_t len = data.size();
+    size_t i;
+    for (i = 0; i + 7 < len; i += 8){
+        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
+        __m256 result = _mm256_div_ps(vec_chunk, scalar_vec);
+        _mm256_storeu_ps(&data[i], result);
+    }
+
+    for (; i < len; ++i){
+        data[i] /= scalar;
     }
     return *this;
 }
 
 
-
 Tensor Tensor::operator+(const Tensor& other) const {
     Shape resultShape(getBroadcastShape(other));
     Tensor result(resultShape);
-    applyElementWiseOperation(other, std::plus<float>(), &result);
+    
+    result += *this;
+
     return result;
 }
 
 Tensor Tensor::operator-(const Tensor& other) const {
     Shape resultShape(getBroadcastShape(other));
     Tensor result(resultShape);
-    applyElementWiseOperation(other, std::minus<float>(), &result);
+    
+    result -= *this;
+
     return result;
 }
 
 Tensor Tensor::operator*(const Tensor& other) const {
     Shape resultShape(getBroadcastShape(other));
     Tensor result(resultShape);
-    applyElementWiseOperation(other, std::multiplies<float>(), &result);
+    
+    result *= *this;
+
     return result;
 }
 
 Tensor Tensor::operator/(const Tensor& other) const {
     Shape resultShape(getBroadcastShape(other));
     Tensor result(resultShape);
-    applyElementWiseOperation(other, std::divides<float>(), &result);
+    
+    result /= *this;
+
     return result;
 }
 
 
 Tensor Tensor::operator+(float scalar) const noexcept{
     Tensor result(_shape);
-    std::transform(data.begin(), data.end(), result.data.begin(), [scalar](float val) { return val + scalar; });
+    
+    result += scalar;
+
     return result;
 }
 
 Tensor Tensor::operator-(float scalar) const noexcept{
     Tensor result(_shape);
-    std::transform(data.begin(), data.end(), result.data.begin(), [scalar](float val) { return val - scalar; });
+    
+    result -= scalar;
+
     return result;
 }
 
 Tensor Tensor::operator*(float scalar) const noexcept{
     Tensor result(_shape);
-    std::transform(data.begin(), data.end(), result.data.begin(), [scalar](float val) { return val * scalar; });
+    
+    result *= scalar;
+
     return result;
 }
 
 Tensor Tensor::operator/(float scalar) const noexcept{
     Tensor result(_shape);
-    std::transform(data.begin(), data.end(), result.data.begin(), [scalar](float val) { return val / scalar; });
+
+    result /= scalar;
+
     return result;
 }
 
@@ -241,16 +352,23 @@ TENSOR MATHEMATIC FUNCTIONS
 
 Tensor Tensor::sqrt() const{
     Tensor result(_shape);
-    if (data.size() > MIN_PARALLEL_SIZE) {
-        SIMDOperations<SIMDType>::sqrt(*this, result);
-    } else {
-        std::transform(data.begin(), data.end(), result.data.begin(), [](float val) { return std::sqrt(val); });
+
+    size_t i;
+    for (i = 0; i + 7 < data.size(); i += 8){
+        __m256 vec_chunk = _mm256_loadu_ps(&data[i]);
+        __m256 result_chunk = _mm256_sqrt_ps(vec_chunk);
+        _mm256_storeu_ps(&result.data[i], result_chunk);
     }
+
+    for (; i < data.size(); ++i){
+        result.data[i] = std::sqrt(data[i]);
+    }
+    
     return result;
 }
 
 float Tensor::sum() const {
-    return std::accumulate(data.begin(), data.end(), 0);
+    return std::accumulate(data.begin(), data.end(), 0.0f);
 }
 
 Tensor Tensor::sum(int axis) const {

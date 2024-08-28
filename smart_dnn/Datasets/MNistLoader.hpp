@@ -13,8 +13,11 @@ public:
         : imagesPath(imagesPath), labelsPath(labelsPath), batchSize(batchSize) {}
 
     std::pair<std::vector<Tensor>, std::vector<Tensor>> loadData() {
+        std::cout << "Loading MNIST dataset" << std::endl;
         std::vector<Tensor> images = loadImages();
+        std::cout << "Loaded images" << std::endl;
         std::vector<Tensor> labels = loadLabels();
+        std::cout << "Loaded labels" << std::endl;
         return {images, labels};
     }
 
