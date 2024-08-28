@@ -151,13 +151,13 @@ Tensor& Tensor::operator+=(const Tensor& other) {
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
         __m256 vec_a = _mm256_loadu_ps(&_data[i]);
-        __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
         __m256 result = _mm256_add_ps(vec_a, vec_b);
         _mm256_storeu_ps(&_data[i], result);
     }
 
     for (; i < size; ++i) {
-        _data[i] += other.getData()[i];
+        _data[i] += other._data[i];
     }
 
     return *this;
@@ -173,13 +173,13 @@ Tensor& Tensor::operator-=(const Tensor& other) {
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
         __m256 vec_a = _mm256_loadu_ps(&_data[i]);
-        __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
         __m256 result = _mm256_sub_ps(vec_a, vec_b);
         _mm256_storeu_ps(&_data[i], result);
     }
 
     for (; i < size; ++i) {
-        _data[i] -= other.getData()[i];
+        _data[i] -= other._data[i];
     }
     return *this;
 }
@@ -193,13 +193,13 @@ Tensor& Tensor::operator*=(const Tensor& other) {
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
         __m256 vec_a = _mm256_loadu_ps(&_data[i]);
-        __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
         __m256 result = _mm256_mul_ps(vec_a, vec_b);
         _mm256_storeu_ps(&_data[i], result);
     }
 
     for (; i < size; ++i) {
-        _data[i] *= other.getData()[i];
+        _data[i] *= other._data[i];
     }
     return *this;
 }
@@ -214,13 +214,13 @@ Tensor& Tensor::operator/=(const Tensor& other) {
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
         __m256 vec_a = _mm256_loadu_ps(&_data[i]);
-        __m256 vec_b = _mm256_loadu_ps(&other.getData()[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
         __m256 result = _mm256_div_ps(vec_a, vec_b);
         _mm256_storeu_ps(&_data[i], result);
     }
 
     for (; i < size; ++i) {
-        _data[i] /= other.getData()[i];
+        _data[i] /= other._data[i];
     }
 
     return *this;
@@ -300,38 +300,92 @@ Tensor& Tensor::operator/=(float scalar) noexcept {
 
 Tensor Tensor::operator+(const Tensor& other) const {
     Shape resultShape(getBroadcastShape(other));
-    Tensor result(resultShape);
-    
-    result += *this;
+    Tensor output(resultShape);
 
-    return result;
+    size_t size = _shape.size();
+    size_t other_size = other._shape.size();
+
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
+        __m256 result = _mm256_add_ps(vec_a, vec_b);
+        _mm256_storeu_ps(&output._data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        output._data[i] = _data[i] + other._data[i];
+    }
+
+    return output;
 }
+
 
 Tensor Tensor::operator-(const Tensor& other) const {
     Shape resultShape(getBroadcastShape(other));
-    Tensor result(resultShape);
+    Tensor output(resultShape);
     
-    result -= *this;
+    size_t size = _shape.size();
+    size_t other_size = other._shape.size();
 
-    return result;
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
+        __m256 result = _mm256_sub_ps(vec_a, vec_b);
+        _mm256_storeu_ps(&output._data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        output._data[i] = _data[i] - other._data[i];
+    }
+
+    return output;
 }
 
 Tensor Tensor::operator*(const Tensor& other) const {
     Shape resultShape(getBroadcastShape(other));
-    Tensor result(resultShape);
+    Tensor output(resultShape);
     
-    result *= *this;
+    size_t size = _shape.size();
+    size_t other_size = other._shape.size();
 
-    return result;
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
+        __m256 result = _mm256_mul_ps(vec_a, vec_b);
+        _mm256_storeu_ps(&output._data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        output._data[i] = _data[i] * other._data[i];
+    }
+
+    return output;
 }
 
 Tensor Tensor::operator/(const Tensor& other) const {
     Shape resultShape(getBroadcastShape(other));
-    Tensor result(resultShape);
+    Tensor output(resultShape);
     
-    result /= *this;
+    size_t size = _shape.size();
+    size_t other_size = other._shape.size();
 
-    return result;
+    size_t i;
+    for (i = 0; i + 7 < size; i += 8) {
+        __m256 vec_a = _mm256_loadu_ps(&_data[i]);
+        __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
+        __m256 result = _mm256_div_ps(vec_a, vec_b);
+        _mm256_storeu_ps(&output._data[i], result);
+    }
+
+    for (; i < size; ++i) {
+        output._data[i] = _data[i] / other._data[i];
+    }
+
+
+    return output;
 }
 
 Tensor Tensor::operator+(float scalar) const noexcept {

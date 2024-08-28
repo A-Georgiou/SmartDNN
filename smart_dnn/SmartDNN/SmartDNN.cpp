@@ -27,13 +27,12 @@ void SmartDNN::compile(Loss* loss, Optimizer* optimizer) {
 }
 
 void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets, int epochs, float learningRate) {
-    std::cout << "Begin training" << std::endl;
+    Logger::log(Logger::Level::INFO, "Training model with: " + std::to_string(epochs) + " epochs and learning rate " + std::to_string(learningRate));
 
     for (int epoch = 0; epoch < epochs; ++epoch) {
         float totalLoss = 0.0f;
 
         for (size_t i = 0; i < inputs.size(); ++i) {
-            Logger::log(Logger::Level::INFO, "Training on sample " + std::to_string(i));
             Tensor prediction = inputs[i];
             for (Layer* layer : layers) {
                 prediction = layer->forward(prediction);

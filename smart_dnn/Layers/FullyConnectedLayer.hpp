@@ -19,7 +19,7 @@ public:
 
     Tensor forward(Tensor& input) override {
         this->input = input;
-        Tensor output = TensorOperations::matmul(input, *weights);  
+        Tensor output = TensorOperations::matmul(input, *weights);
         output += *biases;
         return output;
     }
