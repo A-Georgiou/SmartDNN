@@ -6,6 +6,7 @@
 #include "../TensorOperations.hpp"
 #include "../Layer.hpp"
 #include "../TensorWrapper.hpp"
+#include "../Debugging/Logger.hpp"
 #include <vector>
 
 class FullyConnectedLayer : public Layer {

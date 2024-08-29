@@ -19,8 +19,8 @@ class FlattenLayer : public Layer {
             this->originalShape = input.shape().getDimensions();
 
             int batchSize = input.shape()[0];
-            int flattenedSize = input.shape().size();
-            
+            int flattenedSize = input.shape().size() / batchSize;
+
             return TensorOperations::reshape(input, Shape({batchSize, flattenedSize}));
         }
 

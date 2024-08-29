@@ -142,87 +142,94 @@ LOGIC OPERATORS OVERLOADING
 */
 
 Tensor& Tensor::operator+=(const Tensor& other) {
+    Shape resultShape(getBroadcastShape(other));
+    Tensor output(resultShape);
+
     size_t size = _shape.size();
     size_t other_size = other._shape.size();
-    if (size != other_size) {
-        throw std::invalid_argument("Tensors must have the same shape");
-    }
 
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
         __m256 vec_a = _mm256_loadu_ps(&_data[i]);
         __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
         __m256 result = _mm256_add_ps(vec_a, vec_b);
-        _mm256_storeu_ps(&_data[i], result);
+        _mm256_storeu_ps(&output._data[i], result);
     }
 
     for (; i < size; ++i) {
-        _data[i] += other._data[i];
+        output._data[i] = _data[i] + other._data[i];
     }
 
+    *this = output;
     return *this;
 }
 
 Tensor& Tensor::operator-=(const Tensor& other) {
+    Shape resultShape(getBroadcastShape(other));
+    Tensor output(resultShape);
+
     size_t size = _shape.size();
     size_t other_size = other._shape.size();
-    if (size != other_size) {
-        throw std::invalid_argument("Tensors must have the same shape");
-    }
 
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
         __m256 vec_a = _mm256_loadu_ps(&_data[i]);
         __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
         __m256 result = _mm256_sub_ps(vec_a, vec_b);
-        _mm256_storeu_ps(&_data[i], result);
+        _mm256_storeu_ps(&output._data[i], result);
     }
 
     for (; i < size; ++i) {
-        _data[i] -= other._data[i];
+        output._data[i] = _data[i] - other._data[i];
     }
+
+    *this = output;
     return *this;
 }
 
 Tensor& Tensor::operator*=(const Tensor& other) {
+    Shape resultShape(getBroadcastShape(other));
+    Tensor output(resultShape);
+
     size_t size = _shape.size();
     size_t other_size = other._shape.size();
-    if (size != other_size) {
-        throw std::invalid_argument("Tensors must have the same shape");
-    }
+
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
         __m256 vec_a = _mm256_loadu_ps(&_data[i]);
         __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
         __m256 result = _mm256_mul_ps(vec_a, vec_b);
-        _mm256_storeu_ps(&_data[i], result);
+        _mm256_storeu_ps(&output._data[i], result);
     }
 
     for (; i < size; ++i) {
-        _data[i] *= other._data[i];
+        output._data[i] = _data[i] * other._data[i];
     }
+
+    *this = output;
     return *this;
 }
 
 Tensor& Tensor::operator/=(const Tensor& other) {
+    Shape resultShape(getBroadcastShape(other));
+    Tensor output(resultShape);
+
     size_t size = _shape.size();
     size_t other_size = other._shape.size();
-    if (size != other_size) {
-        throw std::invalid_argument("Tensors must have the same shape");
-    }
 
     size_t i;
     for (i = 0; i + 7 < size; i += 8) {
         __m256 vec_a = _mm256_loadu_ps(&_data[i]);
         __m256 vec_b = _mm256_loadu_ps(&other._data[i]);
         __m256 result = _mm256_div_ps(vec_a, vec_b);
-        _mm256_storeu_ps(&_data[i], result);
+        _mm256_storeu_ps(&output._data[i], result);
     }
 
     for (; i < size; ++i) {
-        _data[i] /= other._data[i];
+        output._data[i] = _data[i] / other._data[i];
     }
 
+    *this = output;
     return *this;
 }
 

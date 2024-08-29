@@ -15,7 +15,7 @@ class TensorOperations {
         static Tensor identity(int size) {
             Tensor result{{size, size}};
             for (int i = 0; i < size; ++i) {
-                result._data[i * size + i] = 1.0f;
+                result.getData()[i * size + i] = 1.0f;
             }
             return result;
         }
