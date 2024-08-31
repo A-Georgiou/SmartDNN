@@ -2,36 +2,58 @@
 #define TENSOR_HPP
 
 #include "TensorData.hpp"
-#include "TensorArithmetic.hpp"
 #include "TensorOperations.hpp"
+#include "DeviceTypes.hpp"
 #include "Shape.hpp"
 
-template <typename T>
-class Tensor : public TensorArithmetic<T> {
-public:
-    explicit Tensor(Shape dimensions) noexcept : data(dimensions) {}
-    Tensor(Shape dimensions, T value) noexcept : data(dimensions, value) {}
-    Tensor(Shape dimensions, const T* dataArray) : data(dimensions, dataArray) {}
+namespace smart_dnn {
 
-    TensorData<T>& operator+=(const TensorData<T>& other) override {
-        TensorOperations<T>::add(data, other);
-        return data;
-    }
-    TensorData<T>& operator-=(const TensorData<T>& other) override {
-        TensorOperations<T>::subtract(data, other);
-        return data;
-    }
-    TensorData<T>& operator*=(const TensorData<T>& other) override {
-        TensorOperations<T>::multiply(data, other);
-        return data;
-    }
-    TensorData<T>& operator/=(const TensorData<T>& other) override {
-        TensorOperations<T>::divide(data, other);
-        return data;
-    }
+template <typename T, typename DeviceType>
+class Tensor<T, DeviceType> {
+public:
+    Tensor(Shape dimensions) noexcept;
+    Tensor(Shape dimensions, T value) noexcept;
+    Tensor(Shape dimensions, const T* dataArray);
+    Tensor(const Tensor& other);
+    Tensor(Tensor&& other) noexcept;
+
+    Tensor& operator=(const Tensor& other);
+    Tensor& operator=(Tensor&& other) noexcept = default;
+
+    Tensor& operator+=(const Tensor& other);
+    Tensor& operator-=(const Tensor& other);
+    Tensor& operator*=(const Tensor& other);
+    Tensor& operator/=(const Tensor& other);
+
+    Tensor& operator+=(T scalar);
+    Tensor& operator-=(T scalar);
+    Tensor& operator*=(T scalar);
+    Tensor& operator/=(T scalar);
+
+    Tensor operator+(const Tensor& other) const;
+    Tensor operator-(const Tensor& other) const;
+    Tensor operator*(const Tensor& other) const;
+    Tensor operator/(const Tensor& other) const;
+
+    Tensor operator+(T scalar) const;
+    Tensor operator-(T scalar) const;
+    Tensor operator*(T scalar) const;
+    Tensor operator/(T scalar) const;
+
+    Tensor operator-() const;
+
+    TensorData<T, DeviceType> getData() const noexcept;
+    Shape getShape() const noexcept;
+
+    bool operator==(const Tensor& other) const;
+    bool operator!=(const Tensor& other) const;
 
 private:
-    TensorData<T> data;
+    TensorData<T, DeviceType> data_;
 };
+
+} // namespace smart_dnn
+
+#include "Tensor.impl.hpp"
 
 #endif // TENSOR_HPP

@@ -5,7 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
-#include "../Tensor.hpp"
+#include "../Tensor/Tensor.hpp"
 
 class MNISTLoader {
 public:

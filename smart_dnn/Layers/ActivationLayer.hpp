@@ -4,7 +4,7 @@
 #include "../Layer.hpp"
 #include "../Activation.hpp"
 #include <optional>
-#include "../TensorWrapper.hpp"
+#include "../Tensor/TensorWrapper.hpp"
 
 class ActivationLayer : public Layer {
 public:

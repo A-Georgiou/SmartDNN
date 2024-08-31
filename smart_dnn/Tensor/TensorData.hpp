@@ -2,33 +2,45 @@
 #define TENSOR_DATA_HPP
 
 #include "Shape.hpp"
+#include "DeviceTypes.hpp"
 
+namespace smart_dnn {
+
+// General template declaration
+template <typename T, typename DeviceType>
+class TensorData;
+
+// Specialization for CPUDevice
 template <typename T>
-class TensorData {
+class TensorData<T, CPUDevice> {
 public:
     explicit TensorData(Shape dimensions) noexcept;
-    TensorData(const Shape& dimensions, T value) noexcept;
-    TensorData(const Shape& dimensions, const T[]& data);
-
-    // Copy and move constructors
+    TensorData(Shape dimensions, T value) noexcept;
+    TensorData(Shape dimensions, const T* data);
     TensorData(const TensorData& other);
-    TensorData(TensorData&& other) noexcept;
 
-    ~TensorData();
+    TensorData(TensorData&&) noexcept = default;
+    TensorData& operator=(const TensorData&);
+    TensorData& operator=(TensorData&&) noexcept = default;
+    ~TensorData() = default;
 
-    T[]& getData() { return data; }
-    const T[]& getData() const { return data; }
+    // Accessors
+    T* data() noexcept { return data_.get(); }
+    const T* data() const noexcept { return data_.get(); }
+    const Shape& shape() const noexcept { return shape_; }
 
-    void fill(T value);
-    
-    void allocateGPUMemory() = delete;
-    void freeGPUMemory() = delete;
-    void copyToGPU() = delete;
-    void copyToCPU() = delete;
+    // Fill the tensor with a given value
+    void fill(T value) noexcept {
+        std::fill_n(data_.get(), shape_.size(), value);
+    }
 
 private:
-    Shape _shape;
-    T[] data; 
+    Shape shape_;
+    std::unique_ptr<T[]> data_;
 };
+
+} // namespace smart_dnn
+
+#include "TensorData.impl.hpp"
 
 #endif // TENSOR_DATA_HPP

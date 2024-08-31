@@ -61,6 +61,7 @@ struct Shape {
         }
         return *this;
     }
+
     void setDimensions(const std::vector<int>& dims) {
         int newSize = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
         if (_size != newSize) {
