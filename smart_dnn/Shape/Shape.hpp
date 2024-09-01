@@ -27,12 +27,12 @@ struct Shape {
         _stride = calculateStride();
     }
 
-    [[nodiscard]] size_t rank() const { return _dimensions.size(); }
+    [[nodiscard]] int rank() const { return _dimensions.size(); }
     [[nodiscard]] size_t size() const { return _size; }
     
     friend std::ostream& operator<<(std::ostream& os, const Shape& shape) {
         os << "(";
-        for (size_t i = 0; i < shape._dimensions.size(); ++i) {
+        for (int i = 0; i < shape._dimensions.size(); ++i) {
             os << shape._dimensions[i];
             if (i != shape._dimensions.size() - 1) {
                 os << ", ";

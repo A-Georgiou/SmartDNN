@@ -28,6 +28,7 @@ public:
     T* data() noexcept { return data_.get(); }
     const T* data() const noexcept { return data_.get(); }
     const Shape& shape() const noexcept { return shape_; }
+    const size_t size() const noexcept { return shape_.size(); }
     const std::vector<int> stride() const noexcept { return shape_.getStride(); }
 
     // Fill the tensor with a given value
@@ -48,6 +49,6 @@ private:
 
 } // namespace smart_dnn
 
-#include "TensorData.impl.hpp"
+#include "TensorDataCPU.impl.hpp"
 
 #endif // TENSOR_DATA_HPP

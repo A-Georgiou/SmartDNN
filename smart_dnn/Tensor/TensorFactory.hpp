@@ -18,7 +18,7 @@ public:
         return TensorOperations<T, DeviceType>::createFill(dimensions, T(1));
     }
 
-    static Tensor<T, DeviceType> ones(size_t size){
+    static Tensor<T, DeviceType> ones(int size){
         return ones(Shape({size}));
     }
     
@@ -27,7 +27,7 @@ public:
         return TensorOperations<T, DeviceType>::createFill(dimensions, T(0));
     }
 
-    static Tensor<T, DeviceType> zeros(size_t size){
+    static Tensor<T, DeviceType> zeros(int size){
         return zeros(Shape({size}));
     }
 
@@ -36,7 +36,7 @@ public:
         return TensorOperations<T, DeviceType>::createRandom(dimensions, T(0), T(1));
     }
 
-    static Tensor<T, DeviceType> rand(size_t size){
+    static Tensor<T, DeviceType> rand(int size){
         return rand(Shape({size}));
     }
 
@@ -45,13 +45,13 @@ public:
         return TensorOperations<T, DeviceType>::createRandom(dimensions, min, max);
     }
 
-    static Tensor<T, DeviceType> randn(size_t size, T min, T max){
+    static Tensor<T, DeviceType> randn(int size, T min, T max){
         return randn(Shape({size}), min, max);
     }
 
-private:
-
-
+    static Tensor<T, DeviceType> identity(int size){
+        return TensorOperations<T, DeviceType>::createIdentity(size);
+    }
 };
 
 }; // namespace smart_dnn

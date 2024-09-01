@@ -14,11 +14,12 @@ private:
     const TensorData<T, DeviceType>& original_;
     Shape broadcasted_shape_;
 
-    size_t mapIndex(const std::vector<int>& indices) const {
-        size_t flatIndex = 0;
-        for (size_t i = 0; i < indices.size(); ++i) {
-            int originalDim = i < original_.shape().size() ? original_.shape()[i] : 1;
-            flatIndex += (indices[i] % originalDim) * (i < original_.shape().size() ? original_.stride()[i] : 0);
+    int mapIndex(const std::vector<int>& indices) const {
+        int flatIndex = 0;
+        int minSize = std::min(indices.size(), original_.shape().size());
+        for (int i = 0; i < minSize; ++i) {
+            int originalDim = original_.shape()[i];
+            flatIndex += (indices[i] % originalDim) * original_.stride()[i];
         }
         return flatIndex;
     }
@@ -52,9 +53,7 @@ public:
             }
         }
 
-        T operator*() const {
-            return view_[current_indices_];
-        }
+        T operator*() const { return view_[current_indices_]; }
 
         Iterator& operator++() {
             for (int i = current_indices_.size() - 1; i >= 0; --i) {

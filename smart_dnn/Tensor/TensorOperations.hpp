@@ -64,6 +64,7 @@ public:
     // Generative operations
     static TensorData<T, DeviceType> createFill(const Shape& shape, T value);
     static TensorData<T, DeviceType> createRandom(const Shape& shape, T min, T max);
+    static TensorData<T, DeviceType> createIdentity(int size);
 };
 
 // Specialization for CPUDevice
@@ -72,26 +73,18 @@ class TensorOperations<T, CPUDevice> {
 public:
     TensorOperations() = delete; // Prevent instantiation
 
-    template<typename LHS, typename RHS>
-    static TensorData<T, CPUDevice> add(const LHS& lhs, const RHS& rhs){
-        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
-                      "Both operands must be either TensorData or BroadcastView");
-
+    static TensorData<T, CPUDevice> add(const TensorData<T, CPUDevice>& lhs, const TensorData<T, CPUDevice>& rhs){
         Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
         TensorData<T, CPUDevice> result(result_shape);
 
         BroadcastView<T, CPUDevice> lhs_broadcast(lhs, result_shape);
         BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
 
-        addImpl(lhs, rhs, result);
+        addImpl(lhs_broadcast, rhs_broadcast, result);
         return result;
     }
 
-    template<typename LHS, typename RHS>
-    static TensorData<T, CPUDevice> subtract(const LHS& lhs, const RHS& rhs){
-        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
-                      "Both operands must be either TensorData or BroadcastView");
-
+    static TensorData<T, CPUDevice> subtract(const TensorData<T, CPUDevice>& lhs, const TensorData<T, CPUDevice>& rhs){
         Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
         TensorData<T, CPUDevice> result(result_shape);
 
@@ -102,26 +95,18 @@ public:
         return result;
     }
 
-    template<typename LHS, typename RHS>
-    static TensorData<T, CPUDevice> multiply(const LHS& lhs, const RHS& rhs){
-        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
-                      "Both operands must be either TensorData or BroadcastView");
-
+    static TensorData<T, CPUDevice> multiply(const TensorData<T, CPUDevice>& lhs, const TensorData<T, CPUDevice>& rhs){
         Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
         TensorData<T, CPUDevice> result(result_shape);
 
         BroadcastView<T, CPUDevice> lhs_broadcast(lhs, result_shape);
         BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
 
-        multiplyImpl(lhs_broadcast, rhs_broadcast, result);
+        multiplyImpl(lhs, rhs, result);
         return result;
     }
 
-    template<typename LHS, typename RHS>
-    static TensorData<T, CPUDevice> divide(const LHS& lhs, const RHS& rhs){
-        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
-                      "Both operands must be either TensorData or BroadcastView");
-
+    static TensorData<T, CPUDevice> divide(const TensorData<T, CPUDevice>& lhs, const TensorData<T, CPUDevice>& rhs){
         Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
         TensorData<T, CPUDevice> result(result_shape);
 
@@ -137,7 +122,10 @@ public:
         static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
                       "Both operands must be either TensorData or BroadcastView");
 
-        addImpl(lhs, rhs, lhs);
+        Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
+        BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
+
+        addImpl(lhs, rhs_broadcast, lhs);
         return lhs;
     }
 
@@ -146,7 +134,10 @@ public:
         static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
                       "Both operands must be either TensorData or BroadcastView");
 
-        subtractImpl(lhs, rhs, lhs);
+        Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
+        BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
+
+        subtractImpl(lhs, rhs_broadcast, lhs);
         return lhs;
     }
 
@@ -154,8 +145,11 @@ public:
     static TensorData<T, CPUDevice>& multiplyInPlace(LHS& lhs, const RHS& rhs){
         static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
                       "Both operands must be either TensorData or BroadcastView");
+        
+        Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
+        BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
 
-        multiplyImpl(lhs, rhs, lhs);
+        multiplyImpl(lhs, rhs_broadcast, lhs);
         return lhs;
     }
 
@@ -163,8 +157,11 @@ public:
     static TensorData<T, CPUDevice>& divideInPlace(LHS& lhs, const RHS& rhs){
         static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
                       "Both operands must be either TensorData or BroadcastView");
+        
+        Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
+        BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
 
-        divideImpl(lhs, rhs, lhs);
+        divideImpl(lhs, rhs_broadcast, lhs);
         return lhs;
     }
 
@@ -259,10 +256,28 @@ public:
         }
     }
 
+    static TensorData<T, CPUDevice> createIdentity(int size){
+        Shape shape({size, size});
+        TensorData<T, CPUDevice> result(shape);
+        auto result_it = result.begin();
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
+                *result_it = (i == j) ? 1 : 0;
+                ++result_it;
+            }
+        }
+        return result;
+    }
+
 private:
-    static void addImpl(const TensorData<T, CPUDevice>& lhs,
-                        const TensorData<T, CPUDevice>& rhs, TensorData<T,
-                        CPUDevice>& result) {
+    template<typename LHS, typename RHS>
+    static void addImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
+        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
+                      "Both operands must be either TensorData or BroadcastView");
+        if (lhs.shape() != rhs.shape()) {
+            throw std::runtime_error("Shapes are not broadcastable!");
+        }
+
         auto lhs_it = lhs.begin();
         auto rhs_it = rhs.begin();
         auto result_it = result.begin();
@@ -275,9 +290,16 @@ private:
         }
     }
 
-    static void minusImpl(const TensorData<T, CPUDevice>& lhs,
-                          const TensorData<T, CPUDevice>& rhs, TensorData<T,
+    template<typename LHS, typename RHS>
+    static void minusImpl(const LHS& lhs,
+                          const RHS& rhs, TensorData<T,
                           CPUDevice>& result) {
+        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
+                      "Both operands must be either TensorData or BroadcastView");
+        if (lhs.shape() != rhs.shape()) {
+            throw std::runtime_error("Shapes are not broadcastable!");
+        }
+
         auto lhs_it = lhs.begin();
         auto rhs_it = rhs.begin();
         auto result_it = result.begin();
@@ -294,6 +316,12 @@ private:
     static void multiplyImpl(const LHS& lhs,
                              const RHS& rhs,
                              TensorData<T, CPUDevice>& result) {
+        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
+                      "Both operands must be either TensorData or BroadcastView");
+        if (lhs.shape() != rhs.shape()) {
+            throw std::runtime_error("Shapes are not broadcastable!");
+        }
+
         auto lhs_it = lhs.begin();
         auto rhs_it = rhs.begin();
         auto result_it = result.begin();
@@ -306,9 +334,16 @@ private:
         }
     }
 
-    static void divideImpl(const TensorData<T, CPUDevice>& lhs,
-                           const TensorData<T, CPUDevice>& rhs, TensorData<T,
-                           CPUDevice>& result) {
+    template<typename LHS, typename RHS>
+    static void divideImpl(const LHS& lhs,
+                             const RHS& rhs,
+                             TensorData<T, CPUDevice>& result) {
+        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
+                      "Both operands must be either TensorData or BroadcastView");
+        if (lhs.shape() != rhs.shape()) {
+            throw std::runtime_error("Shapes are not broadcastable!");
+        }
+
         auto lhs_it = lhs.begin();
         auto rhs_it = rhs.begin();
         auto result_it = result.begin();

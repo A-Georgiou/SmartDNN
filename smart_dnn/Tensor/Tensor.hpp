@@ -9,7 +9,7 @@
 
 namespace smart_dnn {
 
-template <typename T, typename DeviceType>
+template <typename T=float, typename DeviceType=CPUDevice>
 class Tensor {
 public:
     Tensor(Shape dimensions) noexcept;

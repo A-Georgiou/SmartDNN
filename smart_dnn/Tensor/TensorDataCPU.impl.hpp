@@ -1,5 +1,5 @@
-#ifndef TENSOR_DATA_IMPL_HPP
-#define TENSOR_DATA_IMPL_HPP
+#ifndef TENSOR_DATA_CPU_IMPL_HPP
+#define TENSOR_DATA_CPU_IMPL_HPP
 
 namespace smart_dnn {
 
@@ -56,11 +56,9 @@ std::string TENSOR_DATA_CPU::toString() const {
 }
 
 // Clean up macro definitions
-#undef TEMPLATE_TENSOR_DATA
 #undef TEMPLATE_TENSOR
-#undef TENSOR_DATA
 #undef TENSOR_DATA_CPU
 
 }; // namespace smart_dnn
 
-#endif // TENSOR_DATA_IMPL_HPP
+#endif // TENSOR_DATA_CPU_IMPL_HPP

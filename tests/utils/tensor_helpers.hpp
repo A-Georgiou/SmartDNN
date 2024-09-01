@@ -2,7 +2,7 @@
 #define TENSOR_HELPERS_HPP
 
 #include <gtest/gtest.h>
-#include "../smart_dnn/Tensor.hpp"
+#include "../smart_dnn/Tensor/Tensor.hpp"
 
 inline void ValidateTensorShape(const Tensor& tensor, int rank, int size, const std::vector<int>& dimensions) {
     ASSERT_EQ(tensor.shape().rank(), rank);

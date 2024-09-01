@@ -15,8 +15,8 @@ namespace smart_dnn {
             trainingMode = mode;
         }
 
-        virtual ConfiguredTensor<> forward(const ConfiguredTensor<>& input) = 0;
-        virtual ConfiguredTensor<> backward(const ConfiguredTensor<>& gradOutput) = 0;
+        virtual Tensor forward(const Tensor& input) = 0;
+        virtual Tensor backward(const Tensor& gradOutput) = 0;
         virtual void updateWeights(Optimizer& optimizer) = 0;
 
     protected:
