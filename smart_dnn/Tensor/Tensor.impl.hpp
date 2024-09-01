@@ -35,49 +35,49 @@ Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator=(const Tensor<T, DeviceTy
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator+=(const Tensor<T, DeviceType>& other) {
-    TensorOperations<T, DeviceType>::add(data_, other.data_);
+    TensorOperations<T, DeviceType>::addInPlace(data_, other.data_);
     return *this;
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator-=(const Tensor<T, DeviceType>& other) {
-    TensorOperations<T, DeviceType>::subtract(data_, other.data_);
+    TensorOperations<T, DeviceType>::subtractInPlace(data_, other.data_);
     return *this;
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator*=(const Tensor<T, DeviceType>& other) {
-    TensorOperations<T, DeviceType>::multiply(data_, other.data_);
+    TensorOperations<T, DeviceType>::multipleInPlace(data_, other.data_);
     return *this;
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator/=(const Tensor<T, DeviceType>& other) {
-    TensorOperations<T, DeviceType>::divide(data_, other.data_);
+    TensorOperations<T, DeviceType>::divideInPlace(data_, other.data_);
     return *this;
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator+=(T scalar) {
-    TensorOperations<T, DeviceType>::addScalar(data_, scalar);
+    TensorOperations<T, DeviceType>::addScalarInPlace(data_, scalar);
     return *this;
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator-=(T scalar) {
-    TensorOperations<T, DeviceType>::subtractScalar(data_, scalar);
+    TensorOperations<T, DeviceType>::substractScalarInPlace(data_, scalar);
     return *this;
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator*=(T scalar) {
-    TensorOperations<T, DeviceType>::multiplyScalar(data_, scalar);
+    TensorOperations<T, DeviceType>::multipleScalarInPlace(data_, scalar);
     return *this;
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator/=(T scalar) {
-    TensorOperations<T, DeviceType>::divideScalar(data_, scalar);
+    TensorOperations<T, DeviceType>::divideScalarInPlace(data_, scalar);
     return *this;
 }
 
@@ -164,8 +164,7 @@ Tensor<T, DeviceType> operator*(T scalar, const Tensor<T, DeviceType>& tensor) {
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> operator/(T scalar, const Tensor<T, DeviceType>& tensor) {
-    Tensor<T, DeviceType> result(tensor.getShape());
-    return result;
+    return TensorOperations<T, DeviceType>::inverseDivideScalar(tensor.getData(), scalar);
 }
 
 TEMPLATE_TENSOR
@@ -174,6 +173,21 @@ std::string Tensor<T, DeviceType>::detailedString() const {
     oss << "Tensor:\n";
     oss << data_.toString() << "\n";
     return oss.str();
+}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::ones(Shape dimensions) {
+    return TensorFactory<T, DeviceType>::ones(dimensions);
+}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::zeros(Shape dimensions) {
+    return TensorFactory<T, DeviceType>::zeros(dimensions);
+}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::rand(Shape dimensions) {
+    return TensorFactory<T, DeviceType>::rand(dimensions);
 }
 
 #undef TEMPLATE_TENSOR

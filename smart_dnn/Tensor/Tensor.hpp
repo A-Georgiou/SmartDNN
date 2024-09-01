@@ -5,6 +5,7 @@
 #include "TensorOperations.hpp"
 #include "DeviceTypes.hpp"
 #include "../Shape/Shape.hpp"
+#include "TensorFactory.hpp"
 
 namespace smart_dnn {
 
@@ -50,6 +51,11 @@ public:
 
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;
+
+    // Static factory operations
+    static Tensor ones(Shape dimensions);
+    static Tensor zeros(Shape dimensions);
+    static Tensor rand(Shape dimensions);
 
 private:
     TensorData<T, DeviceType> data_;

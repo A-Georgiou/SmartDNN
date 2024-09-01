@@ -3,6 +3,7 @@
 
 #include "TensorData.hpp"
 #include "BroadcastView.hpp"
+#include "../RandomEngine.hpp"
 
 namespace smart_dnn {
 
@@ -46,6 +47,9 @@ public:
     static TensorData<T, DeviceType> multiplyScalar(const TensorData<T, DeviceType>& tensor, T scalar);
     static TensorData<T, DeviceType> divideScalar(const TensorData<T, DeviceType>& tensor, T scalar);
 
+        // Special scalar divide operation
+    static TensorData<T, DeviceType> inverseDivideScalar(const TensorData<T, DeviceType>& tensor, T scalar);
+
     // In-place scalar operations
     static TensorData<T, DeviceType>& addScalarInPlace(TensorData<T, DeviceType>& tensor, T scalar);
     static TensorData<T, DeviceType>& subtractScalarInPlace(TensorData<T, DeviceType>& tensor, T scalar);
@@ -56,6 +60,10 @@ public:
     static T sum(const TensorData<T, DeviceType>& tensor);
     static TensorData<T, DeviceType> sqrt(const TensorData<T, DeviceType>& tensor);
     static TensorData<T, DeviceType>& sqrtInPlace(TensorData<T, DeviceType>& tensor);
+
+    // Generative operations
+    static TensorData<T, DeviceType> createFill(const Shape& shape, T value);
+    static TensorData<T, DeviceType> createRandom(const Shape& shape, T min, T max);
 };
 
 // Specialization for CPUDevice
@@ -184,6 +192,12 @@ public:
         return result;
     }
 
+    static TensorData<T, CPUDevice> inverseDivideScalar(const TensorData<T, CPUDevice>& tensor, T scalar){
+        TensorData<T, CPUDevice> result(tensor.shape(), scalar);
+        divideImpl(result, tensor, result);
+        return result;
+    }
+
     static TensorData<T, CPUDevice>& addScalarInPlace(TensorData<T, CPUDevice>& tensor, T scalar){
         addScalarImpl(tensor, scalar, tensor);
         return tensor;
@@ -229,6 +243,20 @@ public:
             ++tensor_it;
         }
         return tensor;
+    }
+
+    static TensorData<T, CPUDevice> createFill(const Shape& shape, T value){
+        return {shape, value};
+    }
+
+    static TensorData<T, CPUDevice> createRandom(const Shape& shape, T min, T max){
+        TensorData<T, CPUDevice> result(shape);
+        
+        auto tensor_it = result.begin();
+        while (tensor_it != result.end()) {
+            *tensor_it = RandomEngine::getRandRange(min, max);
+            ++tensor_it;
+        }
     }
 
 private:
@@ -336,11 +364,11 @@ private:
 
         while (result_it != result.end()) {
             *result_it = *tensor_it / scalar;
-            std::cout << *result_it << std::endl;
             ++tensor_it;
             ++result_it;
         }
     }
+    
 
 };
 
