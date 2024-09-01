@@ -1,23 +1,28 @@
 #ifndef LAYER_HPP
 #define LAYER_HPP
 
-#include "Tensor.hpp"
+#include "Tensor/Tensor.hpp"
 #include "Optimizer.hpp"
+#include "Tensor/TensorConfig.hpp"
 
-class Layer {
-public:
-    virtual ~Layer() = default;
+namespace smart_dnn {
 
-    virtual void setTrainingMode(bool mode) {
-        trainingMode = mode;
-    }
+    class Layer {
+    public:
+        virtual ~Layer() = default;
 
-    virtual Tensor forward(Tensor& input) = 0;
-    virtual Tensor backward(Tensor& gradOutput) = 0;
-    virtual void updateWeights(Optimizer& optimizer) = 0;
+        virtual void setTrainingMode(bool mode) {
+            trainingMode = mode;
+        }
 
-protected:
-    bool trainingMode = true;
-};
+        virtual ConfiguredTensor<> forward(const ConfiguredTensor<>& input) = 0;
+        virtual ConfiguredTensor<> backward(const ConfiguredTensor<>& gradOutput) = 0;
+        virtual void updateWeights(Optimizer& optimizer) = 0;
+
+    protected:
+        bool trainingMode = true;
+    };
+
+} // namespace smart_dnn
 
 #endif // LAYER_HPP

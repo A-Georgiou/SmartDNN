@@ -1,13 +1,18 @@
 #ifndef ACTIVATION_HPP
 #define ACTIVATION_HPP
 
-#include "Tensor.hpp"
+#include "Tensor/Tensor.hpp"
+#include "Tensor/TensorConfig.hpp"
+
+namespace smart_dnn {
 
 class Activation {
 public:
     virtual ~Activation() = default;
-    virtual Tensor forward(const Tensor& input) const = 0;
-    virtual Tensor backward(const Tensor& input, const Tensor& gradOutput) const= 0;
+    virtual ConfiguredTensor<> forward(const ConfiguredTensor<>& input) const = 0;
+    virtual ConfiguredTensor<> backward(const ConfiguredTensor<>& input, const ConfiguredTensor<>& gradOutput) const= 0;
 };
+
+} // namespace smart_dnn
 
 #endif // ACTIVATION_HPP

@@ -5,8 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(smart_dnn)
 
 add_executable(SmartDNN
-    smart_dnn/Tensor/Tensor.cpp
-    smart_dnn/SmartDNN/SmartDNN.cpp
     src/main.cpp
 )
 

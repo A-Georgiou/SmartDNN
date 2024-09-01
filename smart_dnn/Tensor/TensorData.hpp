@@ -1,7 +1,7 @@
 #ifndef TENSOR_DATA_HPP
 #define TENSOR_DATA_HPP
 
-#include "Shape.hpp"
+#include "../Shape/Shape.hpp"
 #include "DeviceTypes.hpp"
 
 namespace smart_dnn {
@@ -28,11 +28,18 @@ public:
     T* data() noexcept { return data_.get(); }
     const T* data() const noexcept { return data_.get(); }
     const Shape& shape() const noexcept { return shape_; }
+    const std::vector<int> stride() const noexcept { return shape_.getStride(); }
 
     // Fill the tensor with a given value
     void fill(T value) noexcept {
         std::fill_n(data_.get(), shape_.size(), value);
     }
+
+    // output the data
+    std::string toString() const;
+
+    T* begin() const { return data_.get(); }
+    T* end() const { return (data_.get() + shape_.size()); }
 
 private:
     Shape shape_;

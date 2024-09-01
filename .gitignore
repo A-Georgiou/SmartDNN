@@ -19,3 +19,5 @@ build/
 generated/
 external/
 external/OpenBLAS
+*.old
+.DS_Store

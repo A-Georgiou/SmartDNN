@@ -30,13 +30,29 @@ TENSOR_DATA_CPU::TensorData(const TENSOR_DATA_CPU& other)
 }
 
 TEMPLATE_TENSOR
-TENSOR_DATA_CPU& TENSOR_DATA_CPU::operator=(const TENSOR_DATA_CPU&) {
+TENSOR_DATA_CPU& TENSOR_DATA_CPU::operator=(const TENSOR_DATA_CPU& other) {
     if (this != &other) {
         shape_ = other.shape_;
         data_.reset(new T[shape_.size()]);
         std::copy_n(other.data_.get(), shape_.size(), data_.get());
     }
     return *this;
+}
+
+TEMPLATE_TENSOR
+std::string TENSOR_DATA_CPU::toString() const {
+    std::ostringstream oss;
+    oss << "TensorData<" << typeid(T).name() << ", CPUDevice>:\n";
+    oss << "Shape: " << shape_.toString() << "\n";
+    oss << "Data: [";
+    size_t max_elements = 10;  // Limit the number of elements to display
+        for (size_t i = 0; i < std::min(shape_.size(), max_elements); ++i) {
+            if (i > 0) oss << ", ";
+            oss << data_[i];
+        }
+    if (shape_.size() > max_elements) oss << ", ...";
+    oss << "]";
+    return oss.str();
 }
 
 // Clean up macro definitions

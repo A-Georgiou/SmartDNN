@@ -4,15 +4,17 @@
 #include "TensorData.hpp"
 #include "TensorOperations.hpp"
 #include "DeviceTypes.hpp"
-#include "Shape.hpp"
+#include "../Shape/Shape.hpp"
 
 namespace smart_dnn {
 
 template <typename T, typename DeviceType>
-class Tensor<T, DeviceType> {
+class Tensor {
 public:
     Tensor(Shape dimensions) noexcept;
     Tensor(Shape dimensions, T value) noexcept;
+    Tensor(const TensorData<T, DeviceType>& data) noexcept;
+    Tensor(TensorData<T, DeviceType>&& data) noexcept;
     Tensor(Shape dimensions, const T* dataArray);
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept;
@@ -44,6 +46,7 @@ public:
 
     TensorData<T, DeviceType> getData() const noexcept;
     Shape getShape() const noexcept;
+    std::string detailedString() const;
 
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;

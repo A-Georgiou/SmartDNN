@@ -11,8 +11,8 @@ public:
 
     static Shape broadcastShapes(const Shape& shape1, const Shape& shape2) {
         std::vector<int> result;
-        int size1 = shape1.size();
-        int size2 = shape2.size();
+        int size1 = shape1.rank();
+        int size2 = shape2.rank();
         int maxSize = std::max(size1, size2);
         int minSize = std::min(size1, size2);
 

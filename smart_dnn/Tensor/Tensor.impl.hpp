@@ -17,13 +17,13 @@ TEMPLATE_TENSOR
 Tensor<T, DeviceType>::Tensor(Shape dimensions, const T* dataArray) : data_(dimensions, dataArray) {}
 
 TEMPLATE_TENSOR
-Tensor<T, DeviceType>::Tensor(const Tensor<T, DeviceType>& other) : data_(other.data_) {}
+Tensor<T, DeviceType>::Tensor(const TensorData<T, DeviceType>& data) noexcept : data_(data) {}
 
 TEMPLATE_TENSOR
-Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator=(Tensor<T, DeviceType>&& other) noexcept {
-    data_ = std::move(other.data_);
-    return *this;
-}
+Tensor<T, DeviceType>::Tensor(TensorData<T, DeviceType>&& data) noexcept : data_(std::move(data)) {}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType>::Tensor(const Tensor<T, DeviceType>& other) : data_(other.data_) {}
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator=(const Tensor<T, DeviceType>& other) {
@@ -83,65 +83,47 @@ Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator/=(T scalar) {
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator+(const Tensor<T, DeviceType>& other) const {
-    Tensor<T, DeviceType> result(data_.shape());
-    TensorOperations<T, DeviceType>::add(result.data_, other.data_);
-    return result;
+    return TensorOperations<T, DeviceType>::add(this->data_, other.data_);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator-(const Tensor<T, DeviceType>& other) const {
-    Tensor<T, DeviceType> result(data_.shape());
-    TensorOperations<T, DeviceType>::subtract(result.data_, other.data_);
-    return result;
+    return TensorOperations<T, DeviceType>::subtract(this->data_, other.data_);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator*(const Tensor<T, DeviceType>& other) const {
-    Tensor<T, DeviceType> result(data_.shape());
-    TensorOperations<T, DeviceType>::multiply(result.data_, other.data_);
-    return result;
+    return TensorOperations<T, DeviceType>::multiply(this->data_, other.data_);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator/(const Tensor<T, DeviceType>& other) const {
-    Tensor<T, DeviceType> result(data_.shape());
-    TensorOperations<T, DeviceType>::divide(result.data_, other.data_);
-    return result;
+    return TensorOperations<T, DeviceType>::divide(this->data_, other.data_);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator+(T scalar) const {
-    Tensor<T, DeviceType> result(data_.shape());
-    TensorOperations<T, DeviceType>::addScalar(result.data_, scalar);
-    return result;
+    return TensorOperations<T, DeviceType>::addScalar(this->data_, scalar);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator-(T scalar) const {
-    Tensor<T, DeviceType> result(data_.shape());
-    TensorOperations<T, DeviceType>::subtractScalar(result.data_, scalar);
-    return result;
+    return TensorOperations<T, DeviceType>::subtractScalar(this->data_, scalar);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator*(T scalar) const {
-    Tensor<T, DeviceType> result(data_.shape());
-    TensorOperations<T, DeviceType>::multiplyScalar(result.data_, scalar);
-    return result;
+    return TensorOperations<T, DeviceType>::multiplyScalar(this->data_, scalar);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator/(T scalar) const {
-    Tensor<T, DeviceType> result(data_.shape());
-    TensorOperations<T, DeviceType>::divideScalar(result.data_, scalar);
-    return result;
+    return TensorOperations<T, DeviceType>::divideScalar(this->data_, scalar);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator-() const {
-    Tensor<T, DeviceType> result(data_.shape());
-    TensorOperations<T, DeviceType>::subtractScalar(result.data_, 0);
-    return result;
+    return TensorOperations<T, DeviceType>::multiplyScalar(this->data_, -1);
 }
 
 TEMPLATE_TENSOR
@@ -184,6 +166,14 @@ TEMPLATE_TENSOR
 Tensor<T, DeviceType> operator/(T scalar, const Tensor<T, DeviceType>& tensor) {
     Tensor<T, DeviceType> result(tensor.getShape());
     return result;
+}
+
+TEMPLATE_TENSOR
+std::string Tensor<T, DeviceType>::detailedString() const {
+    std::ostringstream oss;
+    oss << "Tensor:\n";
+    oss << data_.toString() << "\n";
+    return oss.str();
 }
 
 #undef TEMPLATE_TENSOR

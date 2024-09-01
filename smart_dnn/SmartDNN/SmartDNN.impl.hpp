@@ -1,6 +1,11 @@
+#ifndef SMART_DNN_IMPL_HPP
+#define SMART_DNN_IMPL_HPP
+
 #include "../SmartDNN.hpp"
 #include "../Debugging/Logger.hpp"
 #include "../TensorOperations.hpp"
+
+namespace smart_dnn {
 
 SmartDNN::SmartDNN() {
     lossFunction = nullptr;
@@ -25,7 +30,7 @@ void SmartDNN::compile(Loss* loss, Optimizer* optimizer) {
     this->optimizer = optimizer;
 }
 
-void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets, int epochs, float learningRate) {
+void SmartDNN::train(const std::vector<ConfiguredTensor<>>& inputs, const std::vector<ConfiguredTensor<>>& targets, int epochs, float learningRate) {
     for (int epoch = 0; epoch < epochs; ++epoch) {
         float totalLoss = 0.0f;
 
@@ -51,17 +56,17 @@ void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor
     }
 }
 
-Tensor SmartDNN::predict(const Tensor& input) {
-    Tensor prediction = input;
+ConfiguredTensor<> SmartDNN::predict(const ConfiguredTensor<>& input) {
+    ConfiguredTensor<> prediction = input;
     for (Layer* layer : layers) {
         prediction = layer->forward(prediction);
     }
     return prediction;
 }
 
-std::vector<Tensor> SmartDNN::predict(const std::vector<Tensor>& inputs) {
-    std::vector<Tensor> predictions;
-    for (const Tensor& input : inputs) {
+std::vector<ConfiguredTensor<>> SmartDNN::predict(const std::vector<ConfiguredTensor<>>& inputs) {
+    std::vector<ConfiguredTensor<>> predictions;
+    for (const ConfiguredTensor<>& input : inputs) {
         predictions.push_back(predict(input));
     }
     return predictions;
@@ -80,3 +85,8 @@ void SmartDNN::setTrainingMode(bool trainingMode) {
         layer->setTrainingMode(true);
     }
 }
+
+}
+
+
+#endif // SMART_DNN_IMPL_HPP

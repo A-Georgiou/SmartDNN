@@ -1,7 +1,7 @@
 #ifndef TENSOR_OPERATIONS_HPP
 #define TENSOR_OPERATIONS_HPP
 
-#include "Tensor.hpp"
+#include "Tensor/Tensor.hpp"
 #include <stack>
 
 class TensorOperations {

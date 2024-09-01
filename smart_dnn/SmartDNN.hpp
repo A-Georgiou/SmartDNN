@@ -4,8 +4,11 @@
 #include "Layer.hpp"
 #include "Loss.hpp"
 #include "Optimizer.hpp"
-#include "Tensor.hpp"
+#include "Tensor/Tensor.hpp"
+#include "Tensor/TensorConfig.hpp"
 #include <vector>
+
+namespace smart_dnn {
 
 class SmartDNN {
 public:
@@ -14,9 +17,9 @@ public:
 
     void addLayer(Layer* layer);
     void compile(Loss* loss, Optimizer* optimizer);
-    void train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets, int epochs, float learningRate);
-    Tensor predict(const Tensor& input);
-    std::vector<Tensor> predict(const std::vector<Tensor>& inputs);
+    void train(const std::vector<ConfiguredTensor<>>& inputs, const std::vector<ConfiguredTensor<>>& targets, int epochs, float learningRate);
+    ConfiguredTensor<> predict(const ConfiguredTensor<>& input);
+    std::vector<ConfiguredTensor<>> predict(const std::vector<ConfiguredTensor<>>& inputs);
 
     void trainingMode();
     void evalMode();
@@ -31,5 +34,9 @@ private:
     Loss* lossFunction;
     Optimizer* optimizer;
 };
+
+} // namespace smart_dnn
+
+#include "SmartDNN/SmartDNN.impl.hpp"
 
 #endif // SMART_DNN_HPP
