@@ -17,10 +17,18 @@ public:
     static Tensor<T, DeviceType> ones(Shape dimensions) {
         return TensorOperations<T, DeviceType>::createFill(dimensions, T(1));
     }
+
+    static Tensor<T, DeviceType> ones(size_t size){
+        return ones(Shape({size}));
+    }
     
     // Generate a tensor filled with zeros
     static Tensor<T, DeviceType> zeros(Shape dimensions) {
         return TensorOperations<T, DeviceType>::createFill(dimensions, T(0));
+    }
+
+    static Tensor<T, DeviceType> zeros(size_t size){
+        return zeros(Shape({size}));
     }
 
     // Generate a tensor filled with random values in range [0, 1]
@@ -28,9 +36,17 @@ public:
         return TensorOperations<T, DeviceType>::createRandom(dimensions, T(0), T(1));
     }
 
+    static Tensor<T, DeviceType> rand(size_t size){
+        return rand(Shape({size}));
+    }
+
     // Generate a tensor filled with random values in range [min, max]
-    static Tensor<T, DeviceType> rand_range(Shape dimensions, T min, T max) {
+    static Tensor<T, DeviceType> randn(Shape dimensions, T min, T max) {
         return TensorOperations<T, DeviceType>::createRandom(dimensions, min, max);
+    }
+
+    static Tensor<T, DeviceType> randn(size_t size, T min, T max){
+        return randn(Shape({size}), min, max);
     }
 
 private:
