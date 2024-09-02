@@ -33,6 +33,8 @@ public:
 
     // Fill the tensor with a given value
     void fill(T value) noexcept { std::fill_n(data_.get(), shape_.size(), value); }
+
+    // Manipulate data shape
     void reshape(const Shape& newShape) { shape_.reshape(newShape); }
     void reshape(const std::vector<int>& dims) { shape_.reshape(dims); }
 

@@ -6,17 +6,16 @@
 
 namespace smart_dnn {
 
+    template <typename T>
     class Layer {
     public:
         virtual ~Layer() = default;
 
-        virtual void setTrainingMode(bool mode) {
-            trainingMode = mode;
-        }
+        virtual void setTrainingMode(bool mode) { trainingMode = mode; }
 
-        virtual Tensor forward(const Tensor& input) = 0;
-        virtual Tensor backward(const Tensor& gradOutput) = 0;
-        virtual void updateWeights(Optimizer& optimizer) = 0;
+        virtual Tensor<T> forward(const Tensor<T>& input) = 0;
+        virtual Tensor<T> backward(const Tensor<T>& gradOutput) = 0;
+        virtual void updateWeights(Optimizer<T>& optimizer) = 0;
 
     protected:
         bool trainingMode = true;

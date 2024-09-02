@@ -1,11 +1,16 @@
+#ifndef SAMPLE_GENERATOR_HPP
+#define SAMPLE_GENERATOR_HPP
+
 #include <iostream>
 #include <vector>
 #include <random>
-#include "../Tensor.hpp"
+#include "../Tensor/Tensor.hpp"
 
-std::pair<std::vector<Tensor>, std::vector<Tensor>> generateLinearDataset(int num_samples) {
-    std::vector<Tensor> inputs;
-    std::vector<Tensor> targets;
+namespace smart_dnn {
+
+std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> generateLinearDataset(int num_samples) {
+    std::vector<Tensor<float>> inputs;
+    std::vector<Tensor<float>> targets;
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -25,3 +30,7 @@ std::pair<std::vector<Tensor>, std::vector<Tensor>> generateLinearDataset(int nu
 
     return {inputs, targets};
 }
+
+} // namespace smart_dnn
+
+#endif // SAMPLE_GENERATOR_HPP

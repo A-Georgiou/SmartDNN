@@ -20,6 +20,8 @@ public:
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept;
 
+    ~Tensor() = default;
+
     Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other) noexcept = default;
 
@@ -33,6 +35,7 @@ public:
     Tensor& operator*=(T scalar);
     Tensor& operator/=(T scalar);
 
+    // Mathematical operations - return new tensor
     Tensor operator+(const Tensor& other) const;
     Tensor operator-(const Tensor& other) const;
     Tensor operator*(const Tensor& other) const;
@@ -43,15 +46,22 @@ public:
     Tensor operator*(T scalar) const;
     Tensor operator/(T scalar) const;
 
+    Tensor sqrt() const;
+
     Tensor operator-() const;
+
+    bool operator==(const Tensor& other) const;
+    bool operator!=(const Tensor& other) const;
 
     TensorData<T, DeviceType> getData() const noexcept;
     Shape getShape() const noexcept;
 
     std::string detailedString() const;
 
-    bool operator==(const Tensor& other) const;
-    bool operator!=(const Tensor& other) const;
+    void reshape(const Shape& newShape);
+    void reshape(const std::vector<int>& dims);
+
+    Tensor& apply(std::function<T(T)> func);
 
     // Static factory operations on Shape
     static Tensor ones(Shape dimensions);
@@ -63,9 +73,7 @@ public:
     static Tensor zeros(int size);
     static Tensor rand(int size);
     static Tensor identity(int size);
-
-    void reshape(const Shape& newShape);
-    void reshape(const std::vector<int>& dims);
+    
 
 private:
     TensorData<T, DeviceType> data_;

@@ -1,61 +1,75 @@
 #ifndef FULLY_CONNECTED_LAYER_HPP
 #define FULLY_CONNECTED_LAYER_HPP
 
-#include "../Tensor.hpp"
+#include "../Tensor/Tensor.hpp"
+#include "../Tensor/AdvancedTensorOperations.hpp"
 #include "../Optimizer.hpp"
-#include "../TensorOperations.hpp"
 #include "../Layer.hpp"
-#include "../TensorWrapper.hpp"
 #include <vector>
+#include <optional>
 
-class FullyConnectedLayer : public Layer {
+namespace smart_dnn {
+
+template <typename T = float>
+class FullyConnectedLayer : public Layer<T> {
+    using TensorType = Tensor<T>;
 public:
     FullyConnectedLayer(int inputSize, int outputSize) {
-        weights = Tensor({inputSize, outputSize});
-        biases = Tensor({1, outputSize});
-        (*weights).randomize(-1.0, 1.0);
-        (*biases).fill(0.0);
+        weights.emplace(TensorType::rand(Shape({inputSize, outputSize})));
+        biases.emplace(TensorType::zeros(Shape({1, outputSize})));
     }
-
-    Tensor forward(Tensor& input) override {
+    
+    TensorType forward(const TensorType& input) override {
         this->input = input;
-        Tensor output = TensorOperations::matmul(input, *weights);  
-        output += *biases;
+        TensorType output = AdvancedTensorOperations<T>::matmul(this->input.value(), weights.value()); 
+        output += biases.value();
         return output;
     }
 
-    Tensor backward(Tensor& gradOutput) override {
-        Tensor transposedInput = *input;
-        Tensor& weightsTensor = *weights;
-
-        if (transposedInput.shape().rank() > 1) {
-            transposedInput = TensorOperations::transpose(transposedInput, 0, 1);
+    TensorType backward(const TensorType& gradOutput) override {
+        if (!input) {
+            throw std::runtime_error("Input tensor is not initialized!");
         }
 
-        weightGradients = TensorOperations::matmul(transposedInput, gradOutput);
-        biasGradients = gradOutput.sum(0);
-
-        Tensor weightsTransposed(weightsTensor.shape());
-        if (weightsTransposed.shape().rank() > 1) {
-            weightsTransposed = TensorOperations::transpose(weightsTensor, 0, 1);
-        } else {
-            weightsTransposed = weightsTensor; 
+        TensorType inputTransposed = input.value();
+        if (inputTransposed.getShape().rank() > 1) {
+            inputTransposed = AdvancedTensorOperations<T>::transpose(input.value(), 0, 1);
         }
 
-        return TensorOperations::matmul(gradOutput, weightsTransposed);
+        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutput));
+        biasGradients.emplace(AdvancedTensorOperations<T>::sum(gradOutput));
+
+        TensorType weightsTransposed = weights.value();
+        if (weightsTransposed.getShape().rank() > 1) {
+            weightsTransposed = AdvancedTensorOperations<T>::transpose(weights.value(), 0, 1);
+        }
+
+        return AdvancedTensorOperations<T>::matmul(gradOutput, weightsTransposed);
     }
 
-    void updateWeights(Optimizer& optimizer) override {
-        // Pass references to avoid copies
-        optimizer.optimize({std::ref(*weights), std::ref(*biases)}, {std::ref(*weightGradients), std::ref(*biasGradients)});
+    void updateWeights(Optimizer<T>& optimizer) override {
+        if (!weights || !biases || !weightGradients || !biasGradients) {
+            throw std::runtime_error("Weights or gradients are not initialized!");
+        }
+
+        optimizer.optimize({std::ref(weights.value()), std::ref(biases.value())},
+                           {std::ref(weightGradients.value()), std::ref(biasGradients.value())});
+    }
+
+    void setTrainingMode(bool mode) override {
+        trainingMode = mode;
     }
 
 private:
-    TensorWrapper weights;
-    TensorWrapper biases;
-    TensorWrapper input;
-    TensorWrapper weightGradients;
-    TensorWrapper biasGradients;
+    std::optional<TensorType> weights;
+    std::optional<TensorType> biases;
+    std::optional<TensorType> input;
+    std::optional<TensorType> weightGradients;
+    std::optional<TensorType> biasGradients;
+
+    bool trainingMode = true;
 };
+
+} // namespace smart_dnn
 
 #endif // FULLY_CONNECTED_LAYER_HPP

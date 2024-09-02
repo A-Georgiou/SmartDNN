@@ -2,63 +2,67 @@
 #define ADAM_OPTIMIZER_HPP
 
 #include <unordered_map>
-#include "../Tensor.hpp"
+#include "../Tensor/Tensor.hpp"
 #include "../Optimizer.hpp"
 #include "../TensorOperations.hpp"
-#include "../TensorWrapper.hpp" 
 
+namespace smart_dnn {
+
+template <typename T = float>
 struct AdamOptions {
-    float learningRate = 0.001f;
-    float beta1 = 0.9f;
-    float beta2 = 0.999f;
-    float epsilon = 1e-8f;
-    float l1_strength = 0.0f;
-    float l2_strength = 0.0f;
+    T learningRate = T(0.001);
+    T beta1 = T(0.9);
+    T beta2 = T(0.999);
+    T epsilon = T(1e-8);
+    T l1_strength = T(0);
+    T l2_strength = T(0);
 };
 
-class AdamOptimizer : public Optimizer {
+template <typename T=float>
+class AdamOptimizer : public Optimizer<T> {
 public:
-    AdamOptimizer(AdamOptions options = {})
+    AdamOptimizer(AdamOptions<T> options = {})
         : learningRate(options.learningRate), beta1(options.beta1), beta2(options.beta2),
           epsilon(options.epsilon), l1_strength(options.l1_strength), l2_strength(options.l2_strength), t(0) {}
 
-    void optimize(const std::vector<std::reference_wrapper<Tensor>>& weights, const std::vector<std::reference_wrapper<Tensor>>& gradients, float learningRateOverride = -1.0f) override {
+    void optimize(const std::vector<std::reference_wrapper<Tensor<T>>>& weights, const std::vector<std::reference_wrapper<Tensor<T>>>& gradients, T learningRateOverride = T(-1)) override {
         if (weights.size() != gradients.size()) {
             throw std::invalid_argument("Error: weights and gradients size mismatch!");
         }
 
-        float lr = (learningRateOverride > 0) ? learningRateOverride : learningRate;
+        T lr = (learningRateOverride > T(0)) ? learningRateOverride : learningRate;
         t += 1;
 
         for (size_t i = 0; i < weights.size(); ++i) {
-            Tensor& w = weights[i].get();
-            const Tensor& g = gradients[i].get();
+            Tensor<T>& w = weights[i].get();
+            const Tensor<T>& g = gradients[i].get();
 
             size_t key = reinterpret_cast<size_t>(&w);
 
             if (m.find(key) == m.end()) {
-                m[key] = Tensor(w.shape(), 0.0f);
-                v[key] = Tensor(w.shape(), 0.0f);
+                m.emplace(key, Tensor<T>(w.getShape(), T(0)));
+                v.emplace(key, Tensor<T>(w.getShape(), T(0)));
             }
 
-            Tensor& m_v = *m[key];
-            Tensor& v_v = *v[key];
+            Tensor<T>& m_v = m.at(key);
+            Tensor<T>& v_v = v.at(key);
 
             // Update biased first moment estimate
-            m[key] = beta1 * m_v + (1.0f - beta1) * g;
+            m.emplace(key, beta1 * m_v + (T(1) - beta1) * g);
 
             // Update biased second moment estimate
-            v[key] = beta2 * v_v + (1.0f - beta2) * g * g;
+            v.emplace(key, beta2 * v_v + (T(1) - beta2) * g * g);
 
             // Compute bias-corrected first and second moment estimates
-            Tensor m_hat = m_v / (1.0f - std::pow(beta1, t));
-            Tensor v_hat = v_v / (1.0f - std::pow(beta2, t));
+            Tensor<T> m_hat = m_v / (T(1) - std::pow(beta1, t));
+            Tensor<T> v_hat = v_v / (T(1) - std::pow(beta2, t));
 
             // Apply L1 and L2 regularization
-            if (l1_strength > 0.0f) {
-                w -= lr * l1_strength * w.apply([](float x) { return x > 0 ? 1.0f : -1.0f; });
+            if (l1_strength > T(0)) {
+                w.apply([](T x) { return x > T(0) ? T(1) : T(-1); });
+                w -= lr * l1_strength * w;
             }
-            if (l2_strength > 0.0f) {
+            if (l2_strength > T(0)) {
                 w -= lr * l2_strength * w;
             }
 
@@ -76,17 +80,18 @@ public:
     }
 
 private:
-    float learningRate;
-    float beta1;
-    float beta2;
-    float epsilon;
+    T learningRate;
+    T beta1;
+    T beta2;
+    T epsilon;
     int t;
-    float l1_strength;
-    float l2_strength;
+    T l1_strength;
+    T l2_strength;
     
-    std::unordered_map<size_t, TensorWrapper> m; // First moment estimate
-    std::unordered_map<size_t, TensorWrapper> v; // Second moment estimate
+    std::unordered_map<size_t, Tensor<T>> m; // First moment estimate 
+    std::unordered_map<size_t, Tensor<T>> v; // Second moment estimate
 };
 
+} // namespace smart_dnn
 
 #endif // ADAM_OPTIMIZER_HPP

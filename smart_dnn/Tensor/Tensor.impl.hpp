@@ -26,6 +26,9 @@ TEMPLATE_TENSOR
 Tensor<T, DeviceType>::Tensor(const Tensor<T, DeviceType>& other) : data_(other.data_) {}
 
 TEMPLATE_TENSOR
+Tensor<T, DeviceType>::Tensor(Tensor<T, DeviceType>&& other) noexcept : data_(std::move(other.data_)) {}
+
+TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator=(const Tensor<T, DeviceType>& other) {
     if (this != &other) {
         data_ = other.data_;
@@ -47,7 +50,7 @@ Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator-=(const Tensor<T, DeviceT
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator*=(const Tensor<T, DeviceType>& other) {
-    TensorOperations<T, DeviceType>::multipleInPlace(data_, other.data_);
+    TensorOperations<T, DeviceType>::multiplyInPlace(data_, other.data_);
     return *this;
 }
 
@@ -124,6 +127,11 @@ Tensor<T, DeviceType> Tensor<T, DeviceType>::operator/(T scalar) const {
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator-() const {
     return TensorOperations<T, DeviceType>::multiplyScalar(this->data_, -1);
+}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::sqrt() const {
+    return TensorOperations<T, DeviceType>::sqrt(this->data_);
 }
 
 TEMPLATE_TENSOR
@@ -217,8 +225,15 @@ void Tensor<T, DeviceType>::reshape(const Shape& newShape) {
 
 TEMPLATE_TENSOR
 void Tensor<T, DeviceType>::reshape(const std::vector<int>& dims) {
-    data_.reshape(dims);
+    this->data_.reshape(dims);
 }
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType>& Tensor<T, DeviceType>::apply(std::function<T(T)> func) {
+    TensorOperations<T, DeviceType>::applyInPlace(this->data_, func);
+    return *this;  // Return the current Tensor object
+}
+
 
 #undef TEMPLATE_TENSOR
 

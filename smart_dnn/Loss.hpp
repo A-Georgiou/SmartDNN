@@ -2,15 +2,15 @@
 #define LOSS_HPP
 
 #include "Tensor/Tensor.hpp"
-#include "Tensor/TensorConfig.hpp"
 
 namespace smart_dnn {
 
+template <typename T>
 class Loss {
 public:
     virtual ~Loss() = default;
-    virtual float compute(const ConfiguredTensor<>& prediction, const ConfiguredTensor<>& target) = 0;
-    virtual ConfiguredTensor<> gradient(const ConfiguredTensor<>& prediction, const ConfiguredTensor<>& target) = 0;
+    virtual Tensor<T> compute(const Tensor<T>& prediction, const Tensor<T>& target) = 0;
+    virtual Tensor<T> gradient(const Tensor<T>& prediction, const Tensor<T>& target) = 0;
     
     virtual void save(std::ostream& os) const = 0;
     virtual void load(std::istream& is) = 0;

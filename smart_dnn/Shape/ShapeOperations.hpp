@@ -38,7 +38,32 @@ public:
 
         return Shape(result);
     }
-};
+
+    static bool areBroadcastable(const Shape& A, const Shape& B) {
+        int lenA = A.rank();
+        int lenB = B.rank();
+        
+        int minLen = std::min(lenA, lenB);
+        int maxLen = std::max(lenA, lenB);
+        
+        for (int i = 0; i < minLen; ++i) {
+            int dimA = A[lenA - 1 - i];
+            int dimB = B[lenB - 1 - i];
+            
+            if (dimA != dimB && dimA != 1 && dimB != 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static Shape concat(const Shape& shape1, const Shape& shape2) {
+        std::vector<int> newDimensions = shape1.getDimensions();
+        newDimensions.insert(newDimensions.end(), shape2.getDimensions().begin(), shape2.getDimensions().end());
+        return Shape(newDimensions);
+    }
+    };
 
 } // namespace smart_dnn
 

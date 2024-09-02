@@ -52,6 +52,7 @@ struct Shape {
         if (this != &other) {
             _dimensions = other._dimensions;
             _size = other._size;
+            _stride = other._stride;  
         }
         return *this;
     }
@@ -60,6 +61,7 @@ struct Shape {
         if (this != &other) {
             _dimensions = std::move(other._dimensions);
             _size = other._size;
+            _stride = std::move(other._stride);  
         }
         return *this;
     }
@@ -86,6 +88,9 @@ struct Shape {
     int operator[](int index) const { return _dimensions[index]; }
     bool operator==(const Shape& other) const { return _dimensions == other._dimensions; }
     bool operator!=(const Shape& other) const { return !(*this == other); }
+
+    auto begin() const { return _dimensions.begin(); }
+    auto end() const { return _dimensions.end(); }
 
 private:
     int _size;

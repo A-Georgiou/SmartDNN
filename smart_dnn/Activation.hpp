@@ -6,11 +6,12 @@
 
 namespace smart_dnn {
 
+template <typename T>
 class Activation {
 public:
     virtual ~Activation() = default;
-    virtual ConfiguredTensor<> forward(const ConfiguredTensor<>& input) const = 0;
-    virtual ConfiguredTensor<> backward(const ConfiguredTensor<>& input, const ConfiguredTensor<>& gradOutput) const= 0;
+    virtual Tensor<T> forward(const Tensor<T>& input) const = 0;
+    virtual Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const= 0;
 };
 
 } // namespace smart_dnn

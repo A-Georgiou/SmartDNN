@@ -47,7 +47,7 @@ public:
     static TensorData<T, DeviceType> multiplyScalar(const TensorData<T, DeviceType>& tensor, T scalar);
     static TensorData<T, DeviceType> divideScalar(const TensorData<T, DeviceType>& tensor, T scalar);
 
-        // Special scalar divide operation
+    // Special scalar divide operation
     static TensorData<T, DeviceType> inverseDivideScalar(const TensorData<T, DeviceType>& tensor, T scalar);
 
     // In-place scalar operations
@@ -57,7 +57,9 @@ public:
     static TensorData<T, DeviceType>& divideScalarInPlace(TensorData<T, DeviceType>& tensor, T scalar);
 
     // Other operations
-    static T sum(const TensorData<T, DeviceType>& tensor);
+    static TensorData<T, DeviceType> apply(const TensorData<T, CPUDevice>& tensor, std::function<T(T)> func);
+    static TensorData<T, DeviceType>& applyInPlace(TensorData<T, DeviceType>& tensor, std::function<T(T)> func);
+    static TensorData<T, CPUDevice> sum(const TensorData<T, CPUDevice>& tensor);
     static TensorData<T, DeviceType> sqrt(const TensorData<T, DeviceType>& tensor);
     static TensorData<T, DeviceType>& sqrtInPlace(TensorData<T, DeviceType>& tensor);
 
@@ -91,7 +93,7 @@ public:
         BroadcastView<T, CPUDevice> lhs_broadcast(lhs, result_shape);
         BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
 
-        subtractImpl(lhs, rhs, result);
+        minusImpl(lhs, rhs, result);
         return result;
     }
 
@@ -137,7 +139,7 @@ public:
         Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
         BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
 
-        subtractImpl(lhs, rhs_broadcast, lhs);
+        minusImpl(lhs, rhs_broadcast, lhs);
         return lhs;
     }
 
@@ -215,12 +217,23 @@ public:
         return tensor;
     }
 
-    static T sum(const TensorData<T, CPUDevice>& tensor){
-        T result = 0;
+    static TensorData<T, CPUDevice> apply(const TensorData<T, CPUDevice>& tensor, std::function<T(T)> func){
+        TensorData<T, CPUDevice> result(tensor.shape());
+        applyImpl(tensor, result, func);
+        return result;
+    }
+
+    static TensorData<T, CPUDevice>& applyInPlace(TensorData<T, CPUDevice>& tensor, std::function<T(T)> func){
+        applyImpl(tensor, tensor, func);
+        return tensor;
+    }
+
+    static TensorData<T, CPUDevice> sum(const TensorData<T, CPUDevice>& tensor){
+        T result = T(0);
         for (const auto& value : tensor) {
             result += value;
         }
-        return result;
+        return TensorData<T, CPUDevice>(Shape({1}), result);
     }
 
     static TensorData<T, CPUDevice> sqrt(const TensorData<T, CPUDevice>& tensor){
@@ -254,6 +267,8 @@ public:
             *tensor_it = RandomEngine::getRandRange(min, max);
             ++tensor_it;
         }
+
+        return result;
     }
 
     static TensorData<T, CPUDevice> createIdentity(int size){
@@ -271,137 +286,66 @@ public:
 
 private:
     template<typename LHS, typename RHS>
+    static constexpr bool are_tensor_like() {
+        return is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value;
+    }
+
+    template<typename Operation>
+    static void applyScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar, TensorData<T, CPUDevice>& result, Operation op) {
+        std::transform(tensor.begin(), tensor.end(), result.begin(), [&](T value) { return op(value, scalar); });
+    }
+
+    template<typename LHS, typename RHS>
     static void addImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
-        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
-                      "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape() != rhs.shape()) {
-            throw std::runtime_error("Shapes are not broadcastable!");
-        }
+        static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
+        if (lhs.shape() != rhs.shape()) { throw std::runtime_error("Shapes are not broadcastable!"); }
 
-        auto lhs_it = lhs.begin();
-        auto rhs_it = rhs.begin();
-        auto result_it = result.begin();
-
-        while (result_it != result.end()) {
-            *result_it = *lhs_it + *rhs_it;
-            ++lhs_it;
-            ++rhs_it;
-            ++result_it;
-        }
+        std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::plus<T>());
     }
 
     template<typename LHS, typename RHS>
-    static void minusImpl(const LHS& lhs,
-                          const RHS& rhs, TensorData<T,
-                          CPUDevice>& result) {
-        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
-                      "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape() != rhs.shape()) {
-            throw std::runtime_error("Shapes are not broadcastable!");
-        }
-
-        auto lhs_it = lhs.begin();
-        auto rhs_it = rhs.begin();
-        auto result_it = result.begin();
-
-        while (result_it != result.end()) {
-            *result_it = *lhs_it - *rhs_it;
-            ++lhs_it;
-            ++rhs_it;
-            ++result_it;
-        }
+    static void minusImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
+        static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
+        if (lhs.shape() != rhs.shape()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+    
+        std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::minus<T>());
     }
 
     template<typename LHS, typename RHS>
-    static void multiplyImpl(const LHS& lhs,
-                             const RHS& rhs,
-                             TensorData<T, CPUDevice>& result) {
-        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
-                      "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape() != rhs.shape()) {
-            throw std::runtime_error("Shapes are not broadcastable!");
-        }
+    static void multiplyImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
+        static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
+        if (lhs.shape() != rhs.shape()) { throw std::runtime_error("Shapes are not broadcastable!"); }
 
-        auto lhs_it = lhs.begin();
-        auto rhs_it = rhs.begin();
-        auto result_it = result.begin();
-
-        while (result_it != result.end()) {
-            *result_it = *lhs_it * *rhs_it;
-            ++lhs_it;
-            ++rhs_it;
-            ++result_it;
-        }
+        std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::multiplies<T>());
     }
 
     template<typename LHS, typename RHS>
-    static void divideImpl(const LHS& lhs,
-                             const RHS& rhs,
-                             TensorData<T, CPUDevice>& result) {
-        static_assert(is_tensor_like<LHS, CPUDevice>::value && is_tensor_like<RHS, CPUDevice>::value,
-                      "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape() != rhs.shape()) {
-            throw std::runtime_error("Shapes are not broadcastable!");
-        }
-
-        auto lhs_it = lhs.begin();
-        auto rhs_it = rhs.begin();
-        auto result_it = result.begin();
-
-        while (result_it != result.end()) {
-            *result_it = *lhs_it / *rhs_it;
-            ++lhs_it;
-            ++rhs_it;
-            ++result_it;
-        }
+    static void divideImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
+        static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
+        if (lhs.shape() != rhs.shape()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+    
+        std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::divides<T>());
     }
 
-    static void addScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar,
-                              TensorData<T, CPUDevice>& result) {
-        auto tensor_it = tensor.begin();
-        auto result_it = result.begin();
-
-        while (result_it != result.end()) {
-            *result_it = *tensor_it + scalar;
-            ++tensor_it;
-            ++result_it;
-        }
+    static void addScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar, TensorData<T, CPUDevice>& result) {
+        applyScalarImpl(tensor, scalar, result, std::plus<T>());
     }
 
-    static void subtractScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar,
-                                   TensorData<T, CPUDevice>& result) {
-        auto tensor_it = tensor.begin();
-        auto result_it = result.begin();
+    static void subtractScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar, TensorData<T, CPUDevice>& result) {
 
-        while (result_it != result.end()) {
-            *result_it = *tensor_it - scalar;
-            ++tensor_it;
-            ++result_it;
-        }
+        applyScalarImpl(tensor, scalar, result, std::minus<T>());
     }
 
-    static void multiplyScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar,
-                                   TensorData<T, CPUDevice>& result) {
-        auto tensor_it = tensor.begin();
-        auto result_it = result.begin();
-
-        while (result_it != result.end()) {
-            *result_it = *tensor_it * scalar;
-            ++tensor_it;
-            ++result_it;
-        }
+    static void multiplyScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar, TensorData<T, CPUDevice>& result) {
+        applyScalarImpl(tensor, scalar, result, std::multiplies<T>());
     }
 
-    static void divideScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar,
-                                 TensorData<T, CPUDevice>& result) {
-        auto tensor_it = tensor.begin();
-        auto result_it = result.begin();
+    static void divideScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar, TensorData<T, CPUDevice>& result) {
+        applyScalarImpl(tensor, scalar, result, std::divides<T>());
+    }
 
-        while (result_it != result.end()) {
-            *result_it = *tensor_it / scalar;
-            ++tensor_it;
-            ++result_it;
-        }
+    static void applyImpl(const TensorData<T, CPUDevice>& tensor, TensorData<T, CPUDevice>& result, std::function<T(T)> func) {
+        std::transform(tensor.begin(), tensor.end(), result.begin(), func);
     }
     
 

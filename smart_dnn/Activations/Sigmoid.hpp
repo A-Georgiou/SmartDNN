@@ -2,17 +2,18 @@
 #define SIGMOID_HPP
 
 #include "../Activation.hpp"
-#include "../TensorOperations.hpp"
+#include "../Tensor/AdvancedTensorOperations.hpp"
 
-class Sigmoid : public Activation {
+template <typename T>
+class Sigmoid : public Activation<T> {
 public:
-    Tensor forward(const Tensor& input) const override {
-        return input.apply([](float x) { return 1.0f / (1.0f + std::exp(-x)); });
+    Tensor<T> forward(const Tensor<T>& input) const override {
+        return AdvancedTensorOperations::apply(input, [](float x) { return T(1) / (T(1) + std::exp(-x)); });
     }
 
-    Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
-        Tensor sig = forward(input);
-        return sig * (1.0f - sig) * gradOutput;
+    Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
+        Tensor<T> sig = forward(input);
+        return sig * (T(1) - sig) * gradOutput;
     }
 };
 
