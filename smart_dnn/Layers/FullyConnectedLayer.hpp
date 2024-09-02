@@ -21,9 +21,7 @@ public:
     
     TensorType forward(const TensorType& input) override {
         this->input = input;
-        TensorType output = AdvancedTensorOperations<T>::matmul(this->input.value(), weights.value()); 
-        output += biases.value();
-        return output;
+        return AdvancedTensorOperations<T>::matmul(this->input.value(), weights.value()) + biases.value();
     }
 
     TensorType backward(const TensorType& gradOutput) override {
@@ -31,20 +29,24 @@ public:
             throw std::runtime_error("Input tensor is not initialized!");
         }
 
-        TensorType inputTransposed = input.value();
-        if (inputTransposed.getShape().rank() > 1) {
-            inputTransposed = AdvancedTensorOperations<T>::transpose(input.value(), 0, 1);
-        }
-
-        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutput));
-        biasGradients.emplace(AdvancedTensorOperations<T>::sum(gradOutput));
-
+        TensorType gradOutputReshaped = gradOutput;
+        TensorType inputTensor = input.value();
         TensorType weightsTransposed = weights.value();
-        if (weightsTransposed.getShape().rank() > 1) {
-            weightsTransposed = AdvancedTensorOperations<T>::transpose(weights.value(), 0, 1);
-        }
 
-        return AdvancedTensorOperations<T>::matmul(gradOutput, weightsTransposed);
+        if (inputTensor.getShape().rank() == 1)
+            inputTensor = AdvancedTensorOperations<T>::reshape(inputTensor, {1, inputTensor.getShape()[0]});
+
+        if (gradOutput.getShape().rank() == 1 && gradOutput.getShape()[0] == 1)
+            gradOutputReshaped = AdvancedTensorOperations<T>::reshape(gradOutput, {1, 1});
+
+        TensorType inputTransposed = AdvancedTensorOperations<T>::transpose(inputTensor, 0, 1);
+        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutputReshaped));
+        biasGradients.emplace(AdvancedTensorOperations<T>::sum(gradOutputReshaped));
+
+        if (weightsTransposed.getShape().rank() > 1)
+            weightsTransposed = AdvancedTensorOperations<T>::transpose(weights.value(), 0, 1);
+
+        return AdvancedTensorOperations<T>::matmul(gradOutputReshaped, weightsTransposed);
     }
 
     void updateWeights(Optimizer<T>& optimizer) override {
@@ -52,8 +54,8 @@ public:
             throw std::runtime_error("Weights or gradients are not initialized!");
         }
 
-        optimizer.optimize({std::ref(weights.value()), std::ref(biases.value())},
-                           {std::ref(weightGradients.value()), std::ref(biasGradients.value())});
+        optimizer.optimize({std::ref(*weights), std::ref(*biases)},
+                           {std::ref(*weightGradients), std::ref(*biasGradients)});
     }
 
     void setTrainingMode(bool mode) override {

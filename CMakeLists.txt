@@ -8,7 +8,6 @@ add_executable(SmartDNN
     src/main.cpp
 )
 
-
 # Enable logging for debug builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(SmartDNN PRIVATE ENABLE_LOGGING)

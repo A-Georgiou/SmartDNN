@@ -14,27 +14,23 @@ public:
         int size1 = shape1.rank();
         int size2 = shape2.rank();
         int maxSize = std::max(size1, size2);
-        int minSize = std::min(size1, size2);
 
         for (int i = 0; i < maxSize; ++i) {
-            if (i < minSize) {
-                if (shape1[i] == shape2[i]) {
-                    result.push_back(shape1[i]);
-                } else if (shape1[i] == 1) {
-                    result.push_back(shape2[i]);
-                } else if (shape2[i] == 1) {
-                    result.push_back(shape1[i]);
-                } else {
-                    throw std::runtime_error("Shapes are not broadcastable!");
-                }
+            int dim1 = (i < size1) ? shape1[size1 - 1 - i] : 1;
+            int dim2 = (i < size2) ? shape2[size2 - 1 - i] : 1;
+
+            if (dim1 == dim2) {
+                result.push_back(dim1);
+            } else if (dim1 == 1) {
+                result.push_back(dim2);
+            } else if (dim2 == 1) {
+                result.push_back(dim1);
             } else {
-                if (size1 > size2) {
-                    result.push_back(shape1[i]);
-                } else {
-                    result.push_back(shape2[i]);
-                }
+                throw std::runtime_error("Shapes are not broadcastable!");
             }
         }
+
+        std::reverse(result.begin(), result.end());
 
         return Shape(result);
     }

@@ -37,10 +37,9 @@ void SmartDNN<T>::compile(Loss<T>* loss, Optimizer<T>* optimizer) {
 template <typename T>
 void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<Tensor<T>>& targets, int epochs, float learningRate) {
     for (int epoch = 0; epoch < epochs; ++epoch) {
-        Tensor<T> totalLoss{Shape({1})};
+        Tensor<T> totalLoss{Shape({1}), T(0)};
 
         for (size_t i = 0; i < inputs.size(); ++i) {
-            Logger::log(Logger::Level::INFO, "Training on sample " + std::to_string(i));
             Tensor<T> prediction = inputs[i];
             for (Layer<T>* layer : layers) {
                 prediction = layer->forward(prediction);
@@ -57,7 +56,7 @@ void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<
                 layer->updateWeights(*optimizer);
             }
         }
-        std::cout << "Epoch " << epoch << " - Loss: " << (totalLoss / T(inputs.size())).detailedString() << std::endl;
+        std::cout << "Epoch " << epoch << " - Loss: " << (totalLoss / T(inputs.size())).toDataString() << std::endl;
     }
 }
 

@@ -76,7 +76,7 @@ class AdvancedTensorOperations<T, CPUDevice> {
 
     static Tensor<T> dotProduct(const Tensor<T>& a, const Tensor<T>& b) {
         if (a.getShape()[0] != b.getShape()[0]) {
-            throw std::invalid_argument("Vector dimensions must match for dot product.");
+            throw std::invalid_argument("Vector dimensions must match for dot product. Mismatch in dimensions: " + a.getShape().toString() + " and " + b.getShape().toString());
         }
 
         T result = 0;
@@ -94,7 +94,7 @@ class AdvancedTensorOperations<T, CPUDevice> {
 
     static Tensor<T> matrixVectorMul(const Tensor<T>& a, const Tensor<T>& b) {
         if (a.getShape()[1] != b.getShape()[0]) {
-            throw std::invalid_argument("Matrix and vector dimensions must match for multiplication.");
+            throw std::invalid_argument("Matrix and vector dimensions must match for multiplication. Mismatch in dimensions: " + a.getShape().toString() + " and " + b.getShape().toString());
         }
 
         int m = a.getShape()[0];
@@ -120,7 +120,7 @@ class AdvancedTensorOperations<T, CPUDevice> {
 
     static Tensor<T> matrixMatrixMul(const Tensor<T>& a, const Tensor<T>& b) {
         if (a.getShape()[1] != b.getShape()[0]) {
-            throw std::invalid_argument("Matrix dimensions must match for multiplication.");
+            throw std::invalid_argument("Matrix dimensions must match for multiplication. Mismatch in dimensions: " + a.getShape().toString() + " and " + b.getShape().toString());
         }
 
         int m = a.getShape()[0];

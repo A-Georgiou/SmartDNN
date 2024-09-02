@@ -135,7 +135,12 @@ Tensor<T, DeviceType> Tensor<T, DeviceType>::sqrt() const {
 }
 
 TEMPLATE_TENSOR
-TensorData<T, DeviceType> Tensor<T, DeviceType>::getData() const noexcept {
+TensorData<T, DeviceType>& Tensor<T, DeviceType>::getData() noexcept {
+    return data_;
+}
+
+TEMPLATE_TENSOR
+const TensorData<T, DeviceType>& Tensor<T, DeviceType>::getData() const noexcept {
     return data_;
 }
 
@@ -176,11 +181,16 @@ Tensor<T, DeviceType> operator/(T scalar, const Tensor<T, DeviceType>& tensor) {
 }
 
 TEMPLATE_TENSOR
-std::string Tensor<T, DeviceType>::detailedString() const {
+std::string Tensor<T, DeviceType>::toDetailedString() const {
     std::ostringstream oss;
     oss << "Tensor:\n";
     oss << data_.toString() << "\n";
     return oss.str();
+}
+
+TEMPLATE_TENSOR
+std::string Tensor<T, DeviceType>::toDataString() const {
+    return data_.toDataString();
 }
 
 TEMPLATE_TENSOR

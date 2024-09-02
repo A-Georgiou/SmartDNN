@@ -55,6 +55,18 @@ std::string TENSOR_DATA_CPU::toString() const {
     return oss.str();
 }
 
+TEMPLATE_TENSOR
+std::string TENSOR_DATA_CPU::toDataString() const {
+    std::ostringstream oss;
+    oss << "[";
+    for (size_t i = 0; i < shape_.size(); ++i) {
+        if (i > 0) oss << ", ";
+        oss << data_[i];
+    }
+    oss << "]";
+    return oss.str();
+}
+
 // Clean up macro definitions
 #undef TEMPLATE_TENSOR
 #undef TENSOR_DATA_CPU

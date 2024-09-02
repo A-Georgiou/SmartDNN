@@ -298,15 +298,15 @@ private:
     template<typename LHS, typename RHS>
     static void addImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
         static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape() != rhs.shape()) { throw std::runtime_error("Shapes are not broadcastable!"); }
-
+        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+ 
         std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::plus<T>());
     }
 
     template<typename LHS, typename RHS>
     static void minusImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
         static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape() != rhs.shape()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable!"); }
     
         std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::minus<T>());
     }
@@ -314,7 +314,7 @@ private:
     template<typename LHS, typename RHS>
     static void multiplyImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
         static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape() != rhs.shape()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable!"); }
 
         std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::multiplies<T>());
     }
@@ -322,7 +322,7 @@ private:
     template<typename LHS, typename RHS>
     static void divideImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
         static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape() != rhs.shape()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable!"); }
     
         std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::divides<T>());
     }

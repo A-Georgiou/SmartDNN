@@ -53,10 +53,12 @@ public:
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;
 
-    TensorData<T, DeviceType> getData() const noexcept;
+    TensorData<T, DeviceType>& getData() noexcept;
+    const TensorData<T, DeviceType>& getData() const noexcept;
     Shape getShape() const noexcept;
 
-    std::string detailedString() const;
+    std::string toDetailedString() const;
+    std::string toDataString() const;
 
     void reshape(const Shape& newShape);
     void reshape(const std::vector<int>& dims);

@@ -25,13 +25,18 @@ public:
         : learningRate(options.learningRate), beta1(options.beta1), beta2(options.beta2),
           epsilon(options.epsilon), l1_strength(options.l1_strength), l2_strength(options.l2_strength), t(0) {}
 
-    void optimize(const std::vector<std::reference_wrapper<Tensor<T>>>& weights, const std::vector<std::reference_wrapper<Tensor<T>>>& gradients, T learningRateOverride = T(-1)) override {
+    void optimize(const std::vector<std::reference_wrapper<Tensor<T>>>& weights,
+                const std::vector<std::reference_wrapper<Tensor<T>>>& gradients,
+                T learningRateOverride = T(-1)) override {
         if (weights.size() != gradients.size()) {
             throw std::invalid_argument("Error: weights and gradients size mismatch!");
         }
 
         T lr = (learningRateOverride > T(0)) ? learningRateOverride : learningRate;
         t += 1;
+        T beta1_t = std::pow(beta1, t);
+        T beta2_t = std::pow(beta2, t);
+        T alpha = lr * std::sqrt(T(1) - beta2_t) / (T(1) - beta1_t);
 
         for (size_t i = 0; i < weights.size(); ++i) {
             Tensor<T>& w = weights[i].get();
@@ -47,27 +52,40 @@ public:
             Tensor<T>& m_v = m.at(key);
             Tensor<T>& v_v = v.at(key);
 
-            // Update biased first moment estimate
-            m.emplace(key, beta1 * m_v + (T(1) - beta1) * g);
+            size_t size = w.getShape().size();
+            T* w_data = w.getData().data();
+            const T* g_data = g.getData().data();
+            T* m_data = m_v.getData().data();
+            T* v_data = v_v.getData().data();
 
-            // Update biased second moment estimate
-            v.emplace(key, beta2 * v_v + (T(1) - beta2) * g * g);
+            #pragma omp parallel for if(size > 1000)
+            for (size_t j = 0; j < size; ++j) {
+                // Update biased first moment estimate
+                m_data[j] = beta1 * m_data[j] + (T(1) - beta1) * g_data[j];
 
-            // Compute bias-corrected first and second moment estimates
-            Tensor<T> m_hat = m_v / (T(1) - std::pow(beta1, t));
-            Tensor<T> v_hat = v_v / (T(1) - std::pow(beta2, t));
+                // Update biased second moment estimate
+                v_data[j] = beta2 * v_data[j] + (T(1) - beta2) * g_data[j] * g_data[j];
 
-            // Apply L1 and L2 regularization
-            if (l1_strength > T(0)) {
-                w.apply([](T x) { return x > T(0) ? T(1) : T(-1); });
-                w -= lr * l1_strength * w;
+                // Compute update
+                T m_hat = m_data[j] / (T(1) - beta1_t);
+                T v_hat = v_data[j] / (T(1) - beta2_t);
+                T update = alpha * m_hat / (std::sqrt(v_hat) + epsilon);
+
+                // Apply L1 and L2 regularization
+                if (l1_strength > T(0)) {
+                    if (w_data[j] > T(0)) {
+                        update += lr * l1_strength;
+                    } else if (w_data[j] < T(0)) {
+                        update -= lr * l1_strength;
+                    }
+                }
+                if (l2_strength > T(0)) {
+                    update += lr * l2_strength * w_data[j];
+                }
+
+                // Apply the update
+                w_data[j] -= update;
             }
-            if (l2_strength > T(0)) {
-                w -= lr * l2_strength * w;
-            }
-
-            // Update weights with Adam
-            w -= lr * m_hat / (v_hat.sqrt() + epsilon);
         }
     }
 

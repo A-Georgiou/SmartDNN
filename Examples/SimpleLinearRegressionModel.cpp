@@ -21,7 +21,7 @@ int main() {
     model.addLayer(new FullyConnectedLayer(10, 1));
 
     // Compile the model with a Mean Squared Error loss function and an Adam optimizer (initialised to learning rate 0.01f).
-    model.compile(new MSELoss(), new AdamOptimizer<float>());
+    model.compile(new MSELoss(), new AdamOptimizer());
 
     // Train the model on the dataset for 100 epochs with a learning rate of 0.01f.
     model.train(dataset.first, dataset.second, 100, 0.01f);

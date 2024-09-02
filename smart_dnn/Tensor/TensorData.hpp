@@ -40,6 +40,7 @@ public:
 
     // output the data
     std::string toString() const;
+    std::string toDataString() const;
 
     T* begin() const { return data_.get(); }
     T* end() const { return (data_.get() + shape_.size()); }
