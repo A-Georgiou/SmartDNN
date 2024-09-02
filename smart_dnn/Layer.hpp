@@ -3,7 +3,6 @@
 
 #include "Tensor/Tensor.hpp"
 #include "Optimizer.hpp"
-#include "Tensor/TensorConfig.hpp"
 
 namespace smart_dnn {
 

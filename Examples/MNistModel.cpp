@@ -1,4 +1,4 @@
-#include "../smart_dnn/Tensor.hpp"
+#include "../smart_dnn/Tensor/Tensor.hpp"
 #include "../smart_dnn/SmartDNN.hpp"
 #include "../smart_dnn/Activations/ReLU.hpp"
 #include "../smart_dnn/Activations/Softmax.hpp"

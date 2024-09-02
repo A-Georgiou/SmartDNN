@@ -190,6 +190,36 @@ Tensor<T, DeviceType> Tensor<T, DeviceType>::rand(Shape dimensions) {
     return TensorFactory<T, DeviceType>::rand(dimensions);
 }
 
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::ones(int size) {
+    return TensorFactory<T, DeviceType>::ones(size);
+}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::zeros(int size) {
+    return TensorFactory<T, DeviceType>::zeros(size);
+}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::rand(int size) {
+    return TensorFactory<T, DeviceType>::rand(size);
+}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::identity(int size) {
+    return TensorFactory<T, DeviceType>::identity(size);
+}
+
+TEMPLATE_TENSOR
+void Tensor<T, DeviceType>::reshape(const Shape& newShape) {
+    data_.reshape(newShape);
+}
+
+TEMPLATE_TENSOR
+void Tensor<T, DeviceType>::reshape(const std::vector<int>& dims) {
+    data_.reshape(dims);
+}
+
 #undef TEMPLATE_TENSOR
 
 } // namespace smart_dnn

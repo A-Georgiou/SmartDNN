@@ -13,7 +13,7 @@ struct Shape {
         : _dimensions(other._dimensions), _size(other._size), _stride(other._stride) {}
 
     Shape(Shape&& other) noexcept
-        : _dimensions(std::move(other._dimensions)), _size(other._size), _stride(other._stride) {}
+        : _dimensions(std::move(other._dimensions)), _size(other._size), _stride(std::move(other._stride)) {}
 
     explicit Shape(std::vector<int> dims) : _dimensions(std::move(dims)) {
         validateDimensions();
@@ -64,13 +64,19 @@ struct Shape {
         return *this;
     }
 
-    void setDimensions(const std::vector<int>& dims) {
+    void reshape(const Shape& other){
+        reshape(other.getDimensions());
+    }
+
+    void reshape(const std::vector<int>& dims) {
+        validateDimensions(dims);
         int newSize = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
         if (_size != newSize) {
-            throw std::runtime_error("Shape size mismatch. Current size: " + std::to_string(_size) + ", New size: " + std::to_string(newSize));
+            throw std::runtime_error("Shape size mismatch. Current size: " 
+                + std::to_string(_size) + ", New size: " + std::to_string(newSize) 
+                + ". New dimensions: " + Shape(dims).toString());
         }
         _dimensions = dims;
-        validateDimensions();
         _stride = calculateStride();
     }
 
@@ -99,10 +105,14 @@ private:
     }
 
     void validateDimensions() const {
-        if (_dimensions.empty()) {
+        validateDimensions(_dimensions);
+    }
+
+    void validateDimensions(const std::vector<int>& dims) const {
+        if (dims.empty()) {
             throw std::invalid_argument("Shape must have at least one dimension");
         }
-        for (int dim : _dimensions) {
+        for (int dim : dims) {
             if (dim <= 0) {
                 throw std::invalid_argument("Dimensions must be positive integers. Got: " + toString());
             }

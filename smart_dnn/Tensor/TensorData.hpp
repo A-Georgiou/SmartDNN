@@ -32,9 +32,9 @@ public:
     const std::vector<int> stride() const noexcept { return shape_.getStride(); }
 
     // Fill the tensor with a given value
-    void fill(T value) noexcept {
-        std::fill_n(data_.get(), shape_.size(), value);
-    }
+    void fill(T value) noexcept { std::fill_n(data_.get(), shape_.size(), value); }
+    void reshape(const Shape& newShape) { shape_.reshape(newShape); }
+    void reshape(const std::vector<int>& dims) { shape_.reshape(dims); }
 
     // output the data
     std::string toString() const;

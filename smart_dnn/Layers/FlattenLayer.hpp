@@ -2,8 +2,7 @@
 #define FLATTEN_LAYER_HPP
 
 #include "../Layer.hpp"
-#include "../Tensor.hpp"
-#include "../TensorOperations.hpp"
+#include "../Tensor/Tensor.hpp"
 
 class FlattenLayer : public Layer {
     public:

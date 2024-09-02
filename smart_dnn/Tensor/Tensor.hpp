@@ -47,6 +47,7 @@ public:
 
     TensorData<T, DeviceType> getData() const noexcept;
     Shape getShape() const noexcept;
+
     std::string detailedString() const;
 
     bool operator==(const Tensor& other) const;
@@ -58,9 +59,13 @@ public:
     static Tensor rand(Shape dimensions);
     
     // Static factory operations on size_t - 1D tensor
-    static Tensor ones(size_t size);
-    static Tensor zeros(size_t size);
-    static Tensor rand(size_t size);
+    static Tensor ones(int size);
+    static Tensor zeros(int size);
+    static Tensor rand(int size);
+    static Tensor identity(int size);
+
+    void reshape(const Shape& newShape);
+    void reshape(const std::vector<int>& dims);
 
 private:
     TensorData<T, DeviceType> data_;
