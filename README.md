@@ -32,10 +32,11 @@ model.train(dataset.first, dataset.second, epochs, learningRate);
 
 -   **Custom Tensor Library**: A robust and feature-rich tensor library with comprehensive tensor operations.
 -   **Testing Environment**: A built-in testing environment that facilitates clean and efficient development.
--   **Layers**: Includes essential layers such as Fully Connected and Activation layers.
+-   **Layers**: Includes essential layers such as Fully Connected layer, Convolutional 2D layer, Flatten layer and Activation layers.
 -   **Optimizers**: Currently supports the Adam optimizer.
--   **Loss Functions**: Implements Mean Squared Error (MSE) for regression tasks.
+-   **Loss Functions**: Implements Mean Squared Error (MSE) for regression tasks and Categorical Cross Entropy.
 -   **Activation Functions**: Includes popular activation functions like Softmax, Sigmoid, Tanh, ReLU, and Leaky ReLU.
+-   **Regularisation Techniques**: Batch Normalisation, Dropout, Max Pooling 2D.
 
 ## Example Models
 
