@@ -195,37 +195,37 @@ std::string Tensor<T, DeviceType>::toDataString() const {
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::ones(Shape dimensions) {
-    return TensorFactory<T, DeviceType>::ones(dimensions);
+    return TensorFactory::ones<T, DeviceType>(dimensions);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::zeros(Shape dimensions) {
-    return TensorFactory<T, DeviceType>::zeros(dimensions);
+    return TensorFactory::zeros<T, DeviceType>(dimensions);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::rand(Shape dimensions) {
-    return TensorFactory<T, DeviceType>::rand(dimensions);
+    return TensorFactory::rand<T, DeviceType>(dimensions);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::ones(int size) {
-    return TensorFactory<T, DeviceType>::ones(size);
+    return TensorFactory::ones<T, DeviceType>(size);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::zeros(int size) {
-    return TensorFactory<T, DeviceType>::zeros(size);
+    return TensorFactory::zeros<T, DeviceType>(size);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::rand(int size) {
-    return TensorFactory<T, DeviceType>::rand(size);
+    return TensorFactory::rand<T, DeviceType>(size);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::identity(int size) {
-    return TensorFactory<T, DeviceType>::identity(size);
+    return TensorFactory::identity<T, DeviceType>(size);
 }
 
 TEMPLATE_TENSOR
