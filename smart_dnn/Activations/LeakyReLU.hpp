@@ -27,6 +27,7 @@ public:
 
         int size = input.getShape().size();
 
+        #pragma omp parallel for
         for (int i = 0; i < size; ++i) {
             gradInputData[i] = (inputData[i] > 0) ? gradOutputData[i] : alpha * gradOutputData[i];
         }
