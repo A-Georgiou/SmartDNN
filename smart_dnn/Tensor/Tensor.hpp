@@ -6,6 +6,7 @@
 #include "DeviceTypes.hpp"
 #include "../Shape/Shape.hpp"
 #include "TensorFactory.hpp"
+#include <functional>
 
 namespace smart_dnn {
 

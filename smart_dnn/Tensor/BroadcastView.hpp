@@ -82,6 +82,13 @@ public:
             bool is_end_;
 
         public:
+            // Required type aliases for MSVC
+            using iterator_category = std::forward_iterator_tag;
+            using value_type = T;
+            using difference_type = std::ptrdiff_t;
+            using pointer = T*;
+            using reference = T&;
+
             Iterator(const BroadcastView& view, bool end = false)
                 : view_(view), is_end_(end) {
                 if (!end) {
