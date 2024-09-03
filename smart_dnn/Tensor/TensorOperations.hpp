@@ -4,6 +4,7 @@
 #include "TensorData.hpp"
 #include "BroadcastView.hpp"
 #include "../RandomEngine.hpp"
+#include <functional>
 
 namespace smart_dnn {
 

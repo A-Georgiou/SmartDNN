@@ -6,6 +6,7 @@
 #include "Tensor.hpp"
 #include "../Shape/ShapeOperations.hpp"
 #include "../Tensor/TensorOperations.hpp"
+#include <functional>
 
 namespace smart_dnn {
 
