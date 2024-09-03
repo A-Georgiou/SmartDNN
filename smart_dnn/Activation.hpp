@@ -2,7 +2,6 @@
 #define ACTIVATION_HPP
 
 #include "Tensor/Tensor.hpp"
-#include "Tensor/TensorConfig.hpp"
 
 namespace smart_dnn {
 

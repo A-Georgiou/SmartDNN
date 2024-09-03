@@ -8,14 +8,14 @@
 
 namespace smart_dnn {
 
-std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> generateLinearDataset(int num_samples) {
+std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> generateLinearDataset(int num_samples, float noise=1.0) {
     std::vector<Tensor<float>> inputs;
     std::vector<Tensor<float>> targets;
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> input_dist(0, 100.0);
-    std::normal_distribution<> noise_dist(0, 1.0); 
+    std::normal_distribution<> noise_dist(0, noise); 
 
     for (int i = 0; i < num_samples; ++i) {
         float x = input_dist(gen);
