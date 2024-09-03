@@ -1,9 +1,11 @@
 #ifndef TANH_HPP
 #define TANH_HPP
 
+#include <cmath>
 #include "../Activation.hpp"
 #include "../Tensor/AdvancedTensorOperations.hpp"
-#include <cmath> // Include cmath for std::exp and std::tanh
+
+namespace smart_dnn {
 
 template <typename T>
 class Tanh : public Activation<T> {
@@ -16,5 +18,7 @@ public:
         return AdvancedTensorOperations::apply(input, [](T x) {  return T(1) - std::tanh(x) * std::tanh(x);  }) * gradOutput;
     }
 };
+
+} // namespace smart_dnn
 
 #endif // TANH_HPP

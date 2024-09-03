@@ -2,43 +2,44 @@
 #define CATEGORICAL_CROSS_ENTROPY_LOSS_HPP
 
 #include "../Loss.hpp"
-#include "../Tensor.hpp"
+#include "../Tensor/Tensor.hpp"
 #include "../TensorOperations.hpp"
 #include <cmath>
 #include <numeric>
 
-template <typename T>
+template <typename T=float>
 class CategoricalCrossEntropyLoss : public Loss {
+    using TensorType = Tensor<T>;
 public:
-    Tensor<T> compute(const Tensor& prediction, const Tensor& target) override {
+    TensorType compute(const TensorType& prediction, const TensorType& target) override {
         if (prediction.shape() != target.shape()) {
             throw std::invalid_argument("Prediction and target shapes must match, mismatch: " + std::to_string(prediction.shape().size()) + " != " + std::to_string(target.shape().size()));
         }
 
-        const float* predData = prediction.getData();
-        const float* targetData = target.getData();
-        int size = prediction.shape().size();
+        const T* predData = prediction.getData();
+        const T* targetData = target.getData();
+        size_t size = prediction.shape().size();
 
-        float loss = 0.0f;
-        for (int i = 0; i < size; ++i) {
-            loss -= targetData[i] * std::log(predData[i] + 1e-7f);
+        T loss = T(0);
+        for (size_t i = 0; i < size; ++i) {
+            loss -= targetData[i] * std::log(predData[i] + T(1e-7));
         }
 
         return loss / prediction.shape()[0];  // Normalize by batch size
     }
 
-    Tensor gradient(const Tensor& prediction, const Tensor& target) override {
+    TensorType gradient(const TensorType& prediction, const TensorType& target) override {
         if (prediction.shape() != target.shape()) {
             throw std::invalid_argument("Prediction and target shapes must match");
         }
 
-        Tensor grad(prediction.shape());
-        float* gradData = grad.getData();
-        const float* predData = prediction.getData();
-        const float* targetData = target.getData();
-        int size = prediction.shape().size();
+        TensorType grad(prediction.shape());
+        T* gradData = grad.getData();
+        const T* predData = prediction.getData();
+        const T* targetData = target.getData();
+        size_t size = prediction.shape().size();
 
-        for (int i = 0; i < size; ++i) {
+        for (size_t i = 0; i < size; ++i) {
             gradData[i] = (predData[i] - targetData[i]) / prediction.shape()[0];
         }
 

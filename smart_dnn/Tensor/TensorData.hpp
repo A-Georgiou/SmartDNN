@@ -2,6 +2,7 @@
 #define TENSOR_DATA_HPP
 
 #include "../Shape/Shape.hpp"
+#include "../Shape/ShapeOperations.hpp"
 #include "DeviceTypes.hpp"
 
 namespace smart_dnn {
@@ -30,6 +31,11 @@ public:
     const Shape& shape() const noexcept { return shape_; }
     const size_t size() const noexcept { return shape_.size(); }
     const std::vector<int> stride() const noexcept { return shape_.getStride(); }
+
+    T& operator[](size_t index);
+    const T& operator[](size_t index) const;
+    T& at(std::vector<size_t> indices);
+    const T& at(std::vector<size_t> indices) const;
 
     // Fill the tensor with a given value
     void fill(T value) noexcept { std::fill_n(data_.get(), shape_.size(), value); }

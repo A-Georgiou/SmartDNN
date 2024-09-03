@@ -47,6 +47,11 @@ public:
     Tensor operator*(T scalar) const;
     Tensor operator/(T scalar) const;
 
+    // Accessors
+    T& operator[](size_t index);
+    const T& operator[](size_t index) const;
+    T& at(std::vector<size_t> indices);
+    const T& at(std::vector<size_t> indices) const;
     Tensor sqrt() const;
 
     Tensor operator-() const;
@@ -70,11 +75,13 @@ public:
     static Tensor ones(Shape dimensions);
     static Tensor zeros(Shape dimensions);
     static Tensor rand(Shape dimensions);
+    static Tensor randn(Shape dimensions, T min, T max);
     
     // Static factory operations on size_t - 1D tensor
     static Tensor ones(int size);
     static Tensor zeros(int size);
     static Tensor rand(int size);
+    static Tensor randn(int size, T min, T max);
     static Tensor identity(int size);
     
 

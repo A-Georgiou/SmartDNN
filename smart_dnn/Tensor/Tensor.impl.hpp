@@ -125,6 +125,26 @@ Tensor<T, DeviceType> Tensor<T, DeviceType>::operator/(T scalar) const {
 }
 
 TEMPLATE_TENSOR
+T& Tensor<T, DeviceType>::operator[](size_t index){
+    return data_[index];
+}
+
+TEMPLATE_TENSOR
+const T& Tensor<T, DeviceType>::operator[](size_t index) const {
+    return data_[index];
+}
+    
+TEMPLATE_TENSOR
+T& Tensor<T, DeviceType>::at(std::vector<size_t> indices) {
+    return data_.at(indices);
+}
+
+TEMPLATE_TENSOR
+const T& Tensor<T, DeviceType>::at(std::vector<size_t> indices) const {
+    return data_.at(indices);
+}
+
+TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::operator-() const {
     return TensorOperations<T, DeviceType>::multiplyScalar(this->data_, -1);
 }
@@ -209,6 +229,11 @@ Tensor<T, DeviceType> Tensor<T, DeviceType>::rand(Shape dimensions) {
 }
 
 TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::randn(Shape dimensions, T min, T max){
+    return TensorFactory::randn<T, DeviceType>(dimensions, min, max);
+}
+
+TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::ones(int size) {
     return TensorFactory::ones<T, DeviceType>(size);
 }
@@ -222,6 +247,12 @@ TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::rand(int size) {
     return TensorFactory::rand<T, DeviceType>(size);
 }
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::randn(int size, T min, T max){
+    return TensorFactory::randn<T, DeviceType>(size, min, max);
+}
+
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::identity(int size) {

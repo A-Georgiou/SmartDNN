@@ -9,7 +9,9 @@ namespace smart_dnn {
 
 TEMPLATE_TENSOR
 TENSOR_DATA_CPU::TensorData(Shape dimensions) noexcept 
-    : shape_(std::move(dimensions)), data_(std::make_unique<T[]>(shape_.size())) {}
+    : shape_(std::move(dimensions)), data_(std::make_unique<T[]>(shape_.size())) {
+        std::fill(data_.get(), data_.get() + shape_.size(), T{});
+    }
 
 TEMPLATE_TENSOR
 TENSOR_DATA_CPU::TensorData(Shape dimensions, T value) noexcept 
@@ -37,6 +39,26 @@ TENSOR_DATA_CPU& TENSOR_DATA_CPU::operator=(const TENSOR_DATA_CPU& other) {
         std::copy_n(other.data_.get(), shape_.size(), data_.get());
     }
     return *this;
+}
+
+TEMPLATE_TENSOR
+T& TENSOR_DATA_CPU::operator[](size_t index){
+    return data_[index];
+}
+
+TEMPLATE_TENSOR
+const T& TENSOR_DATA_CPU::operator[](size_t index) const{
+    return data_[index];
+}
+
+TEMPLATE_TENSOR
+T& TENSOR_DATA_CPU::at(std::vector<size_t> indices){
+    return data_[computeFlatIndex(shape_, indices)];
+}
+
+TEMPLATE_TENSOR
+const T& TENSOR_DATA_CPU::at(std::vector<size_t> indices) const{
+    return data_[computeFlatIndex(shape_, indices)];
 }
 
 TEMPLATE_TENSOR

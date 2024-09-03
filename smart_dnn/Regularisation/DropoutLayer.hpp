@@ -2,29 +2,29 @@
 #define DROPOUT_LAYER_HPP
 
 #include "../Tensor/Tensor.hpp"
-#include "../Tensor/TensorConfig.hpp"
 #include "../Layer.hpp"
 #include "../TensorOperations.hpp"
 
 namespace smart_dnn {
 
-class DropoutLayer : public Layer {
+template <typename T>
+class DropoutLayer : public Layer<T> {
+    using TensorType = Tensor<T>;
 public:
-    DropoutLayer(float dropoutRate) : dropoutRate(dropoutRate) {}
+    DropoutLayer(T dropoutRate) : dropoutRate(dropoutRate) {}
 
-    ConfiguredTensor<> forward(ConfiguredTensor<>& input) override {
+    TensorType forward(TensorType& input) override {
         if (trainingMode) {
-            float rate = dropoutRate;
-            mask = TensorOperations::randomn(input.getShape());
-            mask = mask.apply([rate](float x) { return x > rate ? 1.0f : 0.0f; });
-            return input * mask * (1.0f / (1.0f - dropoutRate));
+            mask = Tensor::rand(input.getShape());
+            mask = (*mask).apply([this](T x) { return x > dropoutRate ? T(1) : T(0); });
+            return input * mask * (T(1) / (T(1) - dropoutRate));
         } else {
             return input; // No dropout during inference
         }
     }
 
-    ConfiguredTensor<> backward(ConfiguredTensor<>& gradOutput) override {
-        if (gradOutput.getShape() != mask.getShape()) {
+    TensorType backward(TensorType& gradOutput) override {
+        if (gradOutput.getShape() != mask.value.getShape()) {
             throw std::invalid_argument("Mask not initialised or has wrong shape in Dropout Layer.");
         }
         if (trainingMode) {
@@ -36,8 +36,8 @@ public:
     void updateWeights(Optimizer& optimizer) override {}
 
 private:
-    float dropoutRate;
-    ConfiguredTensor<> mask;
+    T dropoutRate;
+    std::optional<TensorType> mask;
 };
 
 } // namespace smart_dnn

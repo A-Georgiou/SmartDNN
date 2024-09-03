@@ -1,19 +1,19 @@
 #ifndef MAX_POOLING_2D_LAYER_HPP
 #define MAX_POOLING_2D_LAYER_HPP
 
-#include "../Layer.hpp"
-#include "../Tensor.hpp"
-#include "../TensorOperations.hpp"
 #include <algorithm>
 #include <limits>
-#include "../TensorWrapper.hpp"
+#include "../Layer.hpp"
+#include "../Tensor/Tensor.hpp"
 
-class MaxPooling2DLayer : public Layer {
+template <typename T>
+class MaxPooling2DLayer : public Layer<T> {
+    using TensorType = Tensor<T>;
 public:
     MaxPooling2DLayer(int poolSize) : MaxPooling2DLayer(poolSize, poolSize) {}
     MaxPooling2DLayer(int poolSize, int stride) : poolSize(poolSize), stride(stride) {}
 
-    Tensor forward(Tensor& input) override {
+    TensorType forward(TensorType& input) override {
         if (input.shape().rank() != 4) {
             throw std::runtime_error("MaxPooling2DLayer: input tensor must have rank 4");
         }
@@ -28,14 +28,14 @@ public:
         int outputHeight = (inputHeight - poolSize) / stride + 1;
         int outputWidth = (inputWidth - poolSize) / stride + 1;
 
-        Tensor output({batchSize, inputChannels, outputHeight, outputWidth});
+        TensorType output({batchSize, inputChannels, outputHeight, outputWidth});
 
         for (int n = 0; n < batchSize; ++n) {
             for (int ic = 0; ic < inputChannels; ++ic) {
                 for (int oh = 0; oh < outputHeight; ++oh) {
                     for (int ow = 0; ow < outputWidth; ++ow) {
                         auto [maxVal, maxIh, maxIw] = findMaxInPoolWindow(input, n, ic, oh, ow);
-                        output({n, ic, oh, ow}) = maxVal;
+                        output.at({n, ic, oh, ow}) = maxVal;
                     }
                 }
             }
@@ -43,13 +43,13 @@ public:
         return output;
     }
 
-    Tensor backward(Tensor& gradOutput) override {
+    TensorType backward(TensorType& gradOutput) override {
         if (!input.valid()) {
             throw std::runtime_error("MaxPooling2DLayer: input tensor is not set");
         }
 
-        Tensor& tensorValue = *input;
-        Tensor gradInput(tensorValue.shape(), 0.0f);
+        TensorType& tensorValue = *input;
+        TensorType gradInput(tensorValue.shape(), 0.0f);
 
         int batchSize = tensorValue.shape()[0];
         int inputChannels = tensorValue.shape()[1];
@@ -64,7 +64,7 @@ public:
                 for (int oh = 0; oh < outputHeight; ++oh) {
                     for (int ow = 0; ow < outputWidth; ++ow) {
                         auto [maxVal, maxIh, maxIw] = findMaxInPoolWindow(tensorValue, n, ic, oh, ow);
-                        gradInput({n, ic, maxIh, maxIw}) += gradOutput({n, ic, oh, ow});
+                        gradInput.at({n, ic, maxIh, maxIw}) += gradOutput.at({n, ic, oh, ow});
                     }
                 }
             }
@@ -79,10 +79,10 @@ public:
 private:
     int poolSize;
     int stride;
-    TensorWrapper input;
+    std::optional<TensorType> input;
 
-    std::tuple<float, int, int> findMaxInPoolWindow(const Tensor& tensor, int n, int ic, int oh, int ow) {
-        float maxVal = -std::numeric_limits<float>::infinity();
+    std::tuple<T, int, int> findMaxInPoolWindow(const TensorType& tensor, int n, int ic, int oh, int ow) {
+        T maxVal = -std::numeric_limits<T>::infinity();
         int maxIh = 0, maxIw = 0;
         int ihStart = oh * stride;
         int iwStart = ow * stride;
@@ -95,7 +95,7 @@ private:
                 int iw = iwStart + pw;
                 if (iw >= tensor.shape()[3]) break;
 
-                float val = tensor({n, ic, ih, iw});
+                T val = tensor({n, ic, ih, iw});
                 if (val > maxVal) {
                     maxVal = val;
                     maxIh = ih;

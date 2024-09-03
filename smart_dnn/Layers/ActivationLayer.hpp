@@ -10,6 +10,7 @@ namespace smart_dnn {
 
 template <typename T=float>
 class ActivationLayer : public Layer<T> {
+    using TensorType = Tensor<T>;
 public:
     ActivationLayer(Activation<T>* activation) : activation(activation) {}
 
@@ -17,12 +18,12 @@ public:
         delete activation;
     }
 
-    Tensor<T> forward(const Tensor<T>& input) override {
+    TensorType forward(const TensorType& input) override {
         this->input = input;
         return activation->forward(input);
     }
 
-    Tensor<T> backward(const Tensor<T>& gradOutput) override {
+    TensorType backward(const TensorType& gradOutput) override {
         return activation->backward(input.value(), gradOutput);
     }
 
@@ -32,7 +33,7 @@ public:
 
 private:
     Activation<T>* activation;
-    std::optional<Tensor<T>> input;
+    std::optional<TensorType> input;
 };
 
 } // namespace smart_dnn

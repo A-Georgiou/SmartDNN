@@ -4,17 +4,22 @@
 #include "../Activation.hpp"
 #include "../Tensor/AdvancedTensorOperations.hpp"
 
+namespace smart_dnn {
+
 template <typename T>
 class Sigmoid : public Activation<T> {
+    using TensorType = Tensor<T>;
 public:
-    Tensor<T> forward(const Tensor<T>& input) const override {
+    TensorType forward(const TensorType& input) const override {
         return AdvancedTensorOperations::apply(input, [](float x) { return T(1) / (T(1) + std::exp(-x)); });
     }
 
-    Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
-        Tensor<T> sig = forward(input);
+    TensorType backward(const TensorType& input, const TensorType& gradOutput) const override {
+        TensorType sig = forward(input);
         return sig * (T(1) - sig) * gradOutput;
     }
 };
+
+} // namespace smart_dnn
 
 #endif // SIGMOID_HPP

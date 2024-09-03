@@ -15,7 +15,7 @@ public:
 
     Tensor<T> forward(const Tensor<T>& input) const override {
         Tensor<T> output(input);
-        return AdvancedTensorOperations<T>::apply(output, [this](T x) { return (x > 0) ? x : (alpha * x); });
+        return AdvancedTensorOperations<T>::apply(input, [this](T x) { return (x > 0) ? x : (alpha * x); });
     }
 
     Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {

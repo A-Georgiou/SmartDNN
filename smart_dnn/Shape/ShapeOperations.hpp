@@ -61,6 +61,21 @@ public:
     }
     };
 
+    size_t computeFlatIndex(const Shape& shape, const std::vector<size_t>& indices) {
+        if (indices.size() != shape.rank()) {
+            throw std::invalid_argument("Number of indices must match the rank of the shape.");
+        }
+
+        const std::vector<int>& strides = shape.getStride();
+        size_t flatIndex = 0;
+
+        for (size_t i = 0; i < indices.size(); ++i) {
+            flatIndex += indices[i] * strides[i];
+        }
+
+        return flatIndex;
+    }
+
 } // namespace smart_dnn
 
 #endif // SHAPE_OPERATIONS_HPP

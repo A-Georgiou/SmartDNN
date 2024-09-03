@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <numeric>
 
+namespace smart_dnn {
+
 template <typename T>
 class Softmax : public Activation<T> {
 public:
@@ -17,18 +19,14 @@ public:
         int size = input.shape().size();
 
         T maxVal = *std::max_element(inputData, inputData + size);
+        T sum = T(0);
 
-        float sum = T(0);
         for (int i = 0; i < size; ++i) {
             outputData[i] = std::exp(inputData[i] - maxVal);
             sum += outputData[i];
         }
 
-        for (int i = 0; i < size; ++i) {
-            outputData[i] /= sum;
-        }
-
-        return output;
+        return output.apply([sum](T x) { return x / sum; });
     }
 
     Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
@@ -57,5 +55,7 @@ public:
         return gradInput;
     }
 };
+
+} // namespace smart_dnn
 
 #endif // SOFTMAX_HPP

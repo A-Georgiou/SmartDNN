@@ -82,8 +82,8 @@ struct Shape {
         _stride = calculateStride();
     }
 
-    [[nodiscard]] std::vector<int> getDimensions() const { return _dimensions; }
-    [[nodiscard]] std::vector<int> getStride() const { return _stride; }
+    [[nodiscard]] const std::vector<int>& getDimensions() const { return _dimensions; }
+    [[nodiscard]] const std::vector<int>& getStride() const { return _stride; }
 
     int operator[](int index) const { return _dimensions[index]; }
     bool operator==(const Shape& other) const { return _dimensions == other._dimensions; }
