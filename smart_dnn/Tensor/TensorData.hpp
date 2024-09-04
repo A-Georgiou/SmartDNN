@@ -18,6 +18,7 @@ public:
     explicit TensorData(Shape dimensions) noexcept;
     TensorData(Shape dimensions, T value) noexcept;
     TensorData(Shape dimensions, const T* data);
+    TensorData(Shape dimensions, T* data) noexcept; // used for slicing.
     TensorData(const TensorData& other);
 
     TensorData(TensorData&&) noexcept = default;
@@ -34,8 +35,8 @@ public:
 
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
-    T& at(std::vector<size_t> indices);
-    const T& at(std::vector<size_t> indices) const;
+    T& at(std::vector<int> indices);
+    const T& at(std::vector<int> indices) const;
 
     // Fill the tensor with a given value
     void fill(T value) noexcept { std::fill_n(data_.get(), shape_.size(), value); }

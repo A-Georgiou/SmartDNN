@@ -135,12 +135,12 @@ const T& Tensor<T, DeviceType>::operator[](size_t index) const {
 }
     
 TEMPLATE_TENSOR
-T& Tensor<T, DeviceType>::at(std::vector<size_t> indices) {
+T& Tensor<T, DeviceType>::at(std::vector<int> indices) {
     return data_.at(indices);
 }
 
 TEMPLATE_TENSOR
-const T& Tensor<T, DeviceType>::at(std::vector<size_t> indices) const {
+const T& Tensor<T, DeviceType>::at(std::vector<int> indices) const {
     return data_.at(indices);
 }
 
@@ -261,12 +261,27 @@ Tensor<T, DeviceType> Tensor<T, DeviceType>::identity(int size) {
 
 TEMPLATE_TENSOR
 void Tensor<T, DeviceType>::reshape(const Shape& newShape) {
-    data_.reshape(newShape);
+    this->data_.reshape(newShape);
 }
 
 TEMPLATE_TENSOR
 void Tensor<T, DeviceType>::reshape(const std::vector<int>& dims) {
     this->data_.reshape(dims);
+}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType> Tensor<T, DeviceType>::slice(int dim, int index) const {
+
+    Shape newShape = this->data_.shape();
+    std::vector<int> shape = newShape.getDimensions();
+    shape[dim] = 1;
+
+    const std::vector<int> strides = this->data_.stride();
+    int offset = index * strides[dim];
+
+    TensorData<T, DeviceType> slicedData(Shape(shape), this->data_.data() + offset);
+
+    return Tensor<T, DeviceType>(std::move(slicedData));
 }
 
 TEMPLATE_TENSOR

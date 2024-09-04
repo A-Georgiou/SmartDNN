@@ -11,7 +11,7 @@
 
 namespace smart_dnn {
 
-template <typename T>
+template <typename T=float>
 class Conv2DLayer : public Layer<T> {
     using TensorType = Tensor<T>;
 public:
@@ -21,18 +21,18 @@ public:
     Conv2DLayer(int inputChannels, int outputChannels, int kernelHeight, int kernelWidth, int stride = 1, int padding = 0) 
         : kernelHeight(kernelHeight), kernelWidth(kernelWidth), stride(stride), padding(padding) {
         
-        this->weights = Tensor::randn({outputChannels, inputChannels, kernelHeight, kernelWidth}, -1.0f, 1.0f);
-        this->biases = Tensor::zeros({outputChannels, 1});
+        this->weights = TensorType::randn({outputChannels, inputChannels, kernelHeight, kernelWidth}, T(-1), T(1));
+        this->biases = TensorType::zeros({outputChannels, 1});
     }
 
-    TensorType forward(TensorType& input) override {
+    TensorType forward(const TensorType& input) override {
         this->input = input;
 
-        int batchSize = input.shape()[0];
-        int inputChannels = input.shape()[1];
-        int inputHeight = input.shape()[2];
-        int inputWidth = input.shape()[3];
-        int outputChannels = weights.shape()[0];
+        int batchSize = input.getShape()[0];
+        int inputChannels = input.getShape()[1];
+        int inputHeight = input.getShape()[2];
+        int inputWidth = input.getShape()[3];
+        int outputChannels = (*weights).getShape()[0];
         
         int outputHeight = (inputHeight - kernelHeight + 2 * padding) / stride + 1;
         int outputWidth = (inputWidth - kernelWidth + 2 * padding) / stride + 1;
@@ -41,19 +41,21 @@ public:
 
         TensorType colMatrix = im2col(input, kernelHeight, kernelWidth, stride, padding);
         
-        TensorType weightMatrix = weights.reshape({outputChannels, inputChannels * kernelHeight * kernelWidth});
+        TensorType weightMatrix = AdvancedTensorOperations<T>::reshape(*weights, {outputChannels, inputChannels * kernelHeight * kernelWidth});
         
         for (int n = 0; n < batchSize; ++n) {
-            TensorType output_n = weightMatrix.matmul(colMatrix[n]);
-            output_n = output_n.add(biases);
-            output[n] = output_n.reshape({outputChannels, outputHeight, outputWidth});
+            TensorType colMatrix_n = colMatrix.slice(0, n);
+            TensorType output_n = AdvancedTensorOperations<T>::matmul(weightMatrix, colMatrix_n);
+            output_n += (*biases);
+            
+            TensorType output_slice = AdvancedTensorOperations<T>::reshape(output_n, {outputChannels, outputHeight, outputWidth});
+            output.slice(0, n) = output_slice;
         }
-
         return output;
     }
 
 
-    TensorType backward(TensorType& gradOutput) override {
+    TensorType backward(const TensorType& gradOutput) override {
         TensorType& inputTensor = (*input);
         TensorType& weightsTensor = (*weights);
         TensorType& biasesTensor = (*biases);
@@ -91,25 +93,25 @@ public:
         // Compute dW (weight gradients) using im2col
         TensorType colMatrix = im2col(inputTensor, kernelHeight, kernelWidth, stride, padding);
 
+        TensorType weightMatrix = AdvancedTensorOperations<T>::reshape(weightsTensor, {outputChannels, inputChannels * kernelHeight * kernelWidth});
         for (int n = 0; n < batchSize; ++n) {
-            TensorType gradOutput_n = gradOutput.slice(n); // Get the nth output gradient
-            gradOutput_n = gradOutput_n.reshape({outputChannels, outputHeight * outputWidth});
+            TensorType gradOutput_n = gradOutput.slice(0, n); // Slice once
+            gradOutput_n = AdvancedTensorOperations<T>::reshape(gradOutput_n, {outputChannels, outputHeight * outputWidth});
 
-            // Matrix multiplication: dW = gradOutput_n * colMatrix[n].T
-            weightGradTensor += gradOutput_n.matmul(colMatrix[n].transpose());
-        }
+            for (int oc = 0; oc < outputChannels; ++oc) {
+                for (int oh = 0; oh < outputHeight; ++oh) {
+                    for (int ow = 0; ow < outputWidth; ++ow) {
+                        biasGradTensor.at({oc, 0}) += gradOutput_n.at({oc, oh * outputWidth + ow});
+                    }
+                }
+            }
 
-        // Compute dX (input gradients) using col2im
-        TensorType weightMatrix = weightsTensor.reshape({outputChannels, inputChannels * kernelHeight * kernelWidth});
-        for (int n = 0; n < batchSize; ++n) {
-            TensorType gradOutput_n = gradOutput.slice(n); // Get the nth output gradient
-            gradOutput_n = gradOutput_n.reshape({outputChannels, outputHeight * outputWidth});
+            TensorType colMatrix_n = colMatrix.slice(0, n);
+    
+            weightGradTensor += AdvancedTensorOperations<T>::matmul(gradOutput_n, AdvancedTensorOperations<T>::transpose(colMatrix_n, 1, 0));
 
-            // Matrix multiplication: dX_col = weightMatrix.T * gradOutput_n
-            TensorType dX_col = weightMatrix.transpose().matmul(gradOutput_n);
-
-            // Use col2im to fold dX_col back into the shape of the input
-            gradInput.slice(n) = col2im(dX_col, inputChannels, inputHeight, inputWidth, kernelHeight, kernelWidth, stride, padding);
+            TensorType dX_col = AdvancedTensorOperations<T>::transpose(AdvancedTensorOperations<T>::matmul(weightMatrix, gradOutput_n), 1, 0);
+            gradInput.slice(0, n) = col2im(dX_col, inputChannels, inputHeight, inputWidth, kernelHeight, kernelWidth, stride, padding);
         }
 
         return gradInput;
@@ -138,10 +140,10 @@ private:
     int padding;
 
    TensorType im2col(const TensorType& input, int kernelHeight, int kernelWidth, int stride, int padding) {
-        int batchSize = input.shape()[0];
-        int inputChannels = input.shape()[1];
-        int inputHeight = input.shape()[2];
-        int inputWidth = input.shape()[3];
+        int batchSize = input.getShape()[0];
+        int inputChannels = input.getShape()[1];
+        int inputHeight = input.getShape()[2];
+        int inputWidth = input.getShape()[3];
 
         int outputHeight = (inputHeight - kernelHeight + 2 * padding) / stride + 1;
         int outputWidth = (inputWidth - kernelWidth + 2 * padding) / stride + 1;
@@ -160,16 +162,18 @@ private:
                                 int ih = oh * stride + kh - padding;
                                 int iw = ow * stride + kw - padding;
 
+                                std::vector<int> indices = {n,
+                                    ic * kernelHeight * kernelWidth + kh * kernelWidth + kw,
+                                    colIndex};
+
                                 if (ih >= 0 && ih < inputHeight && iw >= 0 && iw < inputWidth) {
                                     size_t flatIndex = n * inputStrides[0] +
                                                     ic * inputStrides[1] +
                                                     ih * inputStrides[2] +
                                                     iw * inputStrides[3];
-
-                                    colMatrix.at({n, ic * kernelHeight * kernelWidth + kh * kernelWidth + kw, colIndex}) = 
-                                        input.data()[flatIndex];
+                                    colMatrix.at(indices) = input.getData()[flatIndex];
                                 } else {
-                                    colMatrix.at({n, ic * kernelHeight * kernelWidth + kh * kernelWidth + kw, colIndex}) = 0;
+                                    colMatrix.at(indices) = 0;
                                 }
                             }
                         }
@@ -181,6 +185,47 @@ private:
 
         return colMatrix;
     }
+
+    TensorType col2im(const TensorType& colMatrix, int inputChannels, int inputHeight, int inputWidth, int kernelHeight, int kernelWidth, int stride, int padding) {
+    int batchSize = colMatrix.getShape()[0];
+    int outputHeight = (inputHeight - kernelHeight + 2 * padding) / stride + 1;
+    int outputWidth = (inputWidth - kernelWidth + 2 * padding) / stride + 1;
+
+    TensorType output({batchSize, inputChannels, inputHeight, inputWidth});
+    output.getData().fill(T(0)); 
+
+    const std::vector<int>& outputStrides = output.getShape().getStride();
+
+    for (int n = 0; n < batchSize; ++n) {
+        int colIndex = 0;
+        for (int oh = 0; oh < outputHeight; ++oh) {
+            for (int ow = 0; ow < outputWidth; ++ow) {
+                for (int ic = 0; ic < inputChannels; ++ic) {
+                    for (int kh = 0; kh < kernelHeight; ++kh) {
+                        for (int kw = 0; kw < kernelWidth; ++kw) {
+                            int ih = oh * stride + kh - padding;
+                            int iw = ow * stride + kw - padding;
+
+                            if (ih >= 0 && ih < inputHeight && iw >= 0 && iw < inputWidth) {
+                                std::vector<int> indices = {n, ic * kernelHeight * kernelWidth + kh * kernelWidth + kw,
+                                                                colIndex};
+                                size_t flatIndex = n * outputStrides[0] +
+                                                   ic * outputStrides[1] +
+                                                   ih * outputStrides[2] +
+                                                   iw * outputStrides[3];
+
+                                output.getData()[flatIndex] += colMatrix.at(indices);
+                            }
+                        }
+                    }
+                }
+                ++colIndex;
+            }
+        }
+    }
+
+    return output;
+}
 };
 
 } // namespace smart_dnn

@@ -9,14 +9,14 @@
 
 namespace smart_dnn {
 
-template <typename T>
+template <typename T=float>
 class Softmax : public Activation<T> {
 public:
     Tensor<T> forward(const Tensor<T>& input) const override {
-        Tensor<T> output(input.shape());
-        const T* inputData = input.getData();
-        T* outputData = output.getData();
-        int size = input.shape().size();
+        Tensor<T> output(input.getShape());
+        const T* inputData = input.getData().data();
+        T* outputData = output.getData().data();
+        int size = input.getShape().size();
 
         T maxVal = *std::max_element(inputData, inputData + size);
         T sum = T(0);
@@ -31,12 +31,12 @@ public:
 
     Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
         Tensor<T> forwardOutput = forward(input);
-        Tensor<T> gradInput(input.shape());
+        Tensor<T> gradInput(input.getShape());
 
-        const T* outputData = forwardOutput.getData();
-        const T* gradOutputData = gradOutput.getData();
-        T* gradInputData = gradInput.getData();
-        int size = input.shape().size();
+        const T* outputData = forwardOutput.getData().data();
+        const T* gradOutputData = gradOutput.getData().data();
+        T* gradInputData = gradInput.getData().data();
+        int size = input.getShape().size();
 
         for (int i = 0; i < size; ++i) {
             T softmaxI = outputData[i];

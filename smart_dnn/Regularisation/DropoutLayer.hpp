@@ -7,13 +7,13 @@
 
 namespace smart_dnn {
 
-template <typename T>
+template <typename T=float>
 class DropoutLayer : public Layer<T> {
     using TensorType = Tensor<T>;
 public:
     DropoutLayer(T dropoutRate) : dropoutRate(dropoutRate) {}
 
-    TensorType forward(TensorType& input) override {
+    TensorType forward(const TensorType& input) override {
         if (trainingMode) {
             mask = Tensor::rand(input.getShape());
             mask = (*mask).apply([this](T x) { return x > dropoutRate ? T(1) : T(0); });
@@ -23,7 +23,7 @@ public:
         }
     }
 
-    TensorType backward(TensorType& gradOutput) override {
+    TensorType backward(const TensorType& gradOutput) override {
         if (gradOutput.getShape() != mask.value.getShape()) {
             throw std::invalid_argument("Mask not initialised or has wrong shape in Dropout Layer.");
         }

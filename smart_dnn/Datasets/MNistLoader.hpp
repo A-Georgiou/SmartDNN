@@ -7,14 +7,18 @@
 #include <stdexcept>
 #include "../Tensor/Tensor.hpp"
 
+namespace smart_dnn {
+
+template <typename T=float>
 class MNISTLoader {
+    using TensorType = Tensor<T>;
 public:
     MNISTLoader(const std::string& imagesPath, const std::string& labelsPath, int batchSize = 1) 
         : imagesPath(imagesPath), labelsPath(labelsPath), batchSize(batchSize) {}
 
-    std::pair<std::vector<Tensor>, std::vector<Tensor>> loadData() {
-        std::vector<Tensor> images = loadImages();
-        std::vector<Tensor> labels = loadLabels();
+    std::pair<std::vector<TensorType>, std::vector<TensorType>> loadData() {
+        std::vector<TensorType> images = loadImages();
+        std::vector<TensorType> labels = loadLabels();
         return {images, labels};
     }
 
@@ -23,7 +27,7 @@ private:
     std::string labelsPath;
     int batchSize;
 
-    std::vector<Tensor> loadImages() {
+    std::vector<TensorType> loadImages() {
         std::ifstream file(imagesPath, std::ios::binary);
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open file: " + imagesPath);
@@ -38,14 +42,14 @@ private:
             throw std::runtime_error("Invalid magic number in MNIST image file!");
         }
         
-        std::vector<Tensor> images;
+        std::vector<TensorType> images;
         for (int i = 0; i < numImages; i += batchSize) {
-            Tensor image({batchSize, 1, numRows, numCols}); 
+            TensorType image({batchSize, 1, numRows, numCols}); 
             for (int j = 0; j < batchSize; ++j) { // Read batchSize images at a time
                 for (int k = 0; k < numRows; ++k) {
                     for (int l = 0; l < numCols; ++l) {
                         unsigned char pixel = file.get();
-                        image({j, 0, k, l}) = pixel / 255.0f; // Normalize pixel values
+                        image.at({j, 0, k, l}) = pixel / T(255); // Normalize pixel values
                     }
                 }
             }
@@ -55,7 +59,7 @@ private:
         return images;
     }
 
-    std::vector<Tensor> loadLabels() {
+    std::vector<TensorType> loadLabels() {
         std::ifstream file(labelsPath, std::ios::binary);
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open file: " + labelsPath);
@@ -68,13 +72,13 @@ private:
             throw std::runtime_error("Invalid magic number in MNIST label file!");
         }
 
-        std::vector<Tensor> labels;
+        std::vector<TensorType> labels;
         
         for (int i = 0; i < numLabels; i += batchSize) {
-            Tensor label({batchSize, 10}, 0.0f);
+            TensorType label({batchSize, 10}, T(0));
             for (int j = 0; j < batchSize; ++j) { 
                 unsigned char digit = file.get();
-                label({j, digit}) = 1.0f;
+                label.at({j, digit}) = T(1);
             }
             labels.push_back(label);
         }
@@ -88,5 +92,7 @@ private:
         return (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
     }
 };
+
+} // namespace smart_dnn
 
 #endif // MNIST_LOADER_HPP

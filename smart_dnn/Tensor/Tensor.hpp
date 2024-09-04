@@ -50,8 +50,8 @@ public:
     // Accessors
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
-    T& at(std::vector<size_t> indices);
-    const T& at(std::vector<size_t> indices) const;
+    T& at(std::vector<int> indices);
+    const T& at(std::vector<int> indices) const;
     Tensor sqrt() const;
 
     Tensor operator-() const;
@@ -62,6 +62,7 @@ public:
     TensorData<T, DeviceType>& getData() noexcept;
     const TensorData<T, DeviceType>& getData() const noexcept;
     Shape getShape() const noexcept;
+    Tensor<T, DeviceType> slice(int dim, int index) const;
 
     std::string toDetailedString() const;
     std::string toDataString() const;

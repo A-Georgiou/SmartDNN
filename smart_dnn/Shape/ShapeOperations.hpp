@@ -61,15 +61,15 @@ public:
     }
     };
 
-    size_t computeFlatIndex(const Shape& shape, const std::vector<size_t>& indices) {
+    int computeFlatIndex(const Shape& shape, const std::vector<int>& indices) {
         if (indices.size() != shape.rank()) {
             throw std::invalid_argument("Number of indices must match the rank of the shape.");
         }
 
         const std::vector<int>& strides = shape.getStride();
-        size_t flatIndex = 0;
+        int flatIndex = 0;
 
-        for (size_t i = 0; i < indices.size(); ++i) {
+        for (int i = 0; i < indices.size(); ++i) {
             flatIndex += indices[i] * strides[i];
         }
 

@@ -7,40 +7,44 @@
 #include <cmath>
 #include <numeric>
 
+namespace smart_dnn {
+
 template <typename T=float>
-class CategoricalCrossEntropyLoss : public Loss {
+class CategoricalCrossEntropyLoss : public Loss<T> {
     using TensorType = Tensor<T>;
 public:
     TensorType compute(const TensorType& prediction, const TensorType& target) override {
-        if (prediction.shape() != target.shape()) {
-            throw std::invalid_argument("Prediction and target shapes must match, mismatch: " + std::to_string(prediction.shape().size()) + " != " + std::to_string(target.shape().size()));
+        if (prediction.getShape() != target.getShape()) {
+            throw std::invalid_argument("Prediction and target shapes must match, mismatch: " + std::to_string(prediction.getShape().size()) + " != " + std::to_string(target.getShape().size()));
         }
 
-        const T* predData = prediction.getData();
-        const T* targetData = target.getData();
-        size_t size = prediction.shape().size();
+        const T* predData = prediction.getData().data();
+        const T* targetData = target.getData().data();
+        size_t size = prediction.getShape().size();
 
         T loss = T(0);
         for (size_t i = 0; i < size; ++i) {
             loss -= targetData[i] * std::log(predData[i] + T(1e-7));
         }
 
-        return loss / prediction.shape()[0];  // Normalize by batch size
+        loss /= prediction.getShape()[0];
+
+        return TensorType({1}, loss);  // Normalize by batch size
     }
 
     TensorType gradient(const TensorType& prediction, const TensorType& target) override {
-        if (prediction.shape() != target.shape()) {
+        if (prediction.getShape() != target.getShape()) {
             throw std::invalid_argument("Prediction and target shapes must match");
         }
 
-        TensorType grad(prediction.shape());
-        T* gradData = grad.getData();
-        const T* predData = prediction.getData();
-        const T* targetData = target.getData();
-        size_t size = prediction.shape().size();
+        TensorType grad(prediction.getShape());
+        T* gradData = grad.getData().data();
+        const T* predData = prediction.getData().data();
+        const T* targetData = target.getData().data();
+        size_t size = prediction.getShape().size();
 
         for (size_t i = 0; i < size; ++i) {
-            gradData[i] = (predData[i] - targetData[i]) / prediction.shape()[0];
+            gradData[i] = (predData[i] - targetData[i]) / prediction.getShape()[0];
         }
 
         return grad;
@@ -54,5 +58,7 @@ public:
         // No parameters to load for this loss function
     }
 };
+
+} // namespace smart_dnn
 
 #endif // CATEGORICAL_CROSS_ENTROPY_LOSS_HPP
