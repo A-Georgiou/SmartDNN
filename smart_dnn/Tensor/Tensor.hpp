@@ -20,6 +20,9 @@ public:
     Tensor(Shape dimensions, const T* dataArray);
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept;
+    Tensor(Shape dimensions, std::initializer_list<T> values);
+    Tensor(Shape dimensions, const std::vector<T>& values);
+    Tensor(Shape dimensions, std::vector<T>&& values) noexcept;
 
     ~Tensor() = default;
 
@@ -61,7 +64,7 @@ public:
 
     TensorData<T, DeviceType>& getData() noexcept;
     const TensorData<T, DeviceType>& getData() const noexcept;
-    Shape getShape() const noexcept;
+    const Shape& getShape() const noexcept;
     Tensor<T, DeviceType> slice(int dim, int index) const;
 
     std::string toDetailedString() const;
@@ -69,6 +72,7 @@ public:
 
     void reshape(const Shape& newShape);
     void reshape(const std::vector<int>& dims);
+    void reshape(const std::initializer_list<int>& dims);
 
     Tensor& apply(std::function<T(T)> func);
 

@@ -35,7 +35,13 @@ void SmartDNN<T>::compile(Loss<T>* loss, Optimizer<T>* optimizer) {
 }
 
 template <typename T>
+Layer<T>* SmartDNN<T>::getLayer(size_t index) const {
+    return layers[index];
+}
+
+template <typename T>
 void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<Tensor<T>>& targets, int epochs, float learningRate) {
+    float gradient_clip_threshold = 1.0f;
     for (int epoch = 0; epoch < epochs; ++epoch) {
         Tensor<T> totalLoss{Shape({1}), T(0)};
 

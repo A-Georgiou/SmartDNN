@@ -60,7 +60,7 @@ public:
     BroadcastView(const TensorData<T, DeviceType>& tensor, const Shape& target_shape)
         : original_(tensor), broadcasted_shape_(target_shape) {
         if (!ShapeOperations::areBroadcastable(original_.shape(), target_shape)) {
-            throw std::runtime_error("Shapes are not broadcastable!");
+            throw std::runtime_error("Shapes are not broadcastable! Mismatch between shapes " + original_.shape().toString() + " and " + target_shape.toString());
         }
         calculateBroadcastFactors();
     }

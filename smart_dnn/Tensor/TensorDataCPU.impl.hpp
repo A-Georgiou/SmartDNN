@@ -36,6 +36,26 @@ TENSOR_DATA_CPU::TensorData(const TENSOR_DATA_CPU& other)
 }
 
 TEMPLATE_TENSOR
+TENSOR_DATA_CPU::TensorData(Shape dimensions, std::initializer_list<T> values)
+    : shape_(dimensions), data_(std::make_unique<T[]>(dimensions.size())) {
+    std::copy(values.begin(), values.end(), data_.get());
+}
+
+TEMPLATE_TENSOR
+TENSOR_DATA_CPU::TensorData(Shape dimensions, const std::vector<T>& values){
+    shape_ = dimensions;
+    data_ = std::make_unique<T[]>(shape_.size());
+    std::copy(values.begin(), values.end(), data_.get());
+}
+
+TEMPLATE_TENSOR
+TENSOR_DATA_CPU::TensorData(Shape dimensions, std::vector<T>&& values) noexcept{
+    shape_ = dimensions;
+    data_ = std::make_unique<T[]>(shape_.size());
+    std::move(values.begin(), values.end(), data_.get());
+}
+
+TEMPLATE_TENSOR
 TENSOR_DATA_CPU& TENSOR_DATA_CPU::operator=(const TENSOR_DATA_CPU& other) {
     if (this != &other) {
         shape_ = other.shape_;
@@ -43,6 +63,16 @@ TENSOR_DATA_CPU& TENSOR_DATA_CPU::operator=(const TENSOR_DATA_CPU& other) {
         std::copy_n(other.data_.get(), shape_.size(), data_.get());
     }
     return *this;
+}
+
+TEMPLATE_TENSOR
+bool TENSOR_DATA_CPU::operator==(const TENSOR_DATA_CPU& other) const {
+    return shape_ == other.shape_ && std::equal(data_.get(), data_.get() + shape_.size(), other.data_.get());
+}
+
+TEMPLATE_TENSOR
+bool TENSOR_DATA_CPU::operator!=(const TENSOR_DATA_CPU& other) const {
+    return !(*this == other);
 }
 
 TEMPLATE_TENSOR

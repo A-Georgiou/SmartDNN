@@ -4,6 +4,8 @@
 #include "../Shape/Shape.hpp"
 #include "../Shape/ShapeOperations.hpp"
 #include "DeviceTypes.hpp"
+#include <iomanip>
+#include <functional>
 
 namespace smart_dnn {
 
@@ -20,10 +22,17 @@ public:
     TensorData(Shape dimensions, const T* data);
     TensorData(Shape dimensions, T* data) noexcept; // used for slicing.
     TensorData(const TensorData& other);
+    TensorData(Shape dimensions, std::initializer_list<T> values);
+    TensorData(Shape dimensions, const std::vector<T>& values);
+    TensorData(Shape dimensions, std::vector<T>&& values) noexcept;
+
 
     TensorData(TensorData&&) noexcept = default;
     TensorData& operator=(const TensorData&);
     TensorData& operator=(TensorData&&) noexcept = default;
+    
+    bool operator==(const TensorData& other) const;
+    bool operator!=(const TensorData& other) const;
     ~TensorData() = default;
 
     // Accessors
@@ -31,7 +40,7 @@ public:
     const T* data() const noexcept { return data_.get(); }
     const Shape& shape() const noexcept { return shape_; }
     const size_t size() const noexcept { return shape_.size(); }
-    const std::vector<int> stride() const noexcept { return shape_.getStride(); }
+    const std::vector<int>& stride() const noexcept { return shape_.getStride(); }
 
     T& operator[](size_t index);
     const T& operator[](size_t index) const;

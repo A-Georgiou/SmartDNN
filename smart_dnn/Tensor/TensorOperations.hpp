@@ -61,6 +61,7 @@ public:
     static TensorData<T, DeviceType> apply(const TensorData<T, CPUDevice>& tensor, std::function<T(T)> func);
     static TensorData<T, DeviceType>& applyInPlace(TensorData<T, DeviceType>& tensor, std::function<T(T)> func);
     static TensorData<T, CPUDevice> sum(const TensorData<T, CPUDevice>& tensor);
+    static TensorData<T, CPUDevice> sum(const TensorData<T, CPUDevice>& tensor, int axis);
     static TensorData<T, DeviceType> sqrt(const TensorData<T, DeviceType>& tensor);
     static TensorData<T, DeviceType>& sqrtInPlace(TensorData<T, DeviceType>& tensor);
 
@@ -81,8 +82,8 @@ public:
         TensorData<T, CPUDevice> result(result_shape);
 
         BroadcastView<T, CPUDevice> lhs_broadcast(lhs, result_shape);
-        BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
-
+        BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);   
+    
         addImpl(lhs_broadcast, rhs_broadcast, result);
         return result;
     }
@@ -94,7 +95,7 @@ public:
         BroadcastView<T, CPUDevice> lhs_broadcast(lhs, result_shape);
         BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
 
-        minusImpl(lhs, rhs, result);
+        minusImpl(lhs_broadcast, rhs_broadcast, result);
         return result;
     }
 
@@ -105,7 +106,7 @@ public:
         BroadcastView<T, CPUDevice> lhs_broadcast(lhs, result_shape);
         BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
 
-        multiplyImpl(lhs, rhs, result);
+        multiplyImpl(lhs_broadcast, rhs_broadcast, result);
         return result;
     }
 
@@ -116,7 +117,7 @@ public:
         BroadcastView<T, CPUDevice> lhs_broadcast(lhs, result_shape);
         BroadcastView<T, CPUDevice> rhs_broadcast(rhs, result_shape);
 
-        divideImpl(lhs, rhs, result);
+        divideImpl(lhs_broadcast, rhs_broadcast, result);
         return result;
     }
 
@@ -237,6 +238,40 @@ public:
         return TensorData<T, CPUDevice>(Shape({1}), result);
     }
 
+    static TensorData<T, CPUDevice> sum(const TensorData<T, CPUDevice>& tensor, int axis) {
+        if (axis < 0 || axis >= tensor.shape().rank()) {
+            throw std::runtime_error("Invalid axis for sum operation, axis: " + std::to_string(axis) + ", tensor rank: " + std::to_string(tensor.shape().rank()));
+        }
+
+        std::vector<int> new_shape_dims = tensor.shape().getDimensions();
+
+        new_shape_dims.erase(new_shape_dims.begin() + axis);  // Remove the summed axis dimension
+        Shape new_shape(new_shape_dims);
+
+        TensorData<T, CPUDevice> result(new_shape, T(0));
+
+        std::vector<int> indices(tensor.shape().rank(), 0);  
+        for (size_t i = 0; i < tensor.size(); ++i) {
+            std::vector<int> result_indices;
+            for (int j = 0; j < tensor.shape().rank(); ++j) {
+                if (j != axis) {
+                    result_indices.push_back(indices[j]);
+                }
+            }
+
+            result.at(result_indices) += tensor[i];
+
+            for (int j = tensor.shape().rank() - 1; j >= 0; --j) {
+                if (++indices[j] < tensor.shape()[j]) {
+                    break; 
+                }
+                indices[j] = 0; 
+            }
+        }
+
+        return result;
+    }
+
     static TensorData<T, CPUDevice> sqrt(const TensorData<T, CPUDevice>& tensor){
         TensorData<T, CPUDevice> result(tensor.shape());
         auto result_it = result.begin();
@@ -257,16 +292,15 @@ public:
     }
 
     static TensorData<T, CPUDevice> createFill(const Shape& shape, T value){
-        return {shape, value};
+        return TensorData<T, CPUDevice>(shape, value);
     }
 
     static TensorData<T, CPUDevice> createRandom(const Shape& shape, T min, T max){
         TensorData<T, CPUDevice> result(shape);
         
-        auto tensor_it = result.begin();
-        while (tensor_it != result.end()) {
-            *tensor_it = RandomEngine::getRandRange(min, max);
-            ++tensor_it;
+        #pragma omp parallel for
+        for (int i = 0; i < result.size(); ++i) {
+            result[i] = RandomEngine::getRandRange(min, max);
         }
 
         return result;
@@ -278,7 +312,7 @@ public:
         auto result_it = result.begin();
         for (int i = 0; i < size; ++i) {
             for (int j = 0; j < size; ++j) {
-                *result_it = (i == j) ? 1 : 0;
+                *result_it = (i == j) ? T(1) : T(0);
                 ++result_it;
             }
         }
@@ -299,7 +333,7 @@ private:
     template<typename LHS, typename RHS>
     static void addImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
         static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable! Mismatch between shapes: " + lhs.shape().toString() + " + " + rhs.shape().toString()); }
  
         std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::plus<T>());
     }
@@ -307,7 +341,7 @@ private:
     template<typename LHS, typename RHS>
     static void minusImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
         static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable! Mismatch between shapes: " + lhs.shape().toString() + " + " + rhs.shape().toString()); }
     
         std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::minus<T>());
     }
@@ -315,7 +349,7 @@ private:
     template<typename LHS, typename RHS>
     static void multiplyImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
         static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable! Mismatch between shapes: " + lhs.shape().toString() + " + " + rhs.shape().toString()); }
 
         std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::multiplies<T>());
     }
@@ -323,7 +357,7 @@ private:
     template<typename LHS, typename RHS>
     static void divideImpl(const LHS& lhs, const RHS& rhs, TensorData<T, CPUDevice>& result) {
         static_assert(are_tensor_like<LHS, RHS>(), "Both operands must be either TensorData or BroadcastView");
-        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable!"); }
+        if (lhs.shape().size() != rhs.shape().size()) { throw std::runtime_error("Shapes are not broadcastable! Mismatch between shapes: " + lhs.shape().toString() + " + " + rhs.shape().toString()); }
     
         std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::divides<T>());
     }
@@ -342,6 +376,9 @@ private:
     }
 
     static void divideScalarImpl(const TensorData<T, CPUDevice>& tensor, T scalar, TensorData<T, CPUDevice>& result) {
+        if (scalar == T(0)) {
+            throw std::invalid_argument("Division by zero");
+        }
         applyScalarImpl(tensor, scalar, result, std::divides<T>());
     }
 

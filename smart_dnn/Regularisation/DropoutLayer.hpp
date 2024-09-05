@@ -15,29 +15,35 @@ public:
 
     TensorType forward(const TensorType& input) override {
         if (trainingMode) {
-            mask = Tensor::rand(input.getShape());
+            mask = TensorType::rand(input.getShape());
             mask = (*mask).apply([this](T x) { return x > dropoutRate ? T(1) : T(0); });
-            return input * mask * (T(1) / (T(1) - dropoutRate));
+            return input * (*mask) * (T(1) / (T(1) - dropoutRate));
         } else {
             return input; // No dropout during inference
         }
     }
 
     TensorType backward(const TensorType& gradOutput) override {
-        if (gradOutput.getShape() != mask.value.getShape()) {
+        if (gradOutput.getShape() != (*mask).getShape()) {
             throw std::invalid_argument("Mask not initialised or has wrong shape in Dropout Layer.");
         }
         if (trainingMode) {
-            return gradOutput * mask;
+            return gradOutput * (*mask);
         }
         return gradOutput;
     }
 
-    void updateWeights(Optimizer& optimizer) override {}
+    void updateWeights(Optimizer<T>& optimizer) override {}
+
+    void setTrainingMode(bool mode) override {
+        trainingMode = mode;
+    }
+
 
 private:
     T dropoutRate;
     std::optional<TensorType> mask;
+    bool trainingMode = true;
 };
 
 } // namespace smart_dnn

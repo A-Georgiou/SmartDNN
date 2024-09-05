@@ -5,7 +5,9 @@
 #include "DeviceTypes.hpp"
 #include "Tensor.hpp"
 #include "../Shape/ShapeOperations.hpp"
+#include "../Tensor/SliceView.hpp"
 #include "../Tensor/TensorOperations.hpp"
+#include "../Tensor/BroadcastView.hpp"
 #include <functional>
 
 namespace smart_dnn {
@@ -26,6 +28,150 @@ class AdvancedTensorOperations<T, CPUDevice> {
 
     static Tensor<T> sum(const Tensor<T>& tensor) {
         return TensorOperations<T, CPUDevice>::sum(tensor.getData());
+    }
+
+    static Tensor<T> sum(const Tensor<T>& tensor, int axis) {
+        return TensorOperations<T, CPUDevice>::sum(tensor.getData(), axis);
+    }
+
+    static Tensor<T> sum(const Tensor<T>& tensor, const std::vector<int>& axes) {
+        const auto& shape = tensor.getShape();
+        std::vector<int> newShape = shape.getDimensions();
+        std::vector<bool> axesToSum(shape.rank(), false);
+        
+        for (int axis : axes) {
+            if (axis < 0 || axis >= shape.rank()) {
+                throw std::runtime_error("Invalid axis for sum operation, axis: " + std::to_string(axis) + ", tensor rank: " + std::to_string(tensor.getShape().rank()));
+            }
+            axesToSum[axis] = true;
+            newShape[axis] = 1;
+        }
+
+        Tensor<T> result(Shape(newShape), T(0));
+        const T* inputData = tensor.getData().data();
+        T* resultData = result.getData().data();
+
+        std::vector<int> inputIndices(shape.rank(), 0);
+        std::vector<int> resultIndices(shape.rank(), 0);
+
+        do {
+            int inputIndex = computeFlatIndex(shape, inputIndices);
+            int resultIndex = computeFlatIndex(result.getShape(), resultIndices);
+            
+            resultData[resultIndex] += inputData[inputIndex];
+        } while (incrementIndices(inputIndices, shape, axesToSum, resultIndices));
+
+        // Remove summed dimensions
+        std::vector<int> finalShape;
+        for (size_t i = 0; i < newShape.size(); ++i) {
+            if (newShape[i] != 1 || !axesToSum[i]) {
+                finalShape.push_back(newShape[i]);
+            }
+        }
+        result.reshape(Shape(finalShape));
+
+        return result;
+    }
+
+    static Tensor<T> reciprocal(const Tensor<T>& tensor, T epsilon = T(1e-12)) {
+        return apply(tensor, [epsilon](T x) { return (std::abs(x) > epsilon) ? (T(1) / x) : (T(1) / epsilon); });
+    }
+
+    static Tensor<T> mean(const Tensor<T>& tensor, const std::vector<int>& axes) {
+        const auto& shape = tensor.getShape();
+        Tensor<T> result = tensor;
+        int totalElements = 1;
+
+        std::vector<int> newShape(shape.rank(), 1);
+        for (size_t i = 0; i < shape.rank(); ++i) {
+            if (std::find(axes.begin(), axes.end(), i) == axes.end()) {
+                newShape[i] = shape[i];
+            } else {
+                totalElements *= shape[i];
+            }
+        }
+
+        // Sort axes in descending order
+        std::vector<int> sortedAxes = axes;
+        std::sort(sortedAxes.begin(), sortedAxes.end(), std::greater<int>());
+
+        for (int axis : sortedAxes) {
+            if (axis >= result.getShape().rank() || axis < 0) {
+                throw std::invalid_argument("Invalid axis for mean calculation");
+            }
+            result = sum(result, axis);
+        }
+
+        // Divide the sum by the total number of elements to get the mean
+        result = result * (T(1) / T(totalElements));
+        
+        // Reshape the result for proper broadcasting
+        result = reshape(result, Shape(newShape));
+
+        return result;
+    }
+
+
+    // Mean function: calculates the mean for the entire tensor (all elements)
+    static Tensor<T> mean(const Tensor<T>& tensor) {
+        Tensor<T> summed = sum(tensor);
+        return summed * (T(1) / T(tensor.getShape().size()));
+    }
+
+    static Tensor<T> variance(const Tensor<T>& tensor, const Tensor<T>& meanTensor, const std::vector<int>& axes) {
+        const auto& shape = tensor.getShape();
+        const auto& meanShape = meanTensor.getShape();
+
+        int totalElements = 1;
+        for (int axis : axes) {
+            if (axis < 0 || axis >= shape.rank()) {
+                throw std::runtime_error("Invalid axis for variance calculation: " + std::to_string(axis));
+            }
+            totalElements *= shape[axis];
+        }
+
+        try {
+            // Create a BroadcastView of the mean tensor
+            BroadcastView<T, CPUDevice> broadcastedMean(meanTensor.getData(), shape);
+
+            // Compute the difference and square it
+            Tensor<T> squaredDiff(shape);
+            auto tensorIt = tensor.getData().begin();
+            auto broadcastIt = broadcastedMean.begin();
+            auto squaredDiffIt = squaredDiff.getData().begin();
+
+            while (tensorIt != tensor.getData().end()) {
+                *squaredDiffIt = (*tensorIt - *broadcastIt) * (*tensorIt - *broadcastIt);
+                ++tensorIt;
+                ++broadcastIt;
+                ++squaredDiffIt;
+            }
+
+            Tensor<T> summedSquaredDiff = sum(squaredDiff, axes);
+
+            // Ensure the result has the same shape as the mean tensor
+            Tensor<T> result(meanShape);
+            for (size_t i = 0; i < result.getData().size(); ++i) {
+                result.getData()[i] = summedSquaredDiff.getData()[i] / T(totalElements);
+            }
+
+            return result;
+        } catch (const std::exception& e) {
+            std::cerr << "Exception in variance calculation: " << e.what() << std::endl;
+            throw;
+        }
+    }
+
+    // Variance function: calculates the variance for the entire tensor (all elements)
+    static Tensor<T> variance(const Tensor<T>& tensor, const Tensor<T>& meanTensor) {
+        Tensor<T> diff = tensor - meanTensor;
+        Tensor<T> squaredDiff = diff * diff;
+
+        // Sum all squared differences
+        Tensor<T> sumOfSquaredDiff = sum(squaredDiff);
+
+        // Divide by the total number of elements to get the variance
+        return sumOfSquaredDiff * (T(1) / T(tensor.getShape().size()));
     }
 
     static Tensor<T> reshape(const Tensor<T>& tensor, const Shape& newShape) {
@@ -75,6 +221,17 @@ class AdvancedTensorOperations<T, CPUDevice> {
     private:
     static constexpr int TILE_SIZE = 32; 
 
+    /*
+    
+    Dot Product:
+    ------------
+    Input: Tensor a (n), Tensor b (n)
+    Output: Tensor result (1)
+
+    For two vectors a and b, the dot product is the sum of the element-wise product of the two vectors.
+    The output is a scalar value.
+    
+    */
     static Tensor<T> dotProduct(const Tensor<T>& a, const Tensor<T>& b) {
         if (a.getShape()[0] != b.getShape()[0]) {
             throw std::invalid_argument("Vector dimensions must match for dot product. Mismatch in dimensions: " + a.getShape().toString() + " and " + b.getShape().toString());
@@ -93,6 +250,49 @@ class AdvancedTensorOperations<T, CPUDevice> {
         return Tensor<T>({1}, {result});
     }
 
+    /*
+    
+    Dot Product Slice:
+    -----------------------------
+
+    Input: SliceView a, SliceView b
+    Output: Scalar result
+
+    For two slices a and b, the dot product is the sum of the element-wise product of the two slices.
+    The output is a scalar value.
+
+    */
+
+    static T dotProductSlice(const SliceView<T>& a, const SliceView<T>& b){
+        if (a.shape() != b.shape()){
+            throw std::invalid_argument("Slice dimensions must match for dot product. Mismatch in dimensions: " + a.shape().toString() + " and " + b.shape().toString());
+        }
+
+        T result = T(0);
+
+        auto a_it = a.begin();
+        auto b_it = b.begin();
+
+        while(a_it != a.end()){
+            result += *a_it * *b_it;
+            ++a_it;
+            ++b_it;
+        }
+
+        return result;
+    }
+
+    /*
+    
+    Matrix Vector Product:
+    -----------------------------
+    Input: Tensor a (m x n), Tensor b (n)
+    Output: Tensor result (m)
+
+    For each row in a, multiply the row with the vector b and sum the results to get the result vector.
+    The output is a vector of size m.
+    
+    */
     static Tensor<T> matrixVectorMul(const Tensor<T>& a, const Tensor<T>& b) {
         if (a.getShape()[1] != b.getShape()[0]) {
             throw std::invalid_argument("Matrix and vector dimensions must match for multiplication. Mismatch in dimensions: " + a.getShape().toString() + " and " + b.getShape().toString());
@@ -119,9 +319,22 @@ class AdvancedTensorOperations<T, CPUDevice> {
         return result;
     }
 
+
+    /*
+    
+    Matrix Matrix Product:
+    -----------------------------
+    Input: Tensor a (m x k), Tensor b (k x n)
+    Output: Tensor result (m x n)
+
+    Each value i,j is equal to the dot product of the i-th row of a and the j-th column of b.
+    For this approach we slice our data into rows and columns and calculate the dot product of the slices.
+    
+    */
     static Tensor<T> matrixMatrixMul(const Tensor<T>& a, const Tensor<T>& b) {
         if (a.getShape()[1] != b.getShape()[0]) {
-            throw std::invalid_argument("Matrix dimensions must match for multiplication. Mismatch in dimensions: " + a.getShape().toString() + " and " + b.getShape().toString());
+            throw std::invalid_argument("Matrix dimensions must match for multiplication. Mismatch in dimensions: " 
+                + a.getShape().toString() + " and " + b.getShape().toString());
         }
 
         int m = a.getShape()[0];
@@ -135,102 +348,244 @@ class AdvancedTensorOperations<T, CPUDevice> {
         T* resultData = result.getData().data();
 
         #pragma omp parallel for collapse(2)
-        for (int i = 0; i < m; i += TILE_SIZE) {
-            for (int j = 0; j < n; j += TILE_SIZE) {
-                for (int l = 0; l < k; l += TILE_SIZE) {
-                    int max_i = std::min(i + TILE_SIZE, m);
-                    int max_j = std::min(j + TILE_SIZE, n);
-                    int max_l = std::min(l + TILE_SIZE, k);
-
-                    for (int ii = i; ii < max_i; ++ii) {
-                        for (int jj = j; jj < max_j; ++jj) {
-                            T sum = 0;
-                            #pragma omp simd reduction(+:sum)
-                            for (int ll = l; ll < max_l; ++ll) {
-                                sum += aData[ii * k + ll] * bData[ll * n + jj];
-                            }
-                            resultData[ii * n + jj] += sum;
-                        }
-                    }
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                T sum = 0;
+                for (int p = 0; p < k; p++) {
+                    sum += aData[i * k + p] * bData[p * n + j];
                 }
+                resultData[i * n + j] = sum;
+            }
+        }
+
+        return result;
+    }
+    /*
+    
+    Matrix Matrix Prduct Slice:
+    -----------------------------
+
+    Input: SliceView a (m x k), SliceView b (k x n)
+    Output: Tensor result (m x n)
+
+    Each value i,j is equal to the dot product of the i-th row of a and the j-th column of b.
+    
+    */
+
+   static Tensor<T> matrixMatrixMulSlice(const SliceView<T>& a, const SliceView<T>& b) {
+        const auto& shapeA = a.shape();
+        const auto& shapeB = b.shape();
+
+        if (shapeA.rank() != 2 || shapeB.rank() != 2 || shapeA[1] != shapeB[0]) {
+            throw std::invalid_argument("Invalid slice shapes for matrix multiplication. Got shapes: " 
+                + shapeA.toString() + " and " + shapeB.toString());
+        }
+
+        int m = shapeA[0];
+        int n = shapeB[1];
+        int k = shapeA[1];
+
+        Tensor<T> result({m, n}, T(0));
+        T* resultData = result.getData().data();
+
+        #pragma omp parallel for collapse(2)
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                T sum = 0;
+                for (int p = 0; p < k; ++p) {
+                    sum += a[{i, p}] * b[{p, j}];
+                }
+                resultData[i * n + j] = sum;
             }
         }
 
         return result;
     }
 
+
+   /*
+   
+    Batched Matrix Multiplication:
+    -----------------------------
+
+    Input: Tensor a (b x m x k), Tensor b (b x k x n)
+    Output: Tensor result (b x m x n)
+
+    For each batch, perform matrix multiplication on the corresponding slices of a and b.
+    The output is a tensor of shape (b x m x n).
+   
+   */
+
     static Tensor<T> batchedMatmul(const Tensor<T>& a, const Tensor<T>& b) {
         auto shapeA = a.getShape();
         auto shapeB = b.getShape();
 
-        if (shapeA.rank() == 1) {
+        // Handle the case where A is 2D (weights) and B is 3D (im2col result)
+        if (shapeA.rank() == 2 && shapeB.rank() == 3) {
+            return matmul2D3D(a, b);
+        }
+
+        // Add batch dimension to A if it's 2D
+        if (shapeA.rank() == 2) {
             shapeA = ShapeOperations::concat(Shape({1}), shapeA);
         }
 
-        if (shapeB.rank() == 1) {
-            shapeB = ShapeOperations::concat(shapeB, Shape({1}));
+        // Ensure B has at least 3 dimensions
+        if (shapeB.rank() < 3) {
+            throw std::invalid_argument("Second tensor must have at least 3 dimensions for batched matmul");
         }
 
+        // Calculate batch dimensions
         auto batchDimsA = Shape(std::vector<int>(shapeA.begin(), shapeA.end() - 2));
         auto batchDimsB = Shape(std::vector<int>(shapeB.begin(), shapeB.end() - 2));
 
+        // Broadcast batch dimensions
         auto batchShape = ShapeOperations::broadcastShapes(batchDimsA, batchDimsB);
 
-        auto resultShape = ShapeOperations::concat(batchShape, Shape({shapeA[shapeA.rank() - 2], shapeB[shapeB.rank() - 1]}));
-        std::vector<int> dimensions = resultShape.getDimensions();
+        // Calculate result shape
+        auto resultShape = ShapeOperations::concat(batchShape, 
+            Shape({shapeA[shapeA.rank() - 2], shapeB[shapeB.rank() - 1]}));
+
         Tensor<T> result = Tensor<T>::zeros(resultShape);
 
         auto flattenedBatchSize = batchShape.size();
+        
         #pragma omp parallel for
         for (int batch = 0; batch < flattenedBatchSize; ++batch) {
+            // Calculate multi-dimensional indices for this batch
+            std::vector<int> batchIndices = calculateMultiDimIndices(batch, batchShape);
             
-            // TODO: Implement Slice extraction
-            auto aSlice = extractSlice(a, batch, batchShape, batchDimsA);
-            auto bSlice = extractSlice(b, batch, batchShape, batchDimsB);
+            // Create SliceView for a
+            std::vector<std::pair<int, int>> slicesA;
+            for (size_t i = 0; i < batchDimsA.rank(); ++i) {
+                int index = (i < batchIndices.size()) ? batchIndices[i] : 0;
+                slicesA.push_back({index, index + 1});
+            }
+            slicesA.push_back({0, shapeA[shapeA.rank() - 2]});
+            slicesA.push_back({0, shapeA[shapeA.rank() - 1]});
+            SliceView<T> aSlice(a.getData(), slicesA, std::vector<int>(slicesA.size(), 1));
+
+            // Create SliceView for b
+            std::vector<std::pair<int, int>> slicesB;
+            for (size_t i = 0; i < batchDimsB.rank(); ++i) {
+                int index = (i < batchIndices.size()) ? batchIndices[i] : 0;
+                slicesB.push_back({index, index + 1});
+            }
+            slicesB.push_back({0, shapeB[shapeB.rank() - 2]});
+            slicesB.push_back({0, shapeB[shapeB.rank() - 1]});
+            SliceView<T> bSlice(b.getData(), slicesB, std::vector<int>(slicesB.size(), 1));
 
             // Perform matrix multiplication on the slices
-            auto batchResult = matrixMatrixMul(aSlice, bSlice);
+            Tensor<T> batchResult = matrixMatrixMulSlice(aSlice, bSlice);
 
-            // Not complete, need to implement the insertion of the batch result into the final result
+            // Create slices for the result tensor
+            std::vector<std::pair<int, int>> resultSlices;
+            for (int index : batchIndices) {
+                resultSlices.emplace_back(index, index + 1);
+            }
+            resultSlices.push_back({0, batchResult.getShape()[0]});
+            resultSlices.push_back({0, batchResult.getShape()[1]});
+
+            // Copy batchResult to the appropriate slice of the result tensor
+            copyTensorToSlice(batchResult, result, resultSlices);
         }
 
         // Remove prepended/appended dimensions if necessary
         if (a.getShape().rank() == 1) {
+            auto dimensions = result.getShape().getDimensions();
             dimensions.erase(dimensions.begin()+(dimensions.size()-1));
             result.reshape(dimensions);
         }
         if (b.getShape().rank() == 1) {
+            auto dimensions = result.getShape().getDimensions();
             dimensions.erase(dimensions.begin()+(dimensions.size()-2));
             result.reshape(dimensions);
         }
 
         return result;
     }
-private:
-    static Tensor<T> extractSlice(const Tensor<T>& tensor, int batchIndex, const Shape& batchShape, const Shape& originalBatchDims) {
-        // Get the rank and shape of the tensor
-        auto rank = tensor.getShape().rank();
-        auto fullShape = tensor.getShape().getDimensions();
 
-        std::vector<int> startIndices(rank, 0);
-        std::vector<int> endIndices = fullShape;
+    static Tensor<T> matmul2D3D(const Tensor<T>& weights, const Tensor<T>& input) {
+        auto shapeWeights = weights.getShape();
+        auto shapeInput = input.getShape();
 
-        auto strides = tensor.getShape().getStride();
-
-        int offset = 0;
-        int batchSize = 1;
-        for (int i = 0; i < originalBatchDims.rank(); ++i) {
-            int dimSize = batchShape[i];
-            int dimIndex = (batchIndex / batchSize) % dimSize;
-            offset += dimIndex * strides[i];
-            batchSize *= dimSize;
+        if (shapeWeights.rank() != 2 || shapeInput.rank() != 2 || shapeWeights[1] != shapeInput[1]) {
+            throw std::invalid_argument("Invalid shapes for fully connected layer. Got shapes: " 
+                + shapeWeights.toString() + " and " + shapeInput.toString());
         }
 
-        std::vector<int> sliceShape(fullShape.begin() + originalBatchDims.rank(), fullShape.end());
+        int outFeatures = shapeWeights[0];
+        int inFeatures = shapeWeights[1];
+        int batchSize = shapeInput[0];
 
-        Tensor<T> sliceTensor(Shape(sliceShape), tensor.getData().begin() + offset);
+        Tensor<T> result({batchSize, outFeatures}, T(0));
 
-        return sliceTensor;
+        #pragma omp parallel for collapse(2)
+        for (int b = 0; b < batchSize; ++b) {
+            for (int o = 0; o < outFeatures; ++o) {
+                T sum = 0;
+                for (int i = 0; i < inFeatures; ++i) {
+                    sum += weights.getData().at({o, i}) * input.getData().at({b, i});
+                }
+                result.getData().at({b, o}) = sum;
+            }
+        }
+
+        return result;
+    }
+
+    // Helper function to copy a tensor to a slice of another tensor
+    static void copyTensorToSlice(const Tensor<T>& source, Tensor<T>& destination, const std::vector<std::pair<int, int>>& slices) {
+        SliceView<T> destSlice(destination.getData(), slices, std::vector<int>(slices.size(), 1));
+        
+        std::vector<int> sourceIndices(source.getShape().rank(), 0);
+        std::vector<int> destIndices(destSlice.shape().rank(), 0);
+
+        do {
+            destSlice.set(destIndices, source.getData().at(sourceIndices));
+        } while (incrementIndices(sourceIndices, source.getShape()) && incrementIndices(destIndices, destSlice.shape()));
+    }
+    
+
+
+    // Helper function to increment multi-dimensional indices
+    static bool incrementIndices(std::vector<int>& indices, const Shape& shape) {
+        for (int i = indices.size() - 1; i >= 0; --i) {
+            ++indices[i];
+            if (indices[i] < shape[i]) {
+                return true;
+            }
+            indices[i] = 0;
+        }
+        return false;
+    }
+
+    static bool incrementIndices(std::vector<int>& inputIndices, const Shape& inputShape, 
+                             const std::vector<bool>& axesToSum, std::vector<int>& resultIndices) {
+        for (int i = inputIndices.size() - 1; i >= 0; --i) {
+            ++inputIndices[i];
+            if (inputIndices[i] < inputShape[i]) {
+                if (!axesToSum[i]) {
+                    ++resultIndices[i];
+                }
+                return true;
+            }
+            inputIndices[i] = 0;
+            if (!axesToSum[i]) {
+                resultIndices[i] = 0;
+            }
+        }
+        return false;
+    }
+
+    // Helper function to calculate multi-dimensional indices from a flattened index
+    static std::vector<int> calculateMultiDimIndices(int flattenedIndex, const Shape& shape) {
+        std::vector<int> indices(shape.rank());
+        for (int i = shape.rank() - 1; i >= 0; --i) {
+            indices[i] = flattenedIndex % shape[i];
+            flattenedIndex /= shape[i];
+        }
+        return indices;
     }
 };
 

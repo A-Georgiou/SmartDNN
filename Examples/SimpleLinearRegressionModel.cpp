@@ -33,7 +33,7 @@ int main() {
 
     // Print the prediction.
     Tensor prediction = model.predict(input);
-    std::cout << "Input: 10.0f | Prediction: " << prediction.detailedString() << std::endl;
+    std::cout << "Input: 10.0f | Prediction: " << prediction.toDetailedString() << std::endl;
     
     return 0;
 }

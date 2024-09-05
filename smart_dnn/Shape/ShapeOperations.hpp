@@ -26,12 +26,11 @@ public:
             } else if (dim2 == 1) {
                 result.push_back(dim1);
             } else {
-                throw std::runtime_error("Shapes are not broadcastable!");
+                throw std::invalid_argument("Shapes are not broadcastable! Mismatch between shapes: " + shape1.toString() + " and " + shape2.toString());
             }
         }
 
         std::reverse(result.begin(), result.end());
-
         return Shape(result);
     }
 
@@ -61,7 +60,7 @@ public:
     }
     };
 
-    int computeFlatIndex(const Shape& shape, const std::vector<int>& indices) {
+    static int computeFlatIndex(const Shape& shape, const std::vector<int>& indices) {
         if (indices.size() != shape.rank()) {
             throw std::invalid_argument("Number of indices must match the rank of the shape.");
         }

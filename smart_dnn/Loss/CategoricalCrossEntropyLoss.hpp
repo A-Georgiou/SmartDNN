@@ -9,45 +9,67 @@
 
 namespace smart_dnn {
 
-template <typename T=float>
+template <typename T = float>
 class CategoricalCrossEntropyLoss : public Loss<T> {
     using TensorType = Tensor<T>;
+
+    static constexpr T epsilon = T(1e-7); // To prevent log(0) or log(1) for numerical stability
+
 public:
+
+    /*
+    
+    Input: prediction and target tensors of shape (batchSize, numClasses)
+    Output: scalar tensor representing the loss
+    
+    */
     TensorType compute(const TensorType& prediction, const TensorType& target) override {
         if (prediction.getShape() != target.getShape()) {
-            throw std::invalid_argument("Prediction and target shapes must match, mismatch: " + std::to_string(prediction.getShape().size()) + " != " + std::to_string(target.getShape().size()));
+            throw std::invalid_argument("Prediction and target shapes must match");
         }
 
-        const T* predData = prediction.getData().data();
-        const T* targetData = target.getData().data();
-        size_t size = prediction.getShape().size();
+        int batchSize = prediction.getShape()[0];
+        int numClasses = prediction.getShape()[1];
 
         T loss = T(0);
-        for (size_t i = 0; i < size; ++i) {
-            loss -= targetData[i] * std::log(predData[i] + T(1e-7));
+        for (int i = 0; i < batchSize; ++i) {
+            for (int j = 0; j < numClasses; ++j) {
+                T predValue = std::min(std::max(prediction.at({i, j}), epsilon), T(1.0) - epsilon);
+                //T predValue = prediction.at({i, j});
+                loss -= target.at({i, j}) * std::log(predValue);
+            }
         }
 
-        loss /= prediction.getShape()[0];
-
-        return TensorType({1}, loss);  // Normalize by batch size
+        return TensorType({1}, loss / batchSize);  // Average over batch
     }
 
+    /*
+    
+    Input: Prediction: 2D tensor (batchSize, numClasses)
+           Target: 2D tensor (batchSize, numClasses)
+    Output: Gradient: 2D tensor (batchSize, numClasses)
+    
+    */
     TensorType gradient(const TensorType& prediction, const TensorType& target) override {
         if (prediction.getShape() != target.getShape()) {
             throw std::invalid_argument("Prediction and target shapes must match");
         }
 
-        TensorType grad(prediction.getShape());
-        T* gradData = grad.getData().data();
-        const T* predData = prediction.getData().data();
-        const T* targetData = target.getData().data();
-        size_t size = prediction.getShape().size();
+        int batchSize = prediction.getShape()[0];
+        int numClasses = prediction.getShape()[1];
 
-        for (size_t i = 0; i < size; ++i) {
-            gradData[i] = (predData[i] - targetData[i]) / prediction.getShape()[0];
+        TensorType grad(prediction.getShape());
+
+        // Calculate gradients
+        for (int i = 0; i < batchSize; ++i) {
+            for (int j = 0; j < numClasses; ++j) {
+                T predValue = std::min(std::max(prediction.at({i, j}), epsilon), T(1.0) - epsilon);
+                //T predValue = prediction.at({i, j});
+                grad.at({i, j}) = (predValue - target.at({i, j}));
+            }
         }
 
-        return grad;
+        return grad / batchSize;
     }
 
     void save(std::ostream& os) const override {

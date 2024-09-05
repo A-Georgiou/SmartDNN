@@ -26,7 +26,18 @@ TEMPLATE_TENSOR
 Tensor<T, DeviceType>::Tensor(const Tensor<T, DeviceType>& other) : data_(other.data_) {}
 
 TEMPLATE_TENSOR
-Tensor<T, DeviceType>::Tensor(Tensor<T, DeviceType>&& other) noexcept : data_(std::move(other.data_)) {}
+Tensor<T, DeviceType>::Tensor(Tensor<T, DeviceType>&& other) noexcept : data_(std::move(other.data_)) {
+    other.data_ = TensorData<T, DeviceType>(Shape({1})); // We should not have an empty tensor
+}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType>::Tensor(Shape dimensions, std::initializer_list<T> values) : data_(dimensions, values) {}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType>::Tensor(Shape dimensions, const std::vector<T>& values) : data_(dimensions, values) {}
+
+TEMPLATE_TENSOR
+Tensor<T, DeviceType>::Tensor(Shape dimensions, std::vector<T>&& values) noexcept : data_(dimensions, std::move(values)) {}
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator=(const Tensor<T, DeviceType>& other) {
@@ -165,7 +176,7 @@ const TensorData<T, DeviceType>& Tensor<T, DeviceType>::getData() const noexcept
 }
 
 TEMPLATE_TENSOR
-Shape Tensor<T, DeviceType>::getShape() const noexcept {
+const Shape& Tensor<T, DeviceType>::getShape() const noexcept {
     return data_.shape();
 }
 
@@ -270,14 +281,20 @@ void Tensor<T, DeviceType>::reshape(const std::vector<int>& dims) {
 }
 
 TEMPLATE_TENSOR
-Tensor<T, DeviceType> Tensor<T, DeviceType>::slice(int dim, int index) const {
+void Tensor<T, DeviceType>::reshape(const std::initializer_list<int>& dims) {
+    std::vector<int> dimsVec(dims);
+    this->data_.reshape(dimsVec);
+}
 
+template <typename T, typename DeviceType>
+Tensor<T, DeviceType> Tensor<T, DeviceType>::slice(int dim, int index) const {
     Shape newShape = this->data_.shape();
     std::vector<int> shape = newShape.getDimensions();
-    shape[dim] = 1;
-
     const std::vector<int> strides = this->data_.stride();
+
     int offset = index * strides[dim];
+
+    shape.erase(shape.begin() + dim);
 
     TensorData<T, DeviceType> slicedData(Shape(shape), this->data_.data() + offset);
 

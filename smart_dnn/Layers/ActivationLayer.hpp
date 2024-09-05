@@ -24,7 +24,7 @@ public:
     }
 
     TensorType backward(const TensorType& gradOutput) override {
-        return activation->backward(input.value(), gradOutput);
+        return activation->backward((*input), gradOutput);
     }
 
     void updateWeights(Optimizer<T>& optimizer) override {

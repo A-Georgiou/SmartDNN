@@ -12,8 +12,9 @@ template <typename T=float>
 class MaxPooling2DLayer : public Layer<T> {
     using TensorType = Tensor<T>;
 public:
-    MaxPooling2DLayer(int poolSize) : MaxPooling2DLayer(poolSize, poolSize) {}
-    MaxPooling2DLayer(int poolSize, int stride) : poolSize(poolSize), stride(stride) {}
+    MaxPooling2DLayer(int poolSize) : MaxPooling2DLayer(poolSize, poolSize, 0) {}
+    MaxPooling2DLayer(int poolSize, int stride) : MaxPooling2DLayer(poolSize, stride, 0) {}
+    MaxPooling2DLayer(int poolSize, int stride, int padding) : poolSize(poolSize), stride(stride), padding(padding) {}
 
     TensorType forward(const TensorType& input) override {
         if (input.getShape().rank() != 4) {
@@ -23,17 +24,19 @@ public:
         this->input = input;
 
         int batchSize = input.getShape()[0];
-        int inputChannels = input.getShape()[1];
+        int inputChannels = input.getShape()[1];  // Number of channels should remain unchanged
         int inputHeight = input.getShape()[2];
         int inputWidth = input.getShape()[3];
 
+        // Calculate output dimensions based on stride and pooling size
         int outputHeight = (inputHeight - poolSize) / stride + 1;
         int outputWidth = (inputWidth - poolSize) / stride + 1;
 
+        // Output shape retains the number of channels
         TensorType output({batchSize, inputChannels, outputHeight, outputWidth});
 
         for (int n = 0; n < batchSize; ++n) {
-            for (int ic = 0; ic < inputChannels; ++ic) {
+            for (int ic = 0; ic < inputChannels; ++ic) {  // Ensure channel is retained
                 for (int oh = 0; oh < outputHeight; ++oh) {
                     for (int ow = 0; ow < outputWidth; ++ow) {
                         auto [maxVal, maxIh, maxIw] = findMaxInPoolWindow(input, n, ic, oh, ow);
@@ -85,13 +88,14 @@ public:
 private:
     int poolSize;
     int stride;
+    int padding;
     std::optional<TensorType> input;
 
     std::tuple<T, int, int> findMaxInPoolWindow(const TensorType& tensor, int n, int ic, int oh, int ow) {
         T maxVal = -std::numeric_limits<T>::infinity();
         int maxIh = 0, maxIw = 0;
-        int ihStart = oh * stride;
-        int iwStart = ow * stride;
+        int ihStart = oh * stride - padding;
+        int iwStart = ow * stride - padding;
 
         for (int ph = 0; ph < poolSize; ++ph) {
             int ih = ihStart + ph;

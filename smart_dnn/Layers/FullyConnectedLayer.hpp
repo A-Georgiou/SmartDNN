@@ -21,7 +21,10 @@ public:
     
     TensorType forward(const TensorType& input) override {
         this->input = input;
-        return AdvancedTensorOperations<T>::matmul(this->input.value(), weights.value()) + biases.value();
+        TensorType output = AdvancedTensorOperations<T>::matmul(input, *weights);
+        TensorType biasBroadcast = AdvancedTensorOperations<T>::reshape(*biases, {1, biases->getShape()[1]});
+        output = output + biasBroadcast;
+        return output;
     }
 
     TensorType backward(const TensorType& gradOutput) override {
@@ -29,24 +32,20 @@ public:
             throw std::runtime_error("Input tensor is not initialized!");
         }
 
-        TensorType gradOutputReshaped = gradOutput;
-        TensorType inputTensor = input.value();
-        TensorType weightsTransposed = weights.value();
+        TensorType inputTensor = *input;
 
         if (inputTensor.getShape().rank() == 1)
             inputTensor = AdvancedTensorOperations<T>::reshape(inputTensor, {1, inputTensor.getShape()[0]});
 
-        if (gradOutput.getShape().rank() == 1 && gradOutput.getShape()[0] == 1)
-            gradOutputReshaped = AdvancedTensorOperations<T>::reshape(gradOutput, {1, 1});
+        TensorType inputTransposed = AdvancedTensorOperations<T>::transpose(inputTensor, 0, 1); // Shape: (input_size, batch_size)
+        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutput)); // (input_size, output_size)
 
-        TensorType inputTransposed = AdvancedTensorOperations<T>::transpose(inputTensor, 0, 1);
-        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutputReshaped));
-        biasGradients.emplace(AdvancedTensorOperations<T>::sum(gradOutputReshaped));
+        biasGradients.emplace(AdvancedTensorOperations<T>::sum(gradOutput, 0));
 
-        if (weightsTransposed.getShape().rank() > 1)
-            weightsTransposed = AdvancedTensorOperations<T>::transpose(weights.value(), 0, 1);
+        TensorType weightsTransposed = AdvancedTensorOperations<T>::transpose(*weights, 0, 1); // Shape: (output_size, input_size)
+        TensorType gradInput = AdvancedTensorOperations<T>::matmul(gradOutput, weightsTransposed); // (batch_size, input_size)
 
-        return AdvancedTensorOperations<T>::matmul(gradOutputReshaped, weightsTransposed);
+        return gradInput;
     }
 
     void updateWeights(Optimizer<T>& optimizer) override {
@@ -60,6 +59,38 @@ public:
 
     void setTrainingMode(bool mode) override {
         trainingMode = mode;
+    }
+
+    TensorType getWeights() const {
+        return *weights;
+    }
+
+    TensorType getBiases() const {
+        return *biases;
+    }
+
+    TensorType getWeightGradients() const {
+        return *weightGradients;
+    }
+
+    TensorType getBiasGradients() const {
+        return *biasGradients;
+    }
+
+    void setWeights(const TensorType& newWeights) {
+        weights = newWeights;
+    }
+
+    void setBiases(const TensorType& newBiases) {
+        biases = newBiases;
+    }
+
+    void setBiasGradient(const TensorType& newBiasGradient) {
+        biasGradients = newBiasGradient;
+    }
+
+    void setWeightGradient(const TensorType& newWeightGradient) {
+        weightGradients = newWeightGradient;
     }
 
 private:
