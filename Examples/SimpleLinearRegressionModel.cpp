@@ -1,5 +1,5 @@
 #include <iostream>
-#include "../smart_dnn/Tensor.hpp"
+#include "../smart_dnn/Tensor/Tensor.hpp"
 #include "../smart_dnn/SmartDNN.hpp"
 #include "../smart_dnn/Activations/ReLU.hpp"
 #include "../smart_dnn/Loss/MSELoss.hpp"
@@ -10,16 +10,16 @@
 
 int main() {
 
-    // Generate a linear dataset with 100 samples (x, y) where y = 2x + 3 + noise[0, 1]
-    std::pair<std::vector<Tensor>, std::vector<Tensor>> dataset = generateLinearDataset(100);
+    using namespace smart_dnn;
 
-    // Initialise a SmartDNN model with a single fully connected layer and a ReLU activation function.
-    // We treat the lack of output activation as a linear activation function.
-    SmartDNN model;
+    // Generate a linear dataset with 100 samples (x, y) where y = 2x + 3 + noise[0, 1]
+    std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> dataset = generateLinearDataset(100);
+
+    SmartDNN<float> model;
     model.addLayer(new FullyConnectedLayer(1, 10));
     model.addLayer(new ActivationLayer(new ReLU()));
     model.addLayer(new FullyConnectedLayer(10, 1));
-    
+
     // Compile the model with a Mean Squared Error loss function and an Adam optimizer (initialised to learning rate 0.01f).
     model.compile(new MSELoss(), new AdamOptimizer());
 
@@ -33,7 +33,7 @@ int main() {
 
     // Print the prediction.
     Tensor prediction = model.predict(input);
-    std::cout << "Input: 10.0f | Prediction: " << prediction << std::endl;
+    std::cout << "Input: 10.0f | Prediction: " << prediction.toDetailedString() << std::endl;
     
     return 0;
 }

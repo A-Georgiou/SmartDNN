@@ -1,41 +1,46 @@
 #ifndef MAX_POOLING_2D_LAYER_HPP
 #define MAX_POOLING_2D_LAYER_HPP
 
-#include "../Layer.hpp"
-#include "../Tensor.hpp"
-#include "../TensorOperations.hpp"
 #include <algorithm>
 #include <limits>
-#include "../TensorWrapper.hpp"
+#include "../Layer.hpp"
+#include "../Tensor/Tensor.hpp"
 
-class MaxPooling2DLayer : public Layer {
+namespace smart_dnn {
+
+template <typename T=float>
+class MaxPooling2DLayer : public Layer<T> {
+    using TensorType = Tensor<T>;
 public:
-    MaxPooling2DLayer(int poolSize) : MaxPooling2DLayer(poolSize, poolSize) {}
-    MaxPooling2DLayer(int poolSize, int stride) : poolSize(poolSize), stride(stride) {}
+    MaxPooling2DLayer(int poolSize) : MaxPooling2DLayer(poolSize, poolSize, 0) {}
+    MaxPooling2DLayer(int poolSize, int stride) : MaxPooling2DLayer(poolSize, stride, 0) {}
+    MaxPooling2DLayer(int poolSize, int stride, int padding) : poolSize(poolSize), stride(stride), padding(padding) {}
 
-    Tensor forward(Tensor& input) override {
-        if (input.shape().rank() != 4) {
+    TensorType forward(const TensorType& input) override {
+        if (input.getShape().rank() != 4) {
             throw std::runtime_error("MaxPooling2DLayer: input tensor must have rank 4");
         }
 
         this->input = input;
 
-        int batchSize = input.shape()[0];
-        int inputChannels = input.shape()[1];
-        int inputHeight = input.shape()[2];
-        int inputWidth = input.shape()[3];
+        int batchSize = input.getShape()[0];
+        int inputChannels = input.getShape()[1];  // Number of channels should remain unchanged
+        int inputHeight = input.getShape()[2];
+        int inputWidth = input.getShape()[3];
 
+        // Calculate output dimensions based on stride and pooling size
         int outputHeight = (inputHeight - poolSize) / stride + 1;
         int outputWidth = (inputWidth - poolSize) / stride + 1;
 
-        Tensor output({batchSize, inputChannels, outputHeight, outputWidth});
+        // Output shape retains the number of channels
+        TensorType output({batchSize, inputChannels, outputHeight, outputWidth});
 
         for (int n = 0; n < batchSize; ++n) {
-            for (int ic = 0; ic < inputChannels; ++ic) {
+            for (int ic = 0; ic < inputChannels; ++ic) {  // Ensure channel is retained
                 for (int oh = 0; oh < outputHeight; ++oh) {
                     for (int ow = 0; ow < outputWidth; ++ow) {
                         auto [maxVal, maxIh, maxIw] = findMaxInPoolWindow(input, n, ic, oh, ow);
-                        output({n, ic, oh, ow}) = maxVal;
+                        output.at({n, ic, oh, ow}) = maxVal;
                     }
                 }
             }
@@ -43,28 +48,28 @@ public:
         return output;
     }
 
-    Tensor backward(Tensor& gradOutput) override {
-        if (!input.valid()) {
+    TensorType backward(const TensorType& gradOutput) override {
+        if (input.has_value() == false) {
             throw std::runtime_error("MaxPooling2DLayer: input tensor is not set");
         }
 
-        Tensor& tensorValue = *input;
-        Tensor gradInput(tensorValue.shape(), 0.0f);
+        TensorType& tensorValue = *input;
+        TensorType gradInput(tensorValue.getShape(), 0.0f);
 
-        int batchSize = tensorValue.shape()[0];
-        int inputChannels = tensorValue.shape()[1];
-        int inputHeight = tensorValue.shape()[2];
-        int inputWidth = tensorValue.shape()[3];
+        int batchSize = tensorValue.getShape()[0];
+        int inputChannels = tensorValue.getShape()[1];
+        int inputHeight = tensorValue.getShape()[2];
+        int inputWidth = tensorValue.getShape()[3];
 
-        int outputHeight = gradOutput.shape()[2];
-        int outputWidth = gradOutput.shape()[3];
+        int outputHeight = gradOutput.getShape()[2];
+        int outputWidth = gradOutput.getShape()[3];
 
         for (int n = 0; n < batchSize; ++n) {
             for (int ic = 0; ic < inputChannels; ++ic) {
                 for (int oh = 0; oh < outputHeight; ++oh) {
                     for (int ow = 0; ow < outputWidth; ++ow) {
                         auto [maxVal, maxIh, maxIw] = findMaxInPoolWindow(tensorValue, n, ic, oh, ow);
-                        gradInput({n, ic, maxIh, maxIw}) += gradOutput({n, ic, oh, ow});
+                        gradInput.at({n, ic, maxIh, maxIw}) += gradOutput.at({n, ic, oh, ow});
                     }
                 }
             }
@@ -72,30 +77,35 @@ public:
         return gradInput;
     }
 
-    void updateWeights(Optimizer& optimizer) override {
-        // No weights to update in max pooling layer.
+    void updateWeights(Optimizer<T>& optimizer) override {
+        // No weights to update
+    }
+
+    void setTrainingMode(bool mode) override {
+        // No training mode
     }
 
 private:
     int poolSize;
     int stride;
-    TensorWrapper input;
+    int padding;
+    std::optional<TensorType> input;
 
-    std::tuple<float, int, int> findMaxInPoolWindow(const Tensor& tensor, int n, int ic, int oh, int ow) {
-        float maxVal = -std::numeric_limits<float>::infinity();
+    std::tuple<T, int, int> findMaxInPoolWindow(const TensorType& tensor, int n, int ic, int oh, int ow) {
+        T maxVal = -std::numeric_limits<T>::infinity();
         int maxIh = 0, maxIw = 0;
-        int ihStart = oh * stride;
-        int iwStart = ow * stride;
+        int ihStart = oh * stride - padding;
+        int iwStart = ow * stride - padding;
 
         for (int ph = 0; ph < poolSize; ++ph) {
             int ih = ihStart + ph;
-            if (ih >= tensor.shape()[2]) break; 
+            if (ih >= tensor.getShape()[2]) break; 
 
             for (int pw = 0; pw < poolSize; ++pw) {
                 int iw = iwStart + pw;
-                if (iw >= tensor.shape()[3]) break;
+                if (iw >= tensor.getShape()[3]) break;
 
-                float val = tensor({n, ic, ih, iw});
+                T val = tensor.at({n, ic, ih, iw});
                 if (val > maxVal) {
                     maxVal = val;
                     maxIh = ih;
@@ -107,5 +117,7 @@ private:
         return {maxVal, maxIh, maxIw};
     }
 };
+
+} // namespace smart_dnn
 
 #endif // MAX_POOLING_2D_LAYER_HPP

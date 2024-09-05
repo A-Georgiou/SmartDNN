@@ -1,28 +1,30 @@
 #ifndef DROPOUT_LAYER_HPP
 #define DROPOUT_LAYER_HPP
 
-#include "../Tensor.hpp"
+#include "../Tensor/Tensor.hpp"
 #include "../Layer.hpp"
 #include "../TensorOperations.hpp"
-#include "../TensorWrapper.hpp"
 
-class DropoutLayer : public Layer {
+namespace smart_dnn {
+
+template <typename T=float>
+class DropoutLayer : public Layer<T> {
+    using TensorType = Tensor<T>;
 public:
-    DropoutLayer(float dropoutRate) : dropoutRate(dropoutRate) {}
+    DropoutLayer(T dropoutRate) : dropoutRate(dropoutRate) {}
 
-    Tensor forward(Tensor& input) override {
+    TensorType forward(const TensorType& input) override {
         if (trainingMode) {
-            float rate = dropoutRate;
-            mask = TensorOperations::randomn(input.shape());
-            mask = (*mask).apply([rate](float x) { return x > rate ? 1.0f : 0.0f; });
-            return input * (*mask) * (1.0f / (1.0f - dropoutRate));
+            mask = TensorType::rand(input.getShape());
+            mask = (*mask).apply([this](T x) { return x > dropoutRate ? T(1) : T(0); });
+            return input * (*mask) * (T(1) / (T(1) - dropoutRate));
         } else {
             return input; // No dropout during inference
         }
     }
 
-    Tensor backward(Tensor& gradOutput) override {
-        if (gradOutput.shape() != (*mask).shape()) {
+    TensorType backward(const TensorType& gradOutput) override {
+        if (gradOutput.getShape() != (*mask).getShape()) {
             throw std::invalid_argument("Mask not initialised or has wrong shape in Dropout Layer.");
         }
         if (trainingMode) {
@@ -31,12 +33,19 @@ public:
         return gradOutput;
     }
 
-    void updateWeights(Optimizer& optimizer) override {}
+    void updateWeights(Optimizer<T>& optimizer) override {}
+
+    void setTrainingMode(bool mode) override {
+        trainingMode = mode;
+    }
+
 
 private:
-    float dropoutRate;
-    TensorWrapper mask;
+    T dropoutRate;
+    std::optional<TensorType> mask;
+    bool trainingMode = true;
 };
 
+} // namespace smart_dnn
 
 #endif // DROPOUT_LAYER_HPP

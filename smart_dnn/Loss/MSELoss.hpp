@@ -2,41 +2,46 @@
 #define MSELOSS_HPP
 
 #include "../Loss.hpp"
-#include "../Tensor.hpp"
+#include "../Tensor/Tensor.hpp"
+#include "../Tensor/AdvancedTensorOperations.hpp"
 #include <cmath>
 
-class MSELoss : public Loss {
+namespace smart_dnn {
+
+template <typename T=float>
+class MSELoss : public Loss<T> {
+    using TensorType = Tensor<T>;
 public:
     ~MSELoss() override = default;
 
-    float compute(const Tensor& prediction, const Tensor& target) override {
-        Tensor reshapedTarget = target;
+    TensorType compute(const TensorType& prediction, const TensorType& target) override {
+        TensorType reshapedTarget = target;
 
-        if (prediction.shape() != target.shape()) {
-            if (target.shape().rank() == 1 && target.shape()[0] == prediction.shape()[0]) {
-                reshapedTarget = target.reshape(prediction.shape());
+        if (prediction.getShape() != target.getShape()) {
+            if (target.getShape().rank() == 1 && target.getShape()[0] == prediction.getShape()[0]) {
+                reshapedTarget = AdvancedTensorOperations<T>::reshape(target, prediction.getShape());
             } else {
                 throw std::invalid_argument("Shapes of prediction and target do not match and cannot be broadcast.");
             }
         }
 
-        Tensor diff = prediction - reshapedTarget;
-        float mse = ((diff * diff).sum()) / diff.shape().size();
+        TensorType diff = prediction - reshapedTarget;
+        TensorType mse = AdvancedTensorOperations<T>::sum((diff * diff)) / diff.getShape().size();
         return mse;
     }
 
-    Tensor gradient(const Tensor& prediction, const Tensor& target) override {
-        Tensor reshapedTarget = target;
+    TensorType gradient(const TensorType& prediction, const TensorType& target) override {
+        TensorType reshapedTarget = target;
 
-        if (prediction.shape() != target.shape()) {
-            if (target.shape().rank() == 1 && target.shape()[0] == prediction.shape()[0]) {
-                reshapedTarget = target.reshape(prediction.shape());
+        if (prediction.getShape() != target.getShape()) {
+            if (target.getShape().rank() == 1 && target.getShape()[0] == prediction.getShape()[0]) {
+                reshapedTarget = AdvancedTensorOperations<T>::reshape(target, prediction.getShape());
             } else {
                 throw std::invalid_argument("Shapes of prediction and target do not match and cannot be broadcast.");
             }
         }
 
-        Tensor grad = 2 * (prediction - reshapedTarget) / prediction.shape().size();
+        TensorType grad = T(2) * (prediction - reshapedTarget) / prediction.getShape().size();
         return grad;
     }
 
@@ -48,5 +53,7 @@ public:
         return;
     }
 };
+
+} // namespace smart_dnn
 
 #endif // MSELOSS_HPP

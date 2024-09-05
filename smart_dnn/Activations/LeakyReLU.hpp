@@ -2,33 +2,32 @@
 #define LEAKY_RELU_HPP
 
 #include "../Activation.hpp"
-#include "../Tensor.hpp"
+#include "../Tensor/Tensor.hpp"
+#include "../Tensor/AdvancedTensorOperations.hpp"
 #include <algorithm>
 
-class LeakyReLU : public Activation {
+namespace smart_dnn {
+
+template <typename T = float>
+class LeakyReLU : public Activation<T> {
 public:
-    explicit LeakyReLU(float alpha = 0.01f) : alpha(alpha) {}
+    explicit LeakyReLU(T alpha = T(0.01)) : alpha(alpha) {}
 
-    Tensor forward(const Tensor& input) const override {
-        Tensor output(input.shape());
-        const float* inputData = input.getData();
-        float* outputData = output.getData();
-        int size = input.shape().size();
-
-        for (int i = 0; i < size; ++i) {
-            outputData[i] = (inputData[i] > 0) ? inputData[i] : alpha * inputData[i];
-        }
-
-        return output;
+    Tensor<T> forward(const Tensor<T>& input) const override {
+        Tensor<T> output(input);
+        return AdvancedTensorOperations<T>::apply(input, [this](T x) { return (x > 0) ? x : (alpha * x); });
     }
 
-    Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
-        Tensor gradInput(input.shape());
-        const float* inputData = input.getData();
-        const float* gradOutputData = gradOutput.getData();
-        float* gradInputData = gradInput.getData();
-        int size = input.shape().size();
+    Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
+        Tensor<T> gradInput(input.getShape());
+        T* gradInputData = gradInput.getData().data();
 
+        const T* inputData = input.getData().data();
+        const T* gradOutputData = gradOutput.getData().data();
+
+        int size = input.getShape().size();
+
+        #pragma omp parallel for
         for (int i = 0; i < size; ++i) {
             gradInputData[i] = (inputData[i] > 0) ? gradOutputData[i] : alpha * gradOutputData[i];
         }
@@ -37,7 +36,9 @@ public:
     }
 
 private:
-    float alpha;
+    T alpha;
 };
+
+}
 
 #endif // LEAKY_RELU_HPP

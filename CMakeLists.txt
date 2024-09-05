@@ -13,14 +13,22 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 include_directories(smart_dnn)
 
 add_executable(SmartDNN
-    smart_dnn/Tensor/Tensor.cpp
-    smart_dnn/SmartDNN/SmartDNN.cpp
     src/main.cpp
 )
 
 # Enable logging for debug builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(SmartDNN PRIVATE ENABLE_LOGGING)
+endif()
+
+# Set optimization flags for release builds
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    # Ensure compatibility with different compilers
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+        target_compile_options(SmartDNN PRIVATE -O3)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        target_compile_options(SmartDNN PRIVATE /O2)  # /O2 is the closest equivalent to -O3 in MSVC
+    endif()
 endif()
 
 include(ProcessorCount)

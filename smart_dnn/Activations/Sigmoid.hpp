@@ -2,18 +2,24 @@
 #define SIGMOID_HPP
 
 #include "../Activation.hpp"
-#include "../TensorOperations.hpp"
+#include "../Tensor/AdvancedTensorOperations.hpp"
 
-class Sigmoid : public Activation {
+namespace smart_dnn {
+
+template <typename T=float>
+class Sigmoid : public Activation<T> {
+    using TensorType = Tensor<T>;
 public:
-    Tensor forward(const Tensor& input) const override {
-        return input.apply([](float x) { return 1.0f / (1.0f + std::exp(-x)); });
+    TensorType forward(const TensorType& input) const override {
+        return AdvancedTensorOperations<T>::apply(input, [](float x) { return T(1) / (T(1) + std::exp(-x)); });
     }
 
-    Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
-        Tensor sig = forward(input);
-        return sig * (1.0f - sig) * gradOutput;
+    TensorType backward(const TensorType& input, const TensorType& gradOutput) const override {
+        TensorType sig = forward(input);
+        return sig * (T(1) - sig) * gradOutput;
     }
 };
+
+} // namespace smart_dnn
 
 #endif // SIGMOID_HPP

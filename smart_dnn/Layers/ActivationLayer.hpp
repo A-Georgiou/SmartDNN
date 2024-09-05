@@ -4,32 +4,38 @@
 #include "../Layer.hpp"
 #include "../Activation.hpp"
 #include <optional>
-#include "../TensorWrapper.hpp"
+#include "../Tensor/Tensor.hpp"
 
-class ActivationLayer : public Layer {
+namespace smart_dnn {
+
+template <typename T=float>
+class ActivationLayer : public Layer<T> {
+    using TensorType = Tensor<T>;
 public:
-    ActivationLayer(Activation* activation) : activation(activation) {}
+    ActivationLayer(Activation<T>* activation) : activation(activation) {}
 
     ~ActivationLayer() {
         delete activation;
     }
 
-    Tensor forward(Tensor& input) override {
+    TensorType forward(const TensorType& input) override {
         this->input = input;
         return activation->forward(input);
     }
 
-    Tensor backward(Tensor& gradOutput) override {
-        return activation->backward(*input, gradOutput);
+    TensorType backward(const TensorType& gradOutput) override {
+        return activation->backward((*input), gradOutput);
     }
 
-    void updateWeights(Optimizer& optimizer) override {
+    void updateWeights(Optimizer<T>& optimizer) override {
         // No weights to update in an activation layer.
     }
 
 private:
-    Activation* activation;
-    TensorWrapper input;
+    Activation<T>* activation;
+    std::optional<TensorType> input;
 };
+
+} // namespace smart_dnn
 
 #endif // ACTIVATION_LAYER_HPP
