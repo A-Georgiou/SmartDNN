@@ -27,10 +27,6 @@ public:
         return activation->backward((*input), gradOutput);
     }
 
-    void updateWeights(Optimizer<T>& optimizer) override {
-        // No weights to update in an activation layer.
-    }
-
 private:
     Activation<T>* activation;
     std::optional<TensorType> input;

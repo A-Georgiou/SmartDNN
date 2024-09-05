@@ -18,6 +18,9 @@ public:
         std::ostringstream oss;
         oss << "[" << levelToString(level) << "] " << message;
         std::cout << oss.str() << std::endl;
+#else
+        (void)level;
+        (void)message;
 #endif
     }
 
@@ -27,6 +30,9 @@ public:
         std::ostringstream oss;
         oss << "[" << levelToString(level) << "] " << message;
         std::cout << oss.str() << std::endl;
+#else
+        (void)level;
+        (void)message;
 #endif
     }
 

@@ -37,6 +37,21 @@ namespace smart_dnn {
         }
     }
 
+    template <typename T>
+    inline bool TensorEquals(const Tensor<T>& tensor1, const Tensor<T>& tensor2) {
+        bool equal = true;
+        if (tensor1.getShape() != tensor2.getShape()) {
+            return false;
+        }
+        for (size_t i = 0; i < tensor1.getData().size(); ++i) {
+            if (std::abs(tensor1.getData()[i] - tensor2.getData()[i]) > 1e-6) {
+                equal = false;
+                break;
+            }
+        }
+        return equal;
+    }
+
 } // namespace smart_dnn
 
 #endif // TENSOR_HELPERS_HPP

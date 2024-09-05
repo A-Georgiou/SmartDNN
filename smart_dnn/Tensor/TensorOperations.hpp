@@ -238,7 +238,7 @@ public:
         return TensorData<T, CPUDevice>(Shape({1}), result);
     }
 
-    static TensorData<T, CPUDevice> sum(const TensorData<T, CPUDevice>& tensor, int axis) {
+    static TensorData<T, CPUDevice> sum(const TensorData<T, CPUDevice>& tensor, size_t axis) {
         if (axis < 0 || axis >= tensor.shape().rank()) {
             throw std::runtime_error("Invalid axis for sum operation, axis: " + std::to_string(axis) + ", tensor rank: " + std::to_string(tensor.shape().rank()));
         }
@@ -253,7 +253,7 @@ public:
         std::vector<int> indices(tensor.shape().rank(), 0);  
         for (size_t i = 0; i < tensor.size(); ++i) {
             std::vector<int> result_indices;
-            for (int j = 0; j < tensor.shape().rank(); ++j) {
+            for (size_t j = 0; j < tensor.shape().rank(); ++j) {
                 if (j != axis) {
                     result_indices.push_back(indices[j]);
                 }
@@ -299,8 +299,8 @@ public:
         TensorData<T, CPUDevice> result(shape);
         
         #pragma omp parallel for
-        for (int i = 0; i < result.size(); ++i) {
-            result[i] = RandomEngine::getRandRange(min, max);
+        for (size_t i = 0; i < result.size(); ++i) {
+            result[i] = RandomEngine::getHeRandRange(shape.size(), min, max);
         }
 
         return result;

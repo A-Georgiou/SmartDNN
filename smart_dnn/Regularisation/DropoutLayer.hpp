@@ -3,7 +3,6 @@
 
 #include "../Tensor/Tensor.hpp"
 #include "../Layer.hpp"
-#include "../TensorOperations.hpp"
 
 namespace smart_dnn {
 
@@ -14,7 +13,7 @@ public:
     DropoutLayer(T dropoutRate) : dropoutRate(dropoutRate) {}
 
     TensorType forward(const TensorType& input) override {
-        if (trainingMode) {
+        if (this->trainingMode) {
             mask = TensorType::rand(input.getShape());
             mask = (*mask).apply([this](T x) { return x > dropoutRate ? T(1) : T(0); });
             return input * (*mask) * (T(1) / (T(1) - dropoutRate));
@@ -27,23 +26,15 @@ public:
         if (gradOutput.getShape() != (*mask).getShape()) {
             throw std::invalid_argument("Mask not initialised or has wrong shape in Dropout Layer.");
         }
-        if (trainingMode) {
+        if (this->trainingMode) {
             return gradOutput * (*mask);
         }
         return gradOutput;
     }
 
-    void updateWeights(Optimizer<T>& optimizer) override {}
-
-    void setTrainingMode(bool mode) override {
-        trainingMode = mode;
-    }
-
-
 private:
     T dropoutRate;
     std::optional<TensorType> mask;
-    bool trainingMode = true;
 };
 
 } // namespace smart_dnn

@@ -5,7 +5,6 @@
 #include <cmath>
 #include "../Tensor/Tensor.hpp"
 #include "../Optimizer.hpp"
-#include "../TensorOperations.hpp"
 
 namespace smart_dnn {
 
@@ -33,8 +32,8 @@ public:
           l1Strength(options.l1Strength),
           l2Strength(options.l2Strength),
           decay(options.decay),
-          batchSize(options.batchSize),
-          iterations(0) {}
+          iterations(0),
+          batchSize(options.batchSize) {}
 
     void optimize(const std::vector<std::reference_wrapper<Tensor<T>>>& weights,
                   const std::vector<std::reference_wrapper<Tensor<T>>>& gradients,
@@ -48,14 +47,6 @@ public:
         for (size_t i = 0; i < weights.size(); ++i) {
             updateTensor(weights[i].get(), gradients[i].get());
         }
-    }
-
-    void save(std::ostream& os) const override {
-        // Implement saving state logic if needed
-    }
-
-    void load(std::istream& is) override {
-        // Implement loading state logic if needed
     }
 
 private:

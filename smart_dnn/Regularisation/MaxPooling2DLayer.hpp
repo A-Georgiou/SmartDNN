@@ -58,9 +58,6 @@ public:
 
         int batchSize = tensorValue.getShape()[0];
         int inputChannels = tensorValue.getShape()[1];
-        int inputHeight = tensorValue.getShape()[2];
-        int inputWidth = tensorValue.getShape()[3];
-
         int outputHeight = gradOutput.getShape()[2];
         int outputWidth = gradOutput.getShape()[3];
 
@@ -75,14 +72,6 @@ public:
             }
         }
         return gradInput;
-    }
-
-    void updateWeights(Optimizer<T>& optimizer) override {
-        // No weights to update
-    }
-
-    void setTrainingMode(bool mode) override {
-        // No training mode
     }
 
 private:

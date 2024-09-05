@@ -40,7 +40,7 @@ public:
               const std::vector<std::pair<int, int>>& slices,
               const std::vector<int>& steps)
         : original_(tensor) {
-        if (slices.size() != tensor.shape().rank() || steps.size() != tensor.shape().rank()) {
+        if (slices.size() != static_cast<size_t>(tensor.shape().rank()) || steps.size() != static_cast<size_t>(tensor.shape().rank())) {
             throw std::runtime_error("Slice dimensions must match tensor rank");
         }
 
@@ -50,7 +50,6 @@ public:
         for (size_t i = 0; i < slices.size(); ++i) {
             int start = slices[i].first;
             int end = slices[i].second;
-            int step = steps[i];
 
             if (start < 0) start += tensor.shape()[i];
             if (end < 0) end += tensor.shape()[i];

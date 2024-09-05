@@ -11,11 +11,11 @@ namespace smart_dnn {
     public:
         virtual ~Layer() = default;
 
-        virtual void setTrainingMode(bool mode) { trainingMode = mode; }
-
         virtual Tensor<T> forward(const Tensor<T>& input) = 0;
         virtual Tensor<T> backward(const Tensor<T>& gradOutput) = 0;
-        virtual void updateWeights(Optimizer<T>& optimizer) = 0;
+
+        virtual inline void updateWeights(Optimizer<T>& optimizer) { (void)optimizer; }
+        virtual inline void setTrainingMode(bool mode) { trainingMode = mode; }
 
     protected:
         bool trainingMode = true;

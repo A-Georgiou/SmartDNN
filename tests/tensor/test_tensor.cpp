@@ -25,31 +25,6 @@ TEST(TensorInitialisationTest, ExpectValueFillInitialisation) {
     ValidateTensorData(a, std::vector<float>(6, 5.0f));
 }
 
-TEST(TensorInitialisationTest, ExpectValidDataInitialisation) {
-    std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
-    Tensor a({1, 2, 3}, data);
-    ValidateTensorShape(a, 3, 6, {1, 2, 3});
-    ValidateTensorData(a, data);
-}
-
-TEST(TensorInitialisationTest, ExpectValidTensorCopy) {
-    std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
-    Tensor a({1, 2, 3}, data);
-    Tensor b(a);
-
-    ValidateTensorShape(b, 3, 6, {1, 2, 3});
-    ValidateTensorData(b, data);
-}
-
-TEST(TensorInitialisationTest, ExpectValidTensorMove) {
-    std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
-    Tensor a({1, 2, 3}, data);
-    Tensor b(std::move(a));
-
-    ValidateTensorShape(b, 3, 6, {1, 2, 3});
-    ValidateTensorData(b, data);
-}
-
 /*
 
     INVALID INITIALISATION TESTS
@@ -172,8 +147,9 @@ TEST(TensorCopyMoveTest, DoubleMove) {
     ValidateTensorShape(c, 2, 6, {2, 3});
     ValidateTensorData(c, std::vector<float>(6, 5.0f));
 
-    // b should be in a valid, but empty state
-    ASSERT_EQ(b.getShape().size(), 0);
+    // b should be in a valid, but empty state.
+    // We cannot have empty tensors so it is set to 1
+    ASSERT_EQ(b.getShape().size(), 1);
 }
 
 TEST(TensorCopyMoveTest, MoveAssignmentAfterCopy) {

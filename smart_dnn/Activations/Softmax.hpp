@@ -10,6 +10,16 @@
 
 namespace smart_dnn {
 
+
+/*
+
+    Softmax Activation Function
+    ---------------------------
+    
+    f(x) = exp(x) / sum(exp(x))
+    f'(x) = f(x) * (1 - f(x))
+
+*/
 template <typename T=float>
 class Softmax : public Activation<T> {
 public:

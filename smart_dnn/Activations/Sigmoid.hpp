@@ -6,6 +6,15 @@
 
 namespace smart_dnn {
 
+/*
+
+    Sigmoid Activation Function
+    ------------------------
+
+    f(x) = 1 / (1 + exp(-x))
+    f'(x) = f(x) * (1 - f(x))
+
+*/
 template <typename T=float>
 class Sigmoid : public Activation<T> {
     using TensorType = Tensor<T>;

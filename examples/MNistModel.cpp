@@ -10,7 +10,6 @@
 #include "../smart_dnn/Layers/FlattenLayer.hpp"
 #include "../smart_dnn/Optimizers/AdamOptimizer.hpp"
 #include "../smart_dnn/Datasets/MNistLoader.hpp"
-#include "../smart_dnn/TensorOperations.hpp"
 #include "../smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
 #include "../smart_dnn/Regularisation/DropoutLayer.hpp"
 

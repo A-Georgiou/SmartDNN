@@ -8,6 +8,15 @@
 
 namespace smart_dnn {
 
+/*
+
+    Leaky ReLU Activation Function
+    ------------------------
+
+    f(x) = x if x > 0, alpha * x otherwise
+    f'(x) = 1 if x > 0, alpha otherwise
+
+*/
 template <typename T = float>
 class LeakyReLU : public Activation<T> {
 public:
@@ -18,21 +27,9 @@ public:
         return AdvancedTensorOperations<T>::apply(input, [this](T x) { return (x > 0) ? x : (alpha * x); });
     }
 
-    Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
-        Tensor<T> gradInput(input.getShape());
-        T* gradInputData = gradInput.getData().data();
-
-        const T* inputData = input.getData().data();
-        const T* gradOutputData = gradOutput.getData().data();
-
-        int size = input.getShape().size();
-
-        #pragma omp parallel for
-        for (int i = 0; i < size; ++i) {
-            gradInputData[i] = (inputData[i] > 0) ? gradOutputData[i] : alpha * gradOutputData[i];
-        }
-
-        return gradInput;
+   Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
+        return AdvancedTensorOperations<T>::applyPair(input, gradOutput, 
+            [this](T x, T grad) { return (x >= T(0)) ? grad : (alpha * grad); });
     }
 
 private:

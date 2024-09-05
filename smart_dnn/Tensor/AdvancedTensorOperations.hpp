@@ -26,20 +26,39 @@ class AdvancedTensorOperations<T, CPUDevice> {
         return TensorOperations<T, CPUDevice>::apply(tensor.getData(), func);
     }
 
+    template <typename Func>
+    static Tensor<T> applyPair(const Tensor<T>& a, const Tensor<T>& b, Func f) {
+        if (a.getShape() != b.getShape()) {
+            throw std::invalid_argument("Tensors must have the same shape");
+        }
+        Tensor<T> result(a.getShape());
+        const T* aData = a.getData().data();
+        const T* bData = b.getData().data();
+        T* resultData = result.getData().data();
+        int size = a.getShape().size();
+
+        #pragma omp parallel for
+        for (int i = 0; i < size; ++i) {
+            resultData[i] = f(aData[i], bData[i]);
+        }
+
+        return result;
+    }
+
     static Tensor<T> sum(const Tensor<T>& tensor) {
         return TensorOperations<T, CPUDevice>::sum(tensor.getData());
     }
 
-    static Tensor<T> sum(const Tensor<T>& tensor, int axis) {
+    static Tensor<T> sum(const Tensor<T>& tensor, size_t axis) {
         return TensorOperations<T, CPUDevice>::sum(tensor.getData(), axis);
     }
 
-    static Tensor<T> sum(const Tensor<T>& tensor, const std::vector<int>& axes) {
+    static Tensor<T> sum(const Tensor<T>& tensor, const std::vector<size_t>& axes) {
         const auto& shape = tensor.getShape();
         std::vector<int> newShape = shape.getDimensions();
         std::vector<bool> axesToSum(shape.rank(), false);
         
-        for (int axis : axes) {
+        for (size_t axis : axes) {
             if (axis < 0 || axis >= shape.rank()) {
                 throw std::runtime_error("Invalid axis for sum operation, axis: " + std::to_string(axis) + ", tensor rank: " + std::to_string(tensor.getShape().rank()));
             }
@@ -53,7 +72,7 @@ class AdvancedTensorOperations<T, CPUDevice> {
 
         std::vector<int> inputIndices(shape.rank(), 0);
         std::vector<int> resultIndices(shape.rank(), 0);
-
+        
         do {
             int inputIndex = computeFlatIndex(shape, inputIndices);
             int resultIndex = computeFlatIndex(result.getShape(), resultIndices);
@@ -68,16 +87,23 @@ class AdvancedTensorOperations<T, CPUDevice> {
                 finalShape.push_back(newShape[i]);
             }
         }
+
         result.reshape(Shape(finalShape));
 
         return result;
     }
 
+    // Reciprocal function: calculates the reciprocal of each element in the tensor
+    // Reciprocol is defined as: f(x) = 1 / x if abs(x) > epsilon, else 1 / epsilon
     static Tensor<T> reciprocal(const Tensor<T>& tensor, T epsilon = T(1e-12)) {
         return apply(tensor, [epsilon](T x) { return (std::abs(x) > epsilon) ? (T(1) / x) : (T(1) / epsilon); });
     }
 
-    static Tensor<T> mean(const Tensor<T>& tensor, const std::vector<int>& axes) {
+    static Tensor<T> mean(const Tensor<T>& tensor, const std::vector<size_t>& axes) {
+        if (axes.empty() || axes.size() == tensor.getShape().rank()) {
+            return mean(tensor);
+        }
+
         const auto& shape = tensor.getShape();
         Tensor<T> result = tensor;
         int totalElements = 1;
@@ -92,10 +118,10 @@ class AdvancedTensorOperations<T, CPUDevice> {
         }
 
         // Sort axes in descending order
-        std::vector<int> sortedAxes = axes;
-        std::sort(sortedAxes.begin(), sortedAxes.end(), std::greater<int>());
+        std::vector<size_t> sortedAxes = axes;
+        std::sort(sortedAxes.begin(), sortedAxes.end(), std::greater<size_t>());
 
-        for (int axis : sortedAxes) {
+        for (size_t axis : sortedAxes) {
             if (axis >= result.getShape().rank() || axis < 0) {
                 throw std::invalid_argument("Invalid axis for mean calculation");
             }
@@ -104,8 +130,6 @@ class AdvancedTensorOperations<T, CPUDevice> {
 
         // Divide the sum by the total number of elements to get the mean
         result = result * (T(1) / T(totalElements));
-        
-        // Reshape the result for proper broadcasting
         result = reshape(result, Shape(newShape));
 
         return result;
@@ -114,64 +138,53 @@ class AdvancedTensorOperations<T, CPUDevice> {
 
     // Mean function: calculates the mean for the entire tensor (all elements)
     static Tensor<T> mean(const Tensor<T>& tensor) {
-        Tensor<T> summed = sum(tensor);
-        return summed * (T(1) / T(tensor.getShape().size()));
+        return sum(tensor) * (T(1) / T(tensor.getShape().size()));
     }
 
-    static Tensor<T> variance(const Tensor<T>& tensor, const Tensor<T>& meanTensor, const std::vector<int>& axes) {
+    // Variance function: calculates the variance between tensors (all elements) along the specified axes
+    static Tensor<T> variance(const Tensor<T>& tensor, const Tensor<T>& meanTensor, const std::vector<size_t>& axes) {
         const auto& shape = tensor.getShape();
         const auto& meanShape = meanTensor.getShape();
 
         int totalElements = 1;
-        for (int axis : axes) {
+        for (size_t axis : axes) {
             if (axis < 0 || axis >= shape.rank()) {
                 throw std::runtime_error("Invalid axis for variance calculation: " + std::to_string(axis));
             }
             totalElements *= shape[axis];
         }
+        // Create a BroadcastView of the mean tensor
+        BroadcastView<T, CPUDevice> broadcastedMean(meanTensor.getData(), shape);
 
-        try {
-            // Create a BroadcastView of the mean tensor
-            BroadcastView<T, CPUDevice> broadcastedMean(meanTensor.getData(), shape);
+        // Compute the difference and square it
+        Tensor<T> squaredDiff(shape);
+        auto tensorIt = tensor.getData().begin();
+        auto broadcastIt = broadcastedMean.begin();
+        auto squaredDiffIt = squaredDiff.getData().begin();
 
-            // Compute the difference and square it
-            Tensor<T> squaredDiff(shape);
-            auto tensorIt = tensor.getData().begin();
-            auto broadcastIt = broadcastedMean.begin();
-            auto squaredDiffIt = squaredDiff.getData().begin();
-
-            while (tensorIt != tensor.getData().end()) {
-                *squaredDiffIt = (*tensorIt - *broadcastIt) * (*tensorIt - *broadcastIt);
-                ++tensorIt;
-                ++broadcastIt;
-                ++squaredDiffIt;
-            }
-
-            Tensor<T> summedSquaredDiff = sum(squaredDiff, axes);
-
-            // Ensure the result has the same shape as the mean tensor
-            Tensor<T> result(meanShape);
-            for (size_t i = 0; i < result.getData().size(); ++i) {
-                result.getData()[i] = summedSquaredDiff.getData()[i] / T(totalElements);
-            }
-
-            return result;
-        } catch (const std::exception& e) {
-            std::cerr << "Exception in variance calculation: " << e.what() << std::endl;
-            throw;
+        while (tensorIt != tensor.getData().end()) {
+            *squaredDiffIt = (*tensorIt - *broadcastIt) * (*tensorIt - *broadcastIt);
+            ++tensorIt;
+            ++broadcastIt;
+            ++squaredDiffIt;
         }
+
+        Tensor<T> summedSquaredDiff = sum(squaredDiff, axes);
+
+        // Ensure the result has the same shape as the mean tensor
+        Tensor<T> result(meanShape);
+        for (size_t i = 0; i < result.getData().size(); ++i) {
+            result.getData()[i] = summedSquaredDiff.getData()[i] / T(totalElements);
+        }
+
+        return result;
     }
 
     // Variance function: calculates the variance for the entire tensor (all elements)
+    // The variance is the mean of the squared differences from the mean
     static Tensor<T> variance(const Tensor<T>& tensor, const Tensor<T>& meanTensor) {
         Tensor<T> diff = tensor - meanTensor;
-        Tensor<T> squaredDiff = diff * diff;
-
-        // Sum all squared differences
-        Tensor<T> sumOfSquaredDiff = sum(squaredDiff);
-
-        // Divide by the total number of elements to get the variance
-        return sumOfSquaredDiff * (T(1) / T(tensor.getShape().size()));
+        return sum(diff * diff) * (T(1) / T(tensor.getShape().size()));
     }
 
     static Tensor<T> reshape(const Tensor<T>& tensor, const Shape& newShape) {
@@ -180,11 +193,11 @@ class AdvancedTensorOperations<T, CPUDevice> {
         return result;
     }
 
-    static Tensor<T> transpose(const Tensor<T>& tensor, int dim0, int dim1) {
+    static Tensor<T> transpose(const Tensor<T>& tensor, size_t dim0, size_t dim1) {
         auto shape = tensor.getShape();
         auto rank = shape.rank();
 
-        if (dim0 >= rank || dim1 >= rank || dim0 < 0 || dim1 < 0) {
+        if (dim0 >= rank || dim1 >= rank) {
             throw std::invalid_argument("Invalid dimensions for transpose.");
         }
 
@@ -192,9 +205,42 @@ class AdvancedTensorOperations<T, CPUDevice> {
         std::swap(newDimensions[dim0], newDimensions[dim1]);
         Shape newShape(newDimensions);
 
-        TensorData<T, CPUDevice> resultData = tensor.getData();
-        resultData.reshape(newShape);
-        return resultData;
+        Tensor<T> result(newShape);
+        
+        // Create a mapping from old indices to new indices
+        std::vector<size_t> oldToNew(rank);
+        for (size_t i = 0; i < rank; ++i) {
+            oldToNew[i] = i;
+        }
+        std::swap(oldToNew[dim0], oldToNew[dim1]);
+
+        // Iterate through all elements and place them in their new positions
+        std::vector<int> oldIndices(rank, 0);
+        std::vector<int> newIndices(rank, 0);
+        size_t totalSize = shape.size();
+
+        #pragma omp parallel for
+        for (size_t i = 0; i < totalSize; ++i) {
+            // Calculate old indices
+            size_t temp = i;
+            for (int d = static_cast<int>(rank) - 1; d >= 0; --d) {
+                if (shape[d] == 0) {
+                    throw std::runtime_error("Invalid shape: dimension size is zero");
+                }
+                oldIndices[d] = static_cast<int>(temp % static_cast<size_t>(shape[d]));
+                temp /= static_cast<size_t>(shape[d]);
+            }
+
+            // Map to new indices
+            for (size_t d = 0; d < rank; ++d) {
+                newIndices[d] = oldIndices[oldToNew[d]];
+            }
+
+            // Set the value in the new tensor
+            result.at(newIndices) = tensor.at(oldIndices);
+        }
+
+        return result;
     }
 
     static Tensor<T> matmul(const Tensor<T>& a, const Tensor<T>& b) {
@@ -451,13 +497,13 @@ class AdvancedTensorOperations<T, CPUDevice> {
         auto flattenedBatchSize = batchShape.size();
         
         #pragma omp parallel for
-        for (int batch = 0; batch < flattenedBatchSize; ++batch) {
+        for (size_t batch = 0; batch < flattenedBatchSize; ++batch) {
             // Calculate multi-dimensional indices for this batch
             std::vector<int> batchIndices = calculateMultiDimIndices(batch, batchShape);
             
             // Create SliceView for a
             std::vector<std::pair<int, int>> slicesA;
-            for (size_t i = 0; i < batchDimsA.rank(); ++i) {
+            for (size_t i = 0; i < static_cast<size_t>(batchDimsA.rank()); ++i) {
                 int index = (i < batchIndices.size()) ? batchIndices[i] : 0;
                 slicesA.push_back({index, index + 1});
             }
@@ -467,7 +513,7 @@ class AdvancedTensorOperations<T, CPUDevice> {
 
             // Create SliceView for b
             std::vector<std::pair<int, int>> slicesB;
-            for (size_t i = 0; i < batchDimsB.rank(); ++i) {
+            for (size_t i = 0; i < static_cast<size_t>(batchDimsB.rank()); ++i) {
                 int index = (i < batchIndices.size()) ? batchIndices[i] : 0;
                 slicesB.push_back({index, index + 1});
             }
@@ -546,8 +592,6 @@ class AdvancedTensorOperations<T, CPUDevice> {
         } while (incrementIndices(sourceIndices, source.getShape()) && incrementIndices(destIndices, destSlice.shape()));
     }
     
-
-
     // Helper function to increment multi-dimensional indices
     static bool incrementIndices(std::vector<int>& indices, const Shape& shape) {
         for (int i = indices.size() - 1; i >= 0; --i) {

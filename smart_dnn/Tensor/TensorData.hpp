@@ -39,8 +39,8 @@ public:
     T* data() noexcept { return data_.get(); }
     const T* data() const noexcept { return data_.get(); }
     const Shape& shape() const noexcept { return shape_; }
-    const size_t size() const noexcept { return shape_.size(); }
-    const std::vector<int>& stride() const noexcept { return shape_.getStride(); }
+    size_t size() const noexcept { return shape_.size(); }
+    const std::vector<size_t>& stride() const noexcept { return shape_.getStride(); }
 
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
@@ -50,7 +50,6 @@ public:
     // Fill the tensor with a given value
     void fill(T value) noexcept { std::fill_n(data_.get(), shape_.size(), value); }
 
-    // Manipulate data shape
     void reshape(const Shape& newShape) { shape_.reshape(newShape); }
     void reshape(const std::vector<int>& dims) { shape_.reshape(dims); }
 

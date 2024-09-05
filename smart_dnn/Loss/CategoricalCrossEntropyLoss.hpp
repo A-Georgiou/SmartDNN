@@ -3,7 +3,6 @@
 
 #include "../Loss.hpp"
 #include "../Tensor/Tensor.hpp"
-#include "../TensorOperations.hpp"
 #include <cmath>
 #include <numeric>
 
@@ -35,7 +34,6 @@ public:
         for (int i = 0; i < batchSize; ++i) {
             for (int j = 0; j < numClasses; ++j) {
                 T predValue = std::min(std::max(prediction.at({i, j}), epsilon), T(1.0) - epsilon);
-                //T predValue = prediction.at({i, j});
                 loss -= target.at({i, j}) * std::log(predValue);
             }
         }
@@ -64,20 +62,11 @@ public:
         for (int i = 0; i < batchSize; ++i) {
             for (int j = 0; j < numClasses; ++j) {
                 T predValue = std::min(std::max(prediction.at({i, j}), epsilon), T(1.0) - epsilon);
-                //T predValue = prediction.at({i, j});
                 grad.at({i, j}) = (predValue - target.at({i, j}));
             }
         }
 
         return grad / batchSize;
-    }
-
-    void save(std::ostream& os) const override {
-        // No parameters to save for this loss function
-    }
-
-    void load(std::istream& is) override {
-        // No parameters to load for this loss function
     }
 };
 

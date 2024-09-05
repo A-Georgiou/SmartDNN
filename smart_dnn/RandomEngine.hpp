@@ -42,9 +42,8 @@ public:
     }
 
 private:
-    RandomEngine() = default;
-    ~RandomEngine() = default;
-
+    RandomEngine() = delete;
+    ~RandomEngine() = delete;
     RandomEngine(const RandomEngine&) = delete;
     RandomEngine& operator=(const RandomEngine&) = delete;
 };

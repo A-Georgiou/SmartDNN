@@ -37,14 +37,12 @@ public:
     static bool areBroadcastable(const Shape& A, const Shape& B) {
         int lenA = A.rank();
         int lenB = B.rank();
-        
-        int minLen = std::min(lenA, lenB);
         int maxLen = std::max(lenA, lenB);
-        
-        for (int i = 0; i < minLen; ++i) {
-            int dimA = A[lenA - 1 - i];
-            int dimB = B[lenB - 1 - i];
-            
+
+        for (int i = 0; i < maxLen; ++i) {
+            int dimA = (i < lenA) ? A[lenA - 1 - i] : 1;
+            int dimB = (i < lenB) ? B[lenB - 1 - i] : 1;
+
             if (dimA != dimB && dimA != 1 && dimB != 1) {
                 return false;
             }
@@ -60,16 +58,19 @@ public:
     }
     };
 
-    static int computeFlatIndex(const Shape& shape, const std::vector<int>& indices) {
+    static size_t computeFlatIndex(const Shape& shape, const std::vector<int>& indices) {
         if (indices.size() != shape.rank()) {
             throw std::invalid_argument("Number of indices must match the rank of the shape.");
         }
 
-        const std::vector<int>& strides = shape.getStride();
-        int flatIndex = 0;
+        const std::vector<size_t>& strides = shape.getStride();
+        size_t flatIndex = 0;
 
-        for (int i = 0; i < indices.size(); ++i) {
-            flatIndex += indices[i] * strides[i];
+        for (size_t i = 0; i < indices.size(); ++i) {
+            if (indices[i] < 0 || indices[i] >= static_cast<int>(shape[i])) {
+                throw std::out_of_range("Index out of bounds for dimension " + std::to_string(i));
+            }
+            flatIndex += static_cast<size_t>(indices[i]) * strides[i];
         }
 
         return flatIndex;

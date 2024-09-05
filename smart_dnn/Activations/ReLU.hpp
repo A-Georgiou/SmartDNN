@@ -6,6 +6,15 @@
 
 namespace smart_dnn {
 
+/*
+
+    ReLU Activation Function
+    ------------------------
+
+    f(x) = max(0, x)
+    f'(x) = 1 if x > 0, 0 otherwise
+
+*/
 template <typename T=float>
 class ReLU : public Activation<T> {
 public:

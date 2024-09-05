@@ -36,41 +36,40 @@ public:
         assert(input.getShape().rank() == 4 && "Input must be 4D (batch, channels, height, width)");
         assert(input.getShape()[1] == inputChannels && "Input channels must match layer's input channels");
 
+        // Store the input for use in backward pass
         this->input = input;
 
         int batchSize = input.getShape()[0];
         int inputHeight = input.getShape()[2];
         int inputWidth = input.getShape()[3];
         
-        int outputHeight = (inputHeight + 2 * padding - dilation * (kernelHeight - 1) - 1) / stride + 1;
-        int outputWidth = (inputWidth + 2 * padding - dilation * (kernelWidth - 1) - 1) / stride + 1;
-        // Compute im2col
-        TensorType colMatrix = im2col(input, kernelHeight, kernelWidth, stride, padding, dilation);
+        int outputHeight = inputHeight - kernelHeight + 1;
+        int outputWidth = inputWidth - kernelWidth + 1;
 
-        TensorType weightMatrix = AdvancedTensorOperations<T>::reshape(*weights, {outputChannels, inputChannels * kernelHeight * kernelWidth});
+        TensorType output({batchSize, outputChannels, outputHeight, outputWidth});
 
-        // Reshape colMatrix
-        colMatrix = AdvancedTensorOperations<T>::reshape(colMatrix, {inputChannels * kernelHeight * kernelWidth, outputHeight * outputWidth * batchSize});
+        const auto& weightData = weights->getData();
+        const auto& biasData = biases->getData();
+        const auto& inputData = input.getData();
 
-        // Matrix multiplication
-        TensorType output = AdvancedTensorOperations<T>::matmul(weightMatrix, colMatrix);
-
-        // Reshape back to (batchSize, outputChannels, outputHeight, outputWidth)
-        output = AdvancedTensorOperations<T>::reshape(output, {batchSize, outputChannels, outputHeight, outputWidth});
-
-        // Add biases
-        /*
-        for (int n = 0; n < batchSize; ++n) {
+        for (int b = 0; b < batchSize; ++b) {
             for (int oc = 0; oc < outputChannels; ++oc) {
-                TensorType slice = output.slice(0, n).slice(1, oc);
-                slice += (*biases).at({oc, 0});
+                for (int oh = 0; oh < outputHeight; ++oh) {
+                    for (int ow = 0; ow < outputWidth; ++ow) {
+                        float sum = 0.0f;
+                        for (int kh = 0; kh < kernelHeight; ++kh) {
+                            for (int kw = 0; kw < kernelWidth; ++kw) {
+                                int ih = oh + kh;
+                                int iw = ow + kw;
+                                sum += inputData.at({b, 0, ih, iw}) * 
+                                    weightData.at({oc, 0, kh, kw});
+                            }
+                        }
+                        sum += biasData.at({oc, 0});
+                        output.at({b, oc, oh, ow}) = sum;
+                    }
+                }
             }
-        }
-        */
-
-       // Add biases by broadcasting
-        for (int oc = 0; oc < outputChannels; ++oc) {
-            output.slice(1, oc) += (*biases).at({oc, 0});
         }
 
         return output;
@@ -83,58 +82,54 @@ public:
     
     */
    TensorType backward(const TensorType& gradOutput) override {
-        TensorType& inputTensor = (*input);
-        TensorType& weightsTensor = (*weights);
+        if (!input.has_value()) {
+            throw std::runtime_error("Input not set. Forward pass must be called before backward.");
+        }
+
+        const TensorType& inputTensor = input.value();
+        const TensorType& weightsTensor = *weights;
 
         Shape inputShape = inputTensor.getShape();
         Shape weightsShape = weightsTensor.getShape();
-
-        int batchSize = inputShape[0];
-        int inputHeight = inputShape[2];
-        int inputWidth = inputShape[3];
-
-        int outputHeight = gradOutput.getShape()[2];  // Correct shape (height)
-        int outputWidth = gradOutput.getShape()[3];   // Correct shape (width)
+        Shape gradOutputShape = gradOutput.getShape();
 
         // Initialize gradients
-        weightGradients = TensorType::rand(weightsShape);
-        biasGradients = TensorType::zeros((*biases).getShape());
+        this->weightGradients = TensorType::zeros(weightsShape);
+        this->biasGradients = TensorType::zeros((*biases).getShape());
 
-        /*
-        
-        TEMPORARY: Compute bias gradients
-        
-        
-        for (int oc = 0; oc < outputChannels; ++oc) {
-            for (int n = 0; n < batchSize; ++n) {
-                for (int oh = 0; oh < outputHeight; ++oh) {
-                    for (int ow = 0; ow < outputWidth; ++ow) {
-                        biasGradients->at({oc, 0}) += gradOutput.at({n, oc, oh, ow});
+        // Compute bias gradients
+        for (int oh = 0; oh < gradOutputShape[2]; ++oh) {
+            for (int ow = 0; ow < gradOutputShape[3]; ++ow) {
+                biasGradients->getData()[0] += gradOutput.at({0, 0, oh, ow});
+            }
+        }
+
+        // Compute weight gradients
+        for (int kh = 0; kh < kernelHeight; ++kh) {
+            for (int kw = 0; kw < kernelWidth; ++kw) {
+                float sum = 0.0f;
+                for (int oh = 0; oh < gradOutputShape[2]; ++oh) {
+                    for (int ow = 0; ow < gradOutputShape[3]; ++ow) {
+                        sum += inputTensor.at({0, 0, oh+kh, ow+kw}) * gradOutput.at({0, 0, oh, ow});
+                    }
+                }
+                weightGradients->at({0, 0, kh, kw}) = sum;
+            }
+        }
+
+        // Compute input gradients
+        TensorType gradInput(inputShape, 0.0f);
+        for (int oh = 0; oh < gradOutputShape[2]; ++oh) {
+            for (int ow = 0; ow < gradOutputShape[3]; ++ow) {
+                for (int kh = 0; kh < kernelHeight; ++kh) {
+                    for (int kw = 0; kw < kernelWidth; ++kw) {
+                        int ih = oh + kh;
+                        int iw = ow + kw;
+                        gradInput.at({0, 0, ih, iw}) += weightsTensor.at({0, 0, kh, kw}) * gradOutput.at({0, 0, oh, ow});
                     }
                 }
             }
         }
-        */
-
-        TensorType gradInput(inputShape);
-
-        // Reshape gradOutput for matrix multiplication
-        TensorType gradOutput_reshaped = AdvancedTensorOperations<T>::reshape(gradOutput, {outputChannels, batchSize * outputHeight * outputWidth});
-
-        // Compute dW (weight gradients) using im2col
-        TensorType colMatrix = im2col(inputTensor, kernelHeight, kernelWidth, stride, padding, dilation);
-
-        // Transpose colMatrix before multiplication
-        TensorType colMatrix_transposed = AdvancedTensorOperations<T>::transpose(colMatrix, 1, 0);
-
-        // Perform matrix multiplication for weight gradients
-        *weightGradients = AdvancedTensorOperations<T>::matmul(gradOutput_reshaped, colMatrix_transposed);
-        *weightGradients = AdvancedTensorOperations<T>::reshape(*weightGradients, weightsShape);
-
-        // Compute dX (input gradients)
-        TensorType weightMatrix = AdvancedTensorOperations<T>::reshape(weightsTensor, {outputChannels, inputChannels * kernelHeight * kernelWidth});
-        TensorType dX_col = AdvancedTensorOperations<T>::matmul(AdvancedTensorOperations<T>::transpose(weightMatrix, 1, 0), gradOutput_reshaped);
-        gradInput = col2im(dX_col, inputShape, kernelHeight, kernelWidth, stride, padding, dilation);
 
         return gradInput;
     }
@@ -145,8 +140,14 @@ public:
         }
 
         optimizer.optimize({std::ref(*weights), std::ref(*biases)},
-                           {std::ref(*weightGradients), std::ref(*biasGradients)});
+                        {std::ref(*weightGradients), std::ref(*biasGradients)});
     }
+
+    /*
+    
+        Test helper functions
+    
+    */
 
     TensorType getWeights() const {
         return *weights;
@@ -154,6 +155,22 @@ public:
 
     TensorType getBiases() const {
         return *biases;
+    }
+
+    TensorType getWeightGradients() const {
+        return *weightGradients;
+    }
+
+    TensorType getBiasGradients() const {
+        return *biasGradients;
+    }
+
+    void setWeights(const TensorType& newWeights) {
+        weights = newWeights;
+    }
+
+    void setBiases(const TensorType& newBiases) {
+        biases = newBiases;
     }
 
 private:
@@ -172,8 +189,7 @@ private:
     int dilation;
 
     void initializeWeights() {
-        T stddev = std::sqrt(T(2) / (inputChannels * kernelHeight * kernelWidth));
-        weights = TensorType::randn({outputChannels, inputChannels, kernelHeight, kernelWidth}, T(0), stddev);
+        weights = TensorType::rand({outputChannels, inputChannels, kernelHeight, kernelWidth});
         biases = TensorType::zeros({outputChannels, 1});
     }
 
@@ -188,7 +204,7 @@ private:
 
         TensorType colMatrix({inputChannels * kernelHeight * kernelWidth, outputHeight * outputWidth * batchSize});
 
-        const std::vector<int>& inputStrides = input.getShape().getStride();
+        const std::vector<size_t>& inputStrides = input.getShape().getStride();
 
         #pragma omp parallel for collapse(2)
         for (int n = 0; n < batchSize; ++n) {
@@ -231,7 +247,7 @@ private:
         TensorType output(outputShape);
         output.getData().fill(T(0));
 
-        const std::vector<int>& outputStrides = output.getShape().getStride();
+        const std::vector<size_t>& outputStrides = output.getShape().getStride();
 
         #pragma omp parallel for collapse(2)
         for (int n = 0; n < batchSize; ++n) {

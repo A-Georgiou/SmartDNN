@@ -290,7 +290,7 @@ template <typename T, typename DeviceType>
 Tensor<T, DeviceType> Tensor<T, DeviceType>::slice(int dim, int index) const {
     Shape newShape = this->data_.shape();
     std::vector<int> shape = newShape.getDimensions();
-    const std::vector<int> strides = this->data_.stride();
+    const std::vector<size_t> strides = this->data_.stride();
 
     int offset = index * strides[dim];
 

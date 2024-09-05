@@ -18,15 +18,41 @@ public:
         weights.emplace(TensorType::rand(Shape({inputSize, outputSize})));
         biases.emplace(TensorType::zeros(Shape({1, outputSize})));
     }
+
+    /*
+    
+    Fully Connected Layer forward pass
+    -------------------------------
+
+    Input: 1D or 2D tensor shape (input_size) or (batch_size, input_size)
+    Output: 1D or 2D tensor shape (output_size) or (batch_size, output_size)
+    
+    */
     
     TensorType forward(const TensorType& input) override {
         this->input = input;
-        TensorType output = AdvancedTensorOperations<T>::matmul(input, *weights);
-        TensorType biasBroadcast = AdvancedTensorOperations<T>::reshape(*biases, {1, biases->getShape()[1]});
-        output = output + biasBroadcast;
+        TensorType reshapedInput = input;
+        if (input.getShape().rank() == 1) {
+            reshapedInput = AdvancedTensorOperations<T>::reshape(input, {1, input.getShape()[0]});
+        }
+        TensorType output = AdvancedTensorOperations<T>::matmul(reshapedInput, *weights);
+        output = output + *biases;
+
+        if (input.getShape().rank() == 1) {
+            output = AdvancedTensorOperations<T>::reshape(output, {output.getShape()[1]});
+        }
         return output;
     }
 
+    /*
+
+    Fully Connected Layer backward pass
+    -------------------------------
+
+    Input: Gradient tensor shape (batch_size, output_size)
+    Output: Gradient tensor shape (batch_size, input_size)
+
+    */
     TensorType backward(const TensorType& gradOutput) override {
         if (!input) {
             throw std::runtime_error("Input tensor is not initialized!");
@@ -34,16 +60,23 @@ public:
 
         TensorType inputTensor = *input;
 
+        // Ensure input is 2D
         if (inputTensor.getShape().rank() == 1)
             inputTensor = AdvancedTensorOperations<T>::reshape(inputTensor, {1, inputTensor.getShape()[0]});
 
+        // Calculate weight gradients
         TensorType inputTransposed = AdvancedTensorOperations<T>::transpose(inputTensor, 0, 1); // Shape: (input_size, batch_size)
-        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutput)); // (input_size, output_size)
+        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutput)); // Shape: (input_size, output_size)
 
-        biasGradients.emplace(AdvancedTensorOperations<T>::sum(gradOutput, 0));
+        // Calculate bias gradients
+        biasGradients.emplace(AdvancedTensorOperations<T>::reshape(
+            AdvancedTensorOperations<T>::sum(gradOutput, 0),
+            {1, biases->getShape()[1]}
+        ));
 
+        // Calculate input gradients
         TensorType weightsTransposed = AdvancedTensorOperations<T>::transpose(*weights, 0, 1); // Shape: (output_size, input_size)
-        TensorType gradInput = AdvancedTensorOperations<T>::matmul(gradOutput, weightsTransposed); // (batch_size, input_size)
+        TensorType gradInput = AdvancedTensorOperations<T>::matmul(gradOutput, weightsTransposed); // Shape: (batch_size, input_size)
 
         return gradInput;
     }
@@ -57,9 +90,11 @@ public:
                            {std::ref(*weightGradients), std::ref(*biasGradients)});
     }
 
-    void setTrainingMode(bool mode) override {
-        trainingMode = mode;
-    }
+    /*
+    
+        Test helper functions
+    
+    */
 
     TensorType getWeights() const {
         return *weights;
@@ -82,6 +117,9 @@ public:
     }
 
     void setBiases(const TensorType& newBiases) {
+        if (newBiases.getShape().rank() != 2 || newBiases.getShape()[0] != 1) {
+            throw std::invalid_argument("Biases must have shape (1, outputSize)");
+        }
         biases = newBiases;
     }
 
@@ -99,8 +137,6 @@ private:
     std::optional<TensorType> input;
     std::optional<TensorType> weightGradients;
     std::optional<TensorType> biasGradients;
-
-    bool trainingMode = true;
 };
 
 } // namespace smart_dnn

@@ -3,7 +3,6 @@
 
 #include "../Tensor/Tensor.hpp"
 #include "../Layer.hpp"
-#include "../TensorOperations.hpp"
 #include <cmath>
 #include <optional>
 #include <iostream>
@@ -15,7 +14,7 @@ class BatchNormalizationLayer : public Layer<T> {
     using TensorType = Tensor<T>;
 public:
     BatchNormalizationLayer(int numFeatures, T epsilon = 1e-5, T momentum = 0.9)
-        : numFeatures(numFeatures), epsilon(epsilon), momentum(momentum), trainingMode(true),
+        : numFeatures(numFeatures), epsilon(epsilon), momentum(momentum), 
           gamma(TensorType({1, numFeatures}, T(1))), beta(TensorType({1, numFeatures}, T(0))),
           runningMean(TensorType({1, numFeatures}, T(0))), runningVariance(TensorType({1, numFeatures}, T(1))) {}
 
@@ -26,10 +25,9 @@ public:
             throw std::runtime_error("BatchNormalizationLayer: input tensor must have rank 2 or 4");
         }
 
-        int numChannels = shape[1];
-        std::vector<int> reductionAxes = (shape.rank() == 4) ? std::vector<int>{0, 2, 3} : std::vector<int>{0};
+        std::vector<size_t> reductionAxes = (shape.rank() == 4) ? std::vector<size_t>{0, 2, 3} : std::vector<size_t>{0};
 
-        if (trainingMode) {
+        if (this->trainingMode) {
             batchMean = AdvancedTensorOperations<T>::mean(input, reductionAxes);
             
             batchVariance = AdvancedTensorOperations<T>::variance(input, *batchMean, reductionAxes);
@@ -65,7 +63,7 @@ public:
         const auto& inputShape = gradOutput.getShape();
         
         int batchSize = inputShape[0];
-        std::vector<int> reductionAxes = (inputShape.rank() == 4) ? std::vector<int>{0, 2, 3} : std::vector<int>{0};
+        std::vector<size_t> reductionAxes = (inputShape.rank() == 4) ? std::vector<size_t>{0, 2, 3} : std::vector<size_t>{0};
 
         TensorType reshapedGamma = reshapeForBroadcast(gamma, inputShape);
 
@@ -106,16 +104,10 @@ public:
                            {std::ref(*gammaGrad), std::ref(*betaGrad)});
     }
 
-    void setTrainingMode(bool mode) override {
-        trainingMode = mode;
-    }
-
-
 private:
     int numFeatures;
     T epsilon;
     T momentum;
-    bool trainingMode;
 
     TensorType gamma;
     TensorType beta;
@@ -137,8 +129,6 @@ private:
         if (targetShape.rank() == 2) {
             newShape[0] = 1;
         }
-        // For 4D input, we keep dimensions 0, 2, and 3 as 1 to allow broadcasting
-        // newShape is already initialized with 1s, so we don't need to do anything extra for 4D
 
         TensorType reshaped = AdvancedTensorOperations<T>::reshape(tensor, Shape(newShape));
         return reshaped;

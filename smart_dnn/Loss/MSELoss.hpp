@@ -44,14 +44,6 @@ public:
         TensorType grad = T(2) * (prediction - reshapedTarget) / prediction.getShape().size();
         return grad;
     }
-
-    void save(std::ostream& os) const override {
-        return;
-    }
-
-    void load(std::istream& is) override {
-        return;
-    }
 };
 
 } // namespace smart_dnn
