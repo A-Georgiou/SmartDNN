@@ -22,32 +22,32 @@ int main() {
     int epochs = 10;
     float learningRate = 0.001f;
 
-   // Initialize the SmartDNN model
+    // Initialize the SmartDNN MNist model
     SmartDNN<float> model;
 
-    model.addLayer(new Conv2DLayer<float>(1, 32, 3));  // Conv2D layer
-    model.addLayer(new BatchNormalizationLayer<float>(32));  // Batch normalization after conv
-    model.addLayer(new ActivationLayer<float>(new ReLU()));  // ReLU activation
-    model.addLayer(new MaxPooling2DLayer<float>(2, 2));  // Added MaxPooling
-    model.addLayer(new DropoutLayer<float>(0.25));  // Reduced dropout rate
+    model.addLayer(new Conv2DLayer(1, 32, 3));           // Conv2D layer
+    model.addLayer(new BatchNormalizationLayer(32));     // Batch normalization after conv
+    model.addLayer(new ActivationLayer(new ReLU()));     // ReLU activation
+    model.addLayer(new MaxPooling2DLayer(2, 2));         // Added MaxPooling
+    model.addLayer(new DropoutLayer(0.25f));              // Reduced dropout rate
 
-    model.addLayer(new FlattenLayer<float>());
-    model.addLayer(new FullyConnectedLayer<float>(5408, 128));  // Adjusted input size due to MaxPooling
-    model.addLayer(new BatchNormalizationLayer<float>(128));
-    model.addLayer(new ActivationLayer<float>(new ReLU()));
-    model.addLayer(new DropoutLayer<float>(0.25));  // Reduced dropout rate
+    model.addLayer(new FlattenLayer());                  // Flatten layer
+    model.addLayer(new FullyConnectedLayer(5408, 128));  // Adjusted input size due to MaxPooling
+    model.addLayer(new BatchNormalizationLayer(128));    // Batch normalization after FC
+    model.addLayer(new ActivationLayer(new ReLU()));     // ReLU activation
+    model.addLayer(new DropoutLayer(0.25f));              // Reduced dropout rate
 
-    model.addLayer(new FullyConnectedLayer<float>(128, 10));
-    model.addLayer(new ActivationLayer<float>(new Softmax()));
+    model.addLayer(new FullyConnectedLayer(128, 10));    // Output layer
+    model.addLayer(new ActivationLayer(new Softmax()));  // Softmax activation
 
-    AdamOptions<float> adamOptions;
+    AdamOptions adamOptions;
     adamOptions.learningRate = learningRate;
     adamOptions.beta1 = 0.9f;
     adamOptions.beta2 = 0.999f;
     adamOptions.epsilon = 1e-8f;
-    adamOptions.l1Strength = 0.0f;
-    adamOptions.l2Strength = 0.0f;  // Removed L2 regularization
-    adamOptions.decay = 0.0f;  // Removed learning rate decay
+    adamOptions.l1Strength = 0.0f; 
+    adamOptions.l2Strength = 0.0f;  
+    adamOptions.decay = 0.0f;  
     model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(adamOptions));
 
     // Download the MNist dataset from http://yann.lecun.com/exdb/mnist/

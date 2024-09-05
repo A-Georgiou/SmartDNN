@@ -9,6 +9,8 @@ SmartDNN is a modern C++ deep learning library designed to offer a flexible and 
 
 Creating your first neural network with SmartDNN is straightforward. Define your model's architecture using a variety of available layers, compile it with your chosen loss function and optimizer, and then train it using your dataset.
 
+#### Example Linear Regression Model
+
 ```cpp
 int epochs = 100;
 float learningRate = 0.001f;
@@ -24,6 +26,38 @@ model.addLayer(new ActivationLayer(new Softmax()));
 
 model.compile(new MSELoss(), new AdamOptimizer());
 model.train(dataset.first, dataset.second, epochs, learningRate);
+```
+
+#### Example MNist Model
+
+```cpp
+// Initialize the SmartDNN MNist model
+SmartDNN<float> model;
+
+model.addLayer(new Conv2DLayer(1, 32, 3));           // Conv2D layer
+model.addLayer(new BatchNormalizationLayer(32));     // Batch normalization after conv
+model.addLayer(new ActivationLayer(new ReLU()));     // ReLU activation
+model.addLayer(new MaxPooling2DLayer(2, 2));         // Added MaxPooling
+model.addLayer(new DropoutLayer(0.25f));              // Reduced dropout rate
+
+model.addLayer(new FlattenLayer());                  // Flatten layer
+model.addLayer(new FullyConnectedLayer(5408, 128));  // Adjusted input size due to MaxPooling
+model.addLayer(new BatchNormalizationLayer(128));    // Batch normalization after FC
+model.addLayer(new ActivationLayer(new ReLU()));     // ReLU activation
+model.addLayer(new DropoutLayer(0.25f));              // Reduced dropout rate
+
+model.addLayer(new FullyConnectedLayer(128, 10));    // Output layer
+model.addLayer(new ActivationLayer(new Softmax()));  // Softmax activation
+
+AdamOptions adamOptions;
+adamOptions.learningRate = learningRate;
+adamOptions.beta1 = 0.9f;
+adamOptions.beta2 = 0.999f;
+adamOptions.epsilon = 1e-8f;
+adamOptions.l1Strength = 0.0f; 
+adamOptions.l2Strength = 0.0f;  
+adamOptions.decay = 0.0f;  
+model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(adamOptions));
 ```
 
 ## Key Features
