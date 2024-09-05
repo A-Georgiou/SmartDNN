@@ -3,28 +3,6 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Templated Runtime improvements!
-
-### Runtime Performance Gains
-#### Test Suite:
-- Linear Regression Classification and MNist Classification task.
-- Tested on 1000 samples.
-- Trained for 1000 epochs.
-
-#### Results:
-- **Average non-templated runtime:** ~17680ms
-- **Average optimised templated runtime:** ~8325ms
-- **Performance gains:** ~53% performance improvement!
-
-### Optimisations:
-- **Broadcast View**: BroadcastView instead of actually broadcasting data significantly increases performance.
-- **Transforms**: Implementated transforms across all operations running on iterators, enables much more performant compiler optimisations.
-- **Cleaner interface:** better principles applied to retain single responsibility.
-- **Templates:** Now you can specify what type of data you are using on any default type
-- **Parallel Directives:** Better application of directives for expensive loops.
-
-## Overview
-
 SmartDNN is a modern C++ deep learning library designed to offer a flexible and efficient framework for developing and training deep neural networks. With a focus on providing a high-level API, SmartDNN simplifies the process of building and training various neural network architectures while maintaining the performance advantages of C++.
 
 ## Getting Started
@@ -56,6 +34,39 @@ model.train(dataset.first, dataset.second, epochs, learningRate);
 -   **Optimizers**: Currently supports the Adam optimizer.
 -   **Loss Functions**: Implements Mean Squared Error (MSE) for regression tasks.
 -   **Activation Functions**: Includes popular activation functions like Softmax, Sigmoid, Tanh, ReLU, and Leaky ReLU.
+
+## Templated Runtime improvements - CPU Training!
+
+### Runtime Performance Gains
+#### Linear Regression Model Tests:
+- Linear Regression Classification.
+- Tested on 1000 samples.
+- Trained for 1000 epochs.
+
+#### Results:
+- **Average non-templated runtime:** ~17680ms
+- **Average optimised templated runtime:** ~8325ms
+- **Performance gains:** ~53% performance improvement!
+
+#### MNist Model Tests:
+- MNist Classification task.
+- Tested on 1000 samples, batch size: 64.
+- Trained for 1000 epochs.
+
+#### Results:
+- **Average non-templated runtime: (per epoch)** ~83 minutes
+- **Average optimised templated runtime (per epoch):** ~10969ms
+- **Performance gains:** ~99.8% performance improvement!
+
+### Optimisations:
+- **Slice View:** SliceView allowing for sliced data access into a Tensor without copying.
+- **Broadcast View:** BroadcastView instead of actually broadcasting data significantly increases performance.
+- **Transforms**: Implementated transforms across all operations running on iterators, enables much more performant compiler optimisations.
+- **Cleaner interface:** better principles applied to retain single responsibility.
+- **Templates:** Now you can specify what type of data you are using on any default type
+- **Parallel Directives:** Better application of directives for expensive loops.
+
+## Overview
 
 ## Example Models
 

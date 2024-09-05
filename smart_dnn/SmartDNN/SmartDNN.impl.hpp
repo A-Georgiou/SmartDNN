@@ -4,6 +4,7 @@
 #include "../SmartDNN.hpp"
 #include "../Debugging/Logger.hpp"
 #include "../TensorOperations.hpp"
+#include <chrono>
 
 namespace smart_dnn {
 
@@ -46,6 +47,11 @@ void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<
         Tensor<T> totalLoss{Shape({1}), T(0)};
 
         for (size_t i = 0; i < inputs.size(); ++i) {
+            float progress = (static_cast<float>(i + 1) / inputs.size()) * 100;
+            if (static_cast<int>(progress) % 10 == 0 || (i + 1) == inputs.size()) {
+                std::cout << "Progress: " << static_cast<int>(progress) << "%" << std::endl;
+            }
+
             Tensor<T> prediction = inputs[i];
             for (Layer<T>* layer : layers) {
                 prediction = layer->forward(prediction);
