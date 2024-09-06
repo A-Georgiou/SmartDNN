@@ -217,9 +217,183 @@ TEST(AdvancedTensorOperationsTest, TestTransposeWithInvalidDimensions) {
                  std::invalid_argument);
 }
 
+/*
+
+    TEST RESHAPE FUNCTION
+
+*/
+
+TEST(AdvancedTensorOperationsTest, TestReshape) {
+    Tensor<float> a(Shape({2, 3}), {1, 2, 3, 4, 5, 6});
+    Tensor<float> result = AdvancedTensorOperations<float>::reshape(a, Shape({3, 2}));
+    Tensor<float> expected(Shape({3, 2}), {1, 2, 3, 4, 5, 6});
+    ASSERT_TRUE(TensorEquals(result, expected));
+}
 
 
+TEST(AdvancedTensorOperationsTest, TestReshapeWithInvalidSize) {
+    Tensor<float> a(Shape({2, 3}), {1, 2, 3, 4, 5, 6});
+    ASSERT_THROW(AdvancedTensorOperations<float>::reshape(a, Shape({3, 3})),
+                 std::runtime_error);
+}
 
+
+/*
+
+    TEST MATMUL FUNCTION 
+
+*/
+
+// TEST 1D x 1D
+
+TEST(AdvancedTensorOperationsTest, TestDotProduct) {
+    Tensor<float> a(Shape({3}), {1, 2, 3});
+    Tensor<float> b(Shape({3}), {4, 5, 6});
+    Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+    Tensor<float> expected(Shape({1}), {32});
+    ASSERT_TRUE(TensorEquals(result, expected));
+}
+
+TEST(AdvancedTensorOperationsTest, TestDotProductWithMismatchedDimensions) {
+    Tensor<float> a(Shape({3}), {1, 2, 3});
+    Tensor<float> b(Shape({2}), {4, 5});
+    ASSERT_THROW(AdvancedTensorOperations<float>::matmul(a, b), std::invalid_argument);
+}
+
+// TEST 1D x 2D
+
+TEST(AdvancedTensorOperationsTest, TestMatrixVectorMul) {
+    Tensor<float> a(Shape({2}), {1, 2});
+    Tensor<float> b(Shape({2, 2}), {3, 4, 5, 6});
+    Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+    Tensor<float> expected(Shape({2}), {13, 16});
+    ASSERT_TRUE(TensorEquals(result, expected));
+}
+
+TEST(AdvancedTensorOperationsTest, TestMatrixVectorMulWithMismatchedDimensions) {
+    Tensor<float> a(Shape({3}), {1, 2, 3});
+    Tensor<float> b(Shape({2, 2}), {3, 4, 5, 6});
+    ASSERT_THROW(AdvancedTensorOperations<float>::matmul(a, b), std::invalid_argument);
+}
+
+// TEST 2D x 1D
+
+TEST(AdvancedTensorOperationsTest, TestVectorMatrixMul) {
+    Tensor<float> a(Shape({2, 2}), {1, 2, 3, 4});
+    Tensor<float> b(Shape({2}), {5, 6});
+    Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+    Tensor<float> expected(Shape({2}), {17, 39});
+    ASSERT_TRUE(TensorEquals(result, expected));
+}
+
+TEST(AdvancedTensorOperationsTest, TestVectorMatrixMulWithMismatchedDimensions) {
+    Tensor<float> a(Shape({2, 2}), {1, 2, 3, 4});
+    Tensor<float> b(Shape({3}), {5, 6, 7});
+    ASSERT_THROW(AdvancedTensorOperations<float>::matmul(a, b), std::invalid_argument);
+}
+
+// TEST 2D x 2D
+
+TEST(AdvancedTensorOperationsTest, TestMatrixMatrixMul) {
+    Tensor<float> a(Shape({2, 3}), {1, 2, 3, 4, 5, 6});
+    Tensor<float> b(Shape({3, 2}), {7, 8, 9, 10, 11, 12});
+    Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+    Tensor<float> expected(Shape({2, 2}), {58, 64, 139, 154});
+    ASSERT_TRUE(TensorEquals(result, expected));
+}
+
+TEST(AdvancedTensorOperationsTest, TestMatrixMatrixMulWithMismatchedDimensions) {
+    Tensor<float> a(Shape({2, 3}), {1, 2, 3, 4, 5, 6});
+    Tensor<float> b(Shape({2, 2}), {7, 8, 9, 10});
+    ASSERT_THROW(AdvancedTensorOperations<float>::matmul(a, b), std::invalid_argument);
+}
+
+// TEST 2D x 3D
+
+TEST(AdvancedTensorOperationsTest, TestMatrix2DMatrix3DMul) {
+    Tensor<float> a(Shape({2, 2}), { 1, 2,
+                                     3, 4});
+    Tensor<float> b(Shape({2, 2, 2}), { 9, 10, 11, 12,
+                                        13, 14, 15, 16});
+    Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+    Tensor<float> expected(Shape({2, 2, 2}), { 31, 34, 71, 78,
+                                               43, 46, 99, 106});
+    
+    ASSERT_TRUE(TensorEquals(result, expected));
+}
+
+// TEST 3D x 3D
+
+TEST(AdvancedTensorOperationsTest, TestMatrix3DMatrix3DMul) {
+    Tensor<float> a(Shape({2, 2, 2}), { 1, 2, 3, 4,
+                                        5, 6, 7, 8});
+    Tensor<float> b(Shape({2, 2, 2}), { 9, 10, 11, 12,
+                                        13, 14, 15, 16});
+    Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+    Tensor<float> expected(Shape({2, 2, 2}), { 31, 34, 71, 78,
+                                              155, 166, 211, 226});
+    
+    ASSERT_TRUE(TensorEquals(result, expected));
+}
+
+// TEST BATCHED MATMUL
+
+TEST(AdvancedTensorOperationsTest, TestBatchedMatrixMultiplication) {
+    // Case 1: (2, 3, 4) * (2, 4, 5)
+    {
+        Tensor<float> a(Shape({2, 3, 4}), {
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+            13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24
+        });
+        Tensor<float> b(Shape({2, 4, 5}), {
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+            21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+        });
+        Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+        std::cout << "(2,3,4) * (2,4,5) = (2,3,5)" << std::endl;
+        std::cout << "Result: " << result.toDataString() << std::endl;
+        // Expected result calculation omitted for brevity
+        Tensor<float> expected(Shape({2, 3, 5}), {
+            110, 120, 130, 140, 150, 246, 272, 298, 324, 350, 382,
+            424, 466, 508, 550, 1678, 1736, 1794, 1852., 1910, 2134,
+            2208, 2282, 2356, 2430, 2590, 2680, 2770, 2860, 2950
+        });
+        ASSERT_TRUE(TensorEquals(result, expected));
+    }
+
+    // Case 2: (3, 2, 3) * (3, 3, 2)
+    {
+        Tensor<float> a(Shape({3, 2, 3}), {
+            1, 2, 3, 4, 5, 6,
+            7, 8, 9, 10, 11, 12,
+            13, 14, 15, 16, 17, 18
+        });
+        Tensor<float> b(Shape({3, 3, 2}), {
+            1, 2, 3, 4, 5, 6,
+            7, 8, 9, 10, 11, 12,
+            13, 14, 15, 16, 17, 18
+        });
+        Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+        std::cout << "(3,2,3) * (3,3,2) = (3,2,2)" << std::endl;
+        std::cout << "Result: " << result.toDataString() << std::endl;
+        // Expected result calculation omitted for brevity
+        Tensor<float> expected(Shape({3, 2, 2}), {
+            22, 28, 49, 64, 220, 244, 301, 334, 634, 676, 769, 820
+        });
+        ASSERT_TRUE(TensorEquals(result, expected));
+    }
+
+    // Case 3: (2, 2, 2) * (2, 2)
+    {
+        Tensor<float> a(Shape({2, 2, 2}), {1, 2, 3, 4, 5, 6, 7, 8});
+        Tensor<float> b(Shape({2, 2}), {9, 10, 11, 12});
+        Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+        std::cout << "(2,2,2) * (2,2) = (2,2,2)" << std::endl;
+        std::cout << "Result: " << result.toDataString() << std::endl;
+        Tensor<float> expected(Shape({2, 2, 2}), {31, 34, 71, 78, 111, 122, 151, 166});
+        ASSERT_TRUE(TensorEquals(result, expected));
+    }
+}
 
 
 } // namespace smart_dnn
