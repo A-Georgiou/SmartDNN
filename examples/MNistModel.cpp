@@ -18,8 +18,10 @@ int main() {
     using namespace smart_dnn;
 
     // Define the number of epochs and learning rate
-    int epochs = 10;
-    float learningRate = 0.001f;
+    constexpr int EPOCHS = 10;
+    constexpr int BATCH_SIZE = 8;
+    constexpr int SAMPLE_COUNT = 1000;
+    constexpr float LEARNING_RATE = 0.001f;
 
     // Initialize the SmartDNN MNist model
     SmartDNN<float> model;
@@ -40,7 +42,7 @@ int main() {
     model.addLayer(new ActivationLayer(new Softmax()));  // Softmax activation
 
     AdamOptions adamOptions;
-    adamOptions.learningRate = learningRate;
+    adamOptions.learningRate = LEARNING_RATE;
     adamOptions.beta1 = 0.9f;
     adamOptions.beta2 = 0.999f;
     adamOptions.epsilon = 1e-8f;
@@ -54,16 +56,16 @@ int main() {
     std::string labelsPath = ".datasets/train-labels-idx1-ubyte";
 
     // Load your MNIST dataset here
-    MNISTLoader dataLoader = MNISTLoader(imagesPath, labelsPath, 8, 1000);
+    MNISTLoader dataLoader = MNISTLoader(imagesPath, labelsPath, BATCH_SIZE, SAMPLE_COUNT);
     std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> dataset = dataLoader.loadData(); // Implement this method
 
     // Train the model on the MNIST dataset
-    model.train(dataset.first, dataset.second, epochs);
+    model.train(dataset.first, dataset.second, EPOCHS);
 
     model.evalMode();     
 
     // Load your MNIST dataset here
-    MNISTLoader dataLoaderTest = MNISTLoader(imagesPath, labelsPath, 1);
+    MNISTLoader dataLoaderTest = MNISTLoader(imagesPath, labelsPath, BATCH_SIZE);
     std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> testDataset = dataLoaderTest.loadData(); // Implement this method
 
     for (int i = testDataset.first.size()-1; i > testDataset.first.size()-5; i--){
