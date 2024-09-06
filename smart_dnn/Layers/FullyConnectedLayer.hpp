@@ -64,19 +64,25 @@ public:
         if (inputTensor.getShape().rank() == 1)
             inputTensor = AdvancedTensorOperations<T>::reshape(inputTensor, {1, inputTensor.getShape()[0]});
 
+        // Ensure gradOutput is 2D (for non-batched input case)
+        TensorType reshapedGradOutput = gradOutput;
+        if (gradOutput.getShape().rank() == 1) {
+            reshapedGradOutput = AdvancedTensorOperations<T>::reshape(gradOutput, {1, gradOutput.getShape()[0]});
+        }
+
         // Calculate weight gradients
         TensorType inputTransposed = AdvancedTensorOperations<T>::transpose(inputTensor, 0, 1); // Shape: (input_size, batch_size)
-        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutput)); // Shape: (input_size, output_size)
+        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, reshapedGradOutput)); // Shape: (input_size, output_size)
 
         // Calculate bias gradients
         biasGradients.emplace(AdvancedTensorOperations<T>::reshape(
-            AdvancedTensorOperations<T>::sum(gradOutput, 0),
+            AdvancedTensorOperations<T>::sum(reshapedGradOutput, 0),
             {1, biases->getShape()[1]}
         ));
 
         // Calculate input gradients
         TensorType weightsTransposed = AdvancedTensorOperations<T>::transpose(*weights, 0, 1); // Shape: (output_size, input_size)
-        TensorType gradInput = AdvancedTensorOperations<T>::matmul(gradOutput, weightsTransposed); // Shape: (batch_size, input_size)
+        TensorType gradInput = AdvancedTensorOperations<T>::matmul(reshapedGradOutput, weightsTransposed); // Shape: (batch_size, input_size)
 
         return gradInput;
     }

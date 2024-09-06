@@ -6,10 +6,11 @@
 #include "DeviceTypes.hpp"
 #include <vector>
 #include <stdexcept>
+#include <optional>
 
 namespace smart_dnn {
 
-template<typename T=float, typename DeviceType=CPUDevice>
+template<typename T = float, typename DeviceType = CPUDevice>
 class SliceView {
 private:
     const TensorData<T, DeviceType>& original_;

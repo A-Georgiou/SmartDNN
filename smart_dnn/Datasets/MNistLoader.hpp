@@ -92,7 +92,6 @@ private:
             }
             images.push_back(image);
         }
-        
         return images;
     }
 

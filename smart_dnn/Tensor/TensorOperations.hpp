@@ -243,6 +243,10 @@ public:
             throw std::runtime_error("Invalid axis for sum operation, axis: " + std::to_string(axis) + ", tensor rank: " + std::to_string(tensor.shape().rank()));
         }
 
+        if (tensor.shape().rank() == 1){
+            return sum(tensor);
+        }
+
         std::vector<int> new_shape_dims = tensor.shape().getDimensions();
 
         new_shape_dims.erase(new_shape_dims.begin() + axis);  // Remove the summed axis dimension

@@ -61,9 +61,6 @@ void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<
         size_t inputSize = inputs.size();
 
         for (size_t i = 0; i < inputSize; ++i) {
-            if (i % (inputSize / 5) == 0) {
-                std::cout << "Processing input " << i << "/" << inputSize << std::endl;
-            }
 
             Tensor<T> prediction = inputs[i];
             for (Layer<T>* layer : layers) {

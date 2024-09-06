@@ -54,15 +54,11 @@ int main() {
     std::string labelsPath = ".datasets/train-labels-idx1-ubyte";
 
     // Load your MNIST dataset here
-    MNISTLoader dataLoader = MNISTLoader(imagesPath, labelsPath, 1, 5);
+    MNISTLoader dataLoader = MNISTLoader(imagesPath, labelsPath, 8, 1000);
     std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> dataset = dataLoader.loadData(); // Implement this method
 
-    for (auto& input : dataset.first) {
-        input = input / 255.0f;  // Normalize to [0, 1] range
-    }
-
     // Train the model on the MNIST dataset
-    model.train(dataset.first, dataset.second, epochs, learningRate);
+    model.train(dataset.first, dataset.second, epochs);
 
     model.evalMode();     
 
