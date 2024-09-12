@@ -1,9 +1,9 @@
 #ifndef TENSOR_DATA_HPP
 #define TENSOR_DATA_HPP
 
-#include "../Shape/Shape.hpp"
-#include "../Shape/ShapeOperations.hpp"
-#include "DeviceTypes.hpp"
+#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/shape/ShapeOperations.hpp"
+#include "smart_dnn/tensor/DeviceTypes.hpp"
 #include <iomanip>
 #include <functional>
 

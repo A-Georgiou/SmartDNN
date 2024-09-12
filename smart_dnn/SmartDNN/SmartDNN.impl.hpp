@@ -1,34 +1,13 @@
 #ifndef SMART_DNN_IMPL_HPP
 #define SMART_DNN_IMPL_HPP
 
-#include "../SmartDNN.hpp"
-#include "../Debugging/Logger.hpp"
+#include "smart_dnn/SmartDNN.hpp"
+#include "smart_dnn/debugging/Logger.hpp"
 
 namespace smart_dnn {
 
 template <typename T>
-SmartDNN<T>::SmartDNN() {
-    lossFunction = nullptr;
-    optimizer = nullptr;
-}
-
-template <typename T>
-SmartDNN<T>::~SmartDNN() {
-    for (Layer<T>* layer : layers) {
-        delete layer;
-    }
-
-    delete lossFunction;
-    delete optimizer;
-}
-
-template <typename T>
-void SmartDNN<T>::addLayer(Layer<T>* layer) {
-    layers.push_back(layer);
-}
-
-template <typename T>
-void SmartDNN<T>::backward(const Tensor<T>& gradOutput)  {
+void SmartDNN<T>::backward(const Tensor<T>& gradOutput) {
     Tensor<T> grad = gradOutput;
     for (auto it = layers.rbegin(); it != layers.rend(); ++it) {
         grad = (*it)->backward(grad); 
@@ -36,22 +15,15 @@ void SmartDNN<T>::backward(const Tensor<T>& gradOutput)  {
 }
 
 template <typename T>
-void SmartDNN<T>::updateWeights(Optimizer<T>& optimizer) {
-        for (auto& layer : layers) {
-            layer->updateWeights(optimizer);  // Assuming each layer has its own updateWeights method
-        }
+void SmartDNN<T>::updateWeights() {
+    for (auto& layer : layers) {
+        layer->updateWeights(*optimizer);
     }
-
-
-template <typename T>
-void SmartDNN<T>::compile(Loss<T>* loss, Optimizer<T>* optimizer) {
-    this->lossFunction = loss;
-    this->optimizer = optimizer;
 }
 
 template <typename T>
 Layer<T>* SmartDNN<T>::getLayer(size_t index) const {
-    return layers[index];
+    return layers[index].get();
 }
 
 template <typename T>
@@ -61,20 +33,16 @@ void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<
         size_t inputSize = inputs.size();
 
         for (size_t i = 0; i < inputSize; ++i) {
-
             Tensor<T> prediction = inputs[i];
-            for (Layer<T>* layer : layers) {
+            for (const auto& layer : layers) {
                 prediction = layer->forward(prediction);
             }
 
             totalLoss += lossFunction->compute(prediction, targets[i]);
             Tensor<T> gradOutput = lossFunction->gradient(prediction, targets[i]);
 
-            for (int j = layers.size() - 1; j >= 0; --j) {
-                gradOutput = layers[j]->backward(gradOutput);
-                layers[j]->updateWeights(*optimizer);
-            }
-
+            backward(gradOutput);
+            updateWeights();
         }
         std::cout << "Epoch " << epoch << " - Loss: " << (totalLoss / T(inputs.size())).toDataString() << std::endl;
     }
@@ -83,7 +51,7 @@ void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<
 template <typename T>
 Tensor<T> SmartDNN<T>::predict(const Tensor<T>& input) {
     Tensor<T> prediction = input;
-    for (Layer<T>* layer : layers) {
+    for (const auto& layer : layers) {
         prediction = layer->forward(prediction);
     }
     return prediction;
@@ -92,6 +60,7 @@ Tensor<T> SmartDNN<T>::predict(const Tensor<T>& input) {
 template <typename T>
 std::vector<Tensor<T>> SmartDNN<T>::predict(const std::vector<Tensor<T>>& inputs) {
     std::vector<Tensor<T>> predictions;
+    predictions.reserve(inputs.size());
     for (const Tensor<T>& input : inputs) {
         predictions.push_back(predict(input));
     }
@@ -110,7 +79,7 @@ void SmartDNN<T>::evalMode() {
 
 template <typename T>
 void SmartDNN<T>::setTrainingMode(bool trainingMode) {
-    for (Layer<T>* layer : layers) {
+    for (const auto& layer : layers) {
         layer->setTrainingMode(trainingMode);
     }
 }

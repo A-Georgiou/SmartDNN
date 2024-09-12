@@ -1,7 +1,7 @@
 #ifndef ACTIVATION_HPP
 #define ACTIVATION_HPP
 
-#include "Tensor/Tensor.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 
 namespace smart_dnn {
 

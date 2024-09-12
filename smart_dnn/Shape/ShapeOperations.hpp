@@ -1,7 +1,7 @@
 #ifndef SHAPE_OPERATIONS_HPP
 #define SHAPE_OPERATIONS_HPP
 
-#include "Shape.hpp"
+#include "smart_dnn/shape/Shape.hpp"
 
 namespace smart_dnn {
 

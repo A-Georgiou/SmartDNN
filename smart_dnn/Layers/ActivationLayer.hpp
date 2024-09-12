@@ -1,10 +1,10 @@
 #ifndef ACTIVATION_LAYER_HPP
 #define ACTIVATION_LAYER_HPP
 
-#include "../Layer.hpp"
-#include "../Activation.hpp"
+#include "smart_dnn/Layer.hpp"
+#include "smart_dnn/Activation.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 #include <optional>
-#include "../Tensor/Tensor.hpp"
 
 namespace smart_dnn {
 
@@ -12,11 +12,9 @@ template <typename T=float>
 class ActivationLayer : public Layer<T> {
     using TensorType = Tensor<T>;
 public:
-    ActivationLayer(Activation<T>* activation) : activation(activation) {}
-
-    ~ActivationLayer() {
-        delete activation;
-    }
+    template <typename ActivationType>
+    ActivationLayer(ActivationType&& activation) 
+        : activation(std::make_unique<std::decay_t<ActivationType>>(std::forward<ActivationType>(activation))) {}
 
     TensorType forward(const TensorType& input) override {
         this->input = input;
@@ -28,7 +26,7 @@ public:
     }
 
 private:
-    Activation<T>* activation;
+    std::unique_ptr<Activation<T>> activation;
     std::optional<TensorType> input;
 };
 

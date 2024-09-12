@@ -1,12 +1,12 @@
 #include <iostream>
-#include "../smart_dnn/Tensor/Tensor.hpp"
-#include "../smart_dnn/SmartDNN.hpp"
-#include "../smart_dnn/Activations/ReLU.hpp"
-#include "../smart_dnn/Loss/MSELoss.hpp"
-#include "../smart_dnn/Layers/FullyConnectedLayer.hpp"
-#include "../smart_dnn/Layers/ActivationLayer.hpp"
-#include "../smart_dnn/Datasets/SampleGenerator.hpp"
-#include "../smart_dnn/Optimizers/AdamOptimizer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/SmartDNN.hpp"
+#include "smart_dnn/activations/ReLU.hpp"
+#include "smart_dnn/loss/MSELoss.hpp"
+#include "smart_dnn/layers/FullyConnectedLayer.hpp"
+#include "smart_dnn/layers/ActivationLayer.hpp"
+#include "smart_dnn/datasets/SampleGenerator.hpp"
+#include "smart_dnn/optimizers/AdamOptimizer.hpp"
 
 int main() {
 
@@ -17,20 +17,20 @@ int main() {
     constexpr float LEARNING_RATE = 0.01f;
 
     // Generate a linear dataset with 100 samples (x, y) where y = 2x + 3 + noise[0, 1]
-    std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> dataset = generateLinearDataset(BATCH_SIZE);
+    auto [inputs, targets] = generateLinearDataset(BATCH_SIZE);
 
     SmartDNN<float> model;
-    model.addLayer(new FullyConnectedLayer(1, 10));
-    model.addLayer(new ActivationLayer(new ReLU()));
-    model.addLayer(new FullyConnectedLayer(10, 1));
+    model.addLayer(FullyConnectedLayer(1, 10));
+    model.addLayer(ActivationLayer(ReLU()));
+    model.addLayer(FullyConnectedLayer(10, 1));
 
     // Compile the model with a Mean Squared Error loss function and an Adam optimizer (initialised to learning rate 0.01f).
     AdamOptions adamOptions;
     adamOptions.learningRate = LEARNING_RATE;
-    model.compile(new MSELoss(), new AdamOptimizer(adamOptions));
+    model.compile(MSELoss(), AdamOptimizer(adamOptions));
 
     // Train the model on the dataset for 100 epochs.
-    model.train(dataset.first, dataset.second, EPOCHS);
+    model.train(inputs, targets, EPOCHS);
 
     model.evalMode();
 

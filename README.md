@@ -17,15 +17,15 @@ float learningRate = 0.001f;
 
 SmartDNN model;
 
-model.addLayer(new FullyConnectedLayer(10, 100));
-model.addLayer(new ActivationLayer(new ReLU()));
-model.addLayer(new FullyConnectedLayer(100, 100));
-model.addLayer(new ActivationLayer(new Sigmoid()));
-model.addLayer(new FullyConnectedLayer(100, 10));
-model.addLayer(new ActivationLayer(new Softmax()));
+model.addLayer(FullyConnectedLayer(10, 100));
+model.addLayer(ActivationLayer(ReLU()));
+model.addLayer(FullyConnectedLayer(100, 100));
+model.addLayer(ActivationLayer(Sigmoid()));
+model.addLayer(FullyConnectedLayer(100, 10));
+model.addLayer(ActivationLayer(Softmax()));
 
-model.compile(new MSELoss(), new AdamOptimizer());
-model.train(dataset.first, dataset.second, epochs, learningRate);
+model.compile(MSELoss(), AdamOptimizer());
+model.train(inputs, targets, epochs);
 ```
 
 #### Example MNist Model
@@ -34,20 +34,20 @@ model.train(dataset.first, dataset.second, epochs, learningRate);
 // Initialize the SmartDNN MNist model
 SmartDNN<float> model;
 
-model.addLayer(new Conv2DLayer(1, 32, 3));           // Conv2D layer
-model.addLayer(new BatchNormalizationLayer(32));     // Batch normalization after conv
-model.addLayer(new ActivationLayer(new ReLU()));     // ReLU activation
-model.addLayer(new MaxPooling2DLayer(2, 2));         // Added MaxPooling
-model.addLayer(new DropoutLayer(0.25f));              // Reduced dropout rate
+model.addLayer(Conv2DLayer(1, 32, 3));           // Conv2D layer
+model.addLayer(BatchNormalizationLayer(32));     // Batch normalization after conv
+model.addLayer(ActivationLayer(ReLU()));     // ReLU activation
+model.addLayer(MaxPooling2DLayer(2, 2));         // Added MaxPooling
+model.addLayer(DropoutLayer(0.25f));              // Reduced dropout rate
 
-model.addLayer(new FlattenLayer());                  // Flatten layer
-model.addLayer(new FullyConnectedLayer(5408, 128));  // Adjusted input size due to MaxPooling
-model.addLayer(new BatchNormalizationLayer(128));    // Batch normalization after FC
-model.addLayer(new ActivationLayer(new ReLU()));     // ReLU activation
-model.addLayer(new DropoutLayer(0.25f));              // Reduced dropout rate
+model.addLayer(FlattenLayer());                  // Flatten layer
+model.addLayer(FullyConnectedLayer(5408, 128));  // Adjusted input size due to MaxPooling
+model.addLayer(BatchNormalizationLayer(128));    // Batch normalization after FC
+model.addLayer(ActivationLayer(ReLU()));     // ReLU activation
+model.addLayer(DropoutLayer(0.25f));              // Reduced dropout rate
 
-model.addLayer(new FullyConnectedLayer(128, 10));    // Output layer
-model.addLayer(new ActivationLayer(new Softmax()));  // Softmax activation
+model.addLayer(FullyConnectedLayer(128, 10));    // Output layer
+model.addLayer(ActivationLayer(Softmax()));  // Softmax activation
 
 AdamOptions adamOptions;
 adamOptions.learningRate = learningRate;
@@ -57,7 +57,9 @@ adamOptions.epsilon = 1e-8f;
 adamOptions.l1Strength = 0.0f; 
 adamOptions.l2Strength = 0.0f;  
 adamOptions.decay = 0.0f;  
-model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(adamOptions));
+
+model.compile(CategoricalCrossEntropyLoss(), AdamOptimizer(adamOptions));
+model.train(inputs, targets, epochs);
 ```
 
 ## Key Features

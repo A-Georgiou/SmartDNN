@@ -1,8 +1,8 @@
 #ifndef RELU_HPP
 #define RELU_HPP
 
-#include "../Activation.hpp"
-#include "../Tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Activation.hpp"
+#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
 
 namespace smart_dnn {
 

@@ -17,7 +17,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(CMAKE_CXX_FLAGS_RELEASE "/O2")
 endif()
 
-include_directories(smart_dnn)
+include_directories(${PROJECT_SOURCE_DIR})
 
 add_executable(SmartDNN
     src/main.cpp

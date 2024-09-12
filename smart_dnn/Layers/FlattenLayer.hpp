@@ -1,9 +1,9 @@
 #ifndef FLATTEN_LAYER_HPP
 #define FLATTEN_LAYER_HPP
 
-#include "../Layer.hpp"
-#include "../Tensor/Tensor.hpp"
-#include "../Tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Layer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
 
 namespace smart_dnn {
 

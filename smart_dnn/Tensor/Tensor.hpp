@@ -1,11 +1,11 @@
 #ifndef TENSOR_HPP
 #define TENSOR_HPP
 
-#include "TensorData.hpp"
-#include "TensorOperations.hpp"
-#include "DeviceTypes.hpp"
-#include "../Shape/Shape.hpp"
-#include "TensorFactory.hpp"
+#include "smart_dnn/tensor/TensorData.hpp"
+#include "smart_dnn/tensor/TensorOperations.hpp"
+#include "smart_dnn/tensor/DeviceTypes.hpp"
+#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/tensor/TensorFactory.hpp"
 #include <functional>
 
 namespace smart_dnn {

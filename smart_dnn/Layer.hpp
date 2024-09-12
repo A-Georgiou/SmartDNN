@@ -1,8 +1,8 @@
 #ifndef LAYER_HPP
 #define LAYER_HPP
 
-#include "Tensor/Tensor.hpp"
-#include "Optimizer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Optimizer.hpp"
 
 namespace smart_dnn {
 

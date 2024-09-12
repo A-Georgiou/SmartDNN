@@ -1,8 +1,8 @@
 #ifndef CATEGORICAL_CROSS_ENTROPY_LOSS_HPP
 #define CATEGORICAL_CROSS_ENTROPY_LOSS_HPP
 
-#include "../Loss.hpp"
-#include "../Tensor/Tensor.hpp"
+#include "smart_dnn/Loss.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 #include <cmath>
 #include <numeric>
 

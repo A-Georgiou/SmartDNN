@@ -5,10 +5,10 @@
 #include <cmath>
 #include <iostream>
 #include <cassert>
-#include "../Layer.hpp"
-#include "../Tensor/Tensor.hpp"
-#include "../Optimizer.hpp"
-#include "../Tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Layer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Optimizer.hpp"
+#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
 
 namespace smart_dnn {
 

@@ -1,17 +1,17 @@
-#include "../smart_dnn/Tensor/Tensor.hpp"
-#include "../smart_dnn/SmartDNN.hpp"
-#include "../smart_dnn/Activations/ReLU.hpp"
-#include "../smart_dnn/Activations/Softmax.hpp"
-#include "../smart_dnn/Loss/CategoricalCrossEntropyLoss.hpp"
-#include "../smart_dnn/Layers/FullyConnectedLayer.hpp"
-#include "../smart_dnn/Layers/ActivationLayer.hpp"
-#include "../smart_dnn/Layers/Conv2DLayer.hpp"
-#include "../smart_dnn/Regularisation/MaxPooling2DLayer.hpp"
-#include "../smart_dnn/Layers/FlattenLayer.hpp"
-#include "../smart_dnn/Optimizers/AdamOptimizer.hpp"
-#include "../smart_dnn/Datasets/MNistLoader.hpp"
-#include "../smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
-#include "../smart_dnn/Regularisation/DropoutLayer.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
+#include "smart_dnn/SmartDNN.hpp"
+#include "smart_dnn/Activations/ReLU.hpp"
+#include "smart_dnn/Activations/Softmax.hpp"
+#include "smart_dnn/Loss/CategoricalCrossEntropyLoss.hpp"
+#include "smart_dnn/Layers/FullyConnectedLayer.hpp"
+#include "smart_dnn/Layers/ActivationLayer.hpp"
+#include "smart_dnn/Layers/Conv2DLayer.hpp"
+#include "smart_dnn/Regularisation/MaxPooling2DLayer.hpp"
+#include "smart_dnn/Layers/FlattenLayer.hpp"
+#include "smart_dnn/Optimizers/AdamOptimizer.hpp"
+#include "smart_dnn/Datasets/MNistLoader.hpp"
+#include "smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
+#include "smart_dnn/Regularisation/DropoutLayer.hpp"
 
 int main() {
 
@@ -26,20 +26,20 @@ int main() {
     // Initialize the SmartDNN MNist model
     SmartDNN<float> model;
 
-    model.addLayer(new Conv2DLayer(1, 32, 3));           // Conv2D layer
-    model.addLayer(new BatchNormalizationLayer(32));     // Batch normalization after conv
-    model.addLayer(new ActivationLayer(new ReLU()));     // ReLU activation
-    model.addLayer(new MaxPooling2DLayer(2, 2));         // Added MaxPooling
-    model.addLayer(new DropoutLayer(0.25f));              // Reduced dropout rate
+    model.addLayer(Conv2DLayer(1, 32, 3));           // Conv2D layer
+    model.addLayer(BatchNormalizationLayer(32));     // Batch normalization after conv
+    model.addLayer(ActivationLayer(ReLU()));     // ReLU activation
+    model.addLayer(MaxPooling2DLayer(2, 2));         // Added MaxPooling
+    model.addLayer(DropoutLayer(0.25f));              // Reduced dropout rate
 
-    model.addLayer(new FlattenLayer());                  // Flatten layer
-    model.addLayer(new FullyConnectedLayer(5408, 128));  // Adjusted input size due to MaxPooling
-    model.addLayer(new BatchNormalizationLayer(128));    // Batch normalization after FC
-    model.addLayer(new ActivationLayer(new ReLU()));     // ReLU activation
-    model.addLayer(new DropoutLayer(0.25f));              // Reduced dropout rate
+    model.addLayer(FlattenLayer());                  // Flatten layer
+    model.addLayer(FullyConnectedLayer(5408, 128));  // Adjusted input size due to MaxPooling
+    model.addLayer(BatchNormalizationLayer(128));    // Batch normalization after FC
+    model.addLayer(ActivationLayer(ReLU()));     // ReLU activation
+    model.addLayer(DropoutLayer(0.25f));              // Reduced dropout rate
 
-    model.addLayer(new FullyConnectedLayer(128, 10));    // Output layer
-    model.addLayer(new ActivationLayer(new Softmax()));  // Softmax activation
+    model.addLayer(FullyConnectedLayer(128, 10));    // Output layer
+    model.addLayer(ActivationLayer(Softmax()));  // Softmax activation
 
     AdamOptions adamOptions;
     adamOptions.learningRate = LEARNING_RATE;
@@ -49,7 +49,7 @@ int main() {
     adamOptions.l1Strength = 0.0f; 
     adamOptions.l2Strength = 0.0f;  
     adamOptions.decay = 0.0f;  
-    model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(adamOptions));
+    model.compile(CategoricalCrossEntropyLoss(), AdamOptimizer(adamOptions));
 
     // Download the MNist dataset from http://yann.lecun.com/exdb/mnist/
     std::string imagesPath = ".datasets/train-images-idx3-ubyte";
@@ -57,20 +57,20 @@ int main() {
 
     // Load your MNIST dataset here
     MNISTLoader dataLoader = MNISTLoader(imagesPath, labelsPath, BATCH_SIZE, SAMPLE_COUNT);
-    std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> dataset = dataLoader.loadData(); // Implement this method
+    auto [inputs, targets] = dataLoader.loadData(); // Implement this method
 
     // Train the model on the MNIST dataset
-    model.train(dataset.first, dataset.second, EPOCHS);
+    model.train(inputs, targets, EPOCHS);
 
     model.evalMode();     
 
     // Load your MNIST dataset here
     MNISTLoader dataLoaderTest = MNISTLoader(imagesPath, labelsPath, BATCH_SIZE);
-    std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> testDataset = dataLoaderTest.loadData(); // Implement this method
+    auto [test_input, test_target] = dataLoaderTest.loadData(); // Implement this method
 
-    for (int i = testDataset.first.size()-1; i > testDataset.first.size()-5; i--){
-        Tensor<float> input = testDataset.first[i];
-        Tensor<float> output = testDataset.second[i];
+    for (int i = test_input.size()-1; i > test_input.size()-5; i--){
+        Tensor<float> input = test_input[i];
+        Tensor<float> output = test_target[i];
 
         Tensor prediction = model.predict(input);
         std::cout << "Input: " << dataLoader.toAsciiArt(input) << std::endl;

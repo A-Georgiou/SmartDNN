@@ -1,10 +1,10 @@
 #ifndef SMART_DNN_HPP
 #define SMART_DNN_HPP
 
-#include "Layer.hpp"
-#include "Loss.hpp"
-#include "Optimizer.hpp"
-#include "Tensor/Tensor.hpp"
+#include "smart_dnn/Layer.hpp"
+#include "smart_dnn/Loss.hpp"
+#include "smart_dnn/Optimizer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 #include <vector>
 
 namespace smart_dnn {
@@ -12,11 +12,20 @@ namespace smart_dnn {
 template <typename T=float>
 class SmartDNN {
 public:
-    SmartDNN();
-    ~SmartDNN();
+    SmartDNN() = default;
+    ~SmartDNN() = default;
 
-    void addLayer(Layer<T>* layer);
-    void compile(Loss<T>* loss, Optimizer<T>* optimizer);
+    template<typename LayerType>
+    void addLayer(LayerType&& layer) {
+        layers.push_back(std::make_unique<std::decay_t<LayerType>>(std::forward<LayerType>(layer)));
+    }
+
+    template<typename LossType, typename OptimizerType>
+    void compile(LossType&& loss, OptimizerType&& optimizer) {
+        lossFunction = std::make_unique<std::decay_t<LossType>>(std::forward<LossType>(loss));
+        this->optimizer = std::make_unique<std::decay_t<OptimizerType>>(std::forward<OptimizerType>(optimizer));
+    }
+
     void train(const std::vector<Tensor<T>>& inputs, const std::vector<Tensor<T>>& targets, int epochs);
     Tensor<T> predict(const Tensor<T>& input);
     std::vector<Tensor<T>> predict(const std::vector<Tensor<T>>& inputs);
@@ -24,7 +33,7 @@ public:
     Layer<T>* getLayer(size_t index) const;
 
     void backward(const Tensor<T>& gradOutput);
-    void updateWeights(Optimizer<T>& optimizer);
+    void updateWeights();
 
     void trainingMode();
     void evalMode();
@@ -35,10 +44,11 @@ public:
 private:
     void setTrainingMode(bool trainingMode);
 
-    std::vector<Layer<T>*> layers;
-    Loss<T>* lossFunction;
-    Optimizer<T>* optimizer;
+    std::vector<std::unique_ptr<Layer<T>>> layers;
+    std::unique_ptr<Loss<T>> lossFunction;
+    std::unique_ptr<Optimizer<T>> optimizer;
 };
+
 
 } // namespace smart_dnn
 

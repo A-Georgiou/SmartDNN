@@ -3,8 +3,8 @@
 
 #include <algorithm>
 #include <limits>
-#include "../Layer.hpp"
-#include "../Tensor/Tensor.hpp"
+#include "smart_dnn/Layer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 
 namespace smart_dnn {
 

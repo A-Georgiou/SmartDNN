@@ -1,7 +1,7 @@
 #ifndef TENSOR_FACTORY_HPP
 #define TENSOR_FACTORY_HPP
 
-#include "Tensor.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 
 namespace smart_dnn {
 

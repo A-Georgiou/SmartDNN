@@ -1,8 +1,6 @@
 #ifndef TENSOR_IMPL_HPP
 #define TENSOR_IMPL_HPP
 
-#include "DeviceTypes.hpp"
-
 namespace smart_dnn {
 
 #define TEMPLATE_TENSOR template <typename T, typename DeviceType>
