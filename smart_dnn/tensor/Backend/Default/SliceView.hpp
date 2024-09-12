@@ -1,14 +1,14 @@
 #ifndef SLICE_VIEW_HPP
 #define SLICE_VIEW_HPP
 
-#include "../Shape/Shape.hpp"
-#include "Tensor.hpp"
-#include "DeviceTypes.hpp"
 #include <vector>
 #include <stdexcept>
 #include <optional>
+#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/tensor/TensorBase.hpp"
+#include "DeviceTypes.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template<typename T = float, typename DeviceType = CPUDevice>
 class SliceView {
@@ -154,6 +154,6 @@ public:
     end() const { return Iterator(*this, true); }
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // SLICE_VIEW_HPP

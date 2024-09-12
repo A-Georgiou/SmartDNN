@@ -3,10 +3,10 @@
 
 #include "TensorData.hpp"
 #include "BroadcastView.hpp"
-#include "../RandomEngine.hpp"
+#include "smart_dnn/RandomEngine.hpp"
 #include <functional>
 
-namespace smart_dnn {
+namespace sdnn {
 
 #if __cplusplus >= 202002L
 // use concept (C++20)
@@ -393,6 +393,6 @@ private:
 
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // TENSOR_OPERATIONS_HPP

@@ -5,9 +5,9 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
-#include "../Tensor/Tensor.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T=float>
 class MNISTLoader {
@@ -134,6 +134,6 @@ private:
     }
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // MNIST_LOADER_HPP

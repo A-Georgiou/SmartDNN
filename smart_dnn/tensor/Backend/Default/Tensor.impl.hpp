@@ -3,7 +3,7 @@
 
 #include "DeviceTypes.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 #define TEMPLATE_TENSOR template <typename T, typename DeviceType>
 
@@ -226,48 +226,48 @@ std::string Tensor<T, DeviceType>::toDataString() const {
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::ones(Shape dimensions) {
-    return TensorFactory::ones<T, DeviceType>(dimensions);
+    return TensorFactory<T, DeviceType>::ones(dimensions);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::zeros(Shape dimensions) {
-    return TensorFactory::zeros<T, DeviceType>(dimensions);
+    return TensorFactory<T, DeviceType>::zeros(dimensions);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::rand(Shape dimensions) {
-    return TensorFactory::rand<T, DeviceType>(dimensions);
+    return TensorFactory<T, DeviceType>::rand(dimensions);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::randn(Shape dimensions, T min, T max){
-    return TensorFactory::randn<T, DeviceType>(dimensions, min, max);
+    return TensorFactory<T, DeviceType>::randn(dimensions, min, max);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::ones(int size) {
-    return TensorFactory::ones<T, DeviceType>(size);
+    return TensorFactory<T, DeviceType>::ones(size);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::zeros(int size) {
-    return TensorFactory::zeros<T, DeviceType>(size);
+    return TensorFactory<T, DeviceType>::zeros(size);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::rand(int size) {
-    return TensorFactory::rand<T, DeviceType>(size);
+    return TensorFactory<T, DeviceType>::rand(size);
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::randn(int size, T min, T max){
-    return TensorFactory::randn<T, DeviceType>(size, min, max);
+    return TensorFactory<T, DeviceType>::randn(size, min, max);
 }
 
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType> Tensor<T, DeviceType>::identity(int size) {
-    return TensorFactory::identity<T, DeviceType>(size);
+    return TensorFactory<T, DeviceType>::identity(size);
 }
 
 TEMPLATE_TENSOR
@@ -310,6 +310,6 @@ Tensor<T, DeviceType>& Tensor<T, DeviceType>::apply(std::function<T(T)> func) {
 
 #undef TEMPLATE_TENSOR
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // TENSOR_IMPL_HPP

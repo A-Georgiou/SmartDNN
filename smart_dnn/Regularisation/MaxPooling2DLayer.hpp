@@ -3,10 +3,10 @@
 
 #include <algorithm>
 #include <limits>
-#include "../Layer.hpp"
-#include "../Tensor/Tensor.hpp"
+#include "smart_dnn/Layer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T=float>
 class MaxPooling2DLayer : public Layer<T> {
@@ -107,6 +107,6 @@ private:
     }
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // MAX_POOLING_2D_LAYER_HPP

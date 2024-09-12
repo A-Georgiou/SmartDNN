@@ -1,14 +1,12 @@
 #ifndef BROADCAST_VIEW_HPP
 #define BROADCAST_VIEW_HPP
 
-#include "../Shape/ShapeOperations.hpp"
-#include "../Shape/Shape.hpp"
-#include "Tensor.hpp"
-#include "DeviceTypes.hpp"
 #include <vector>
 #include <stdexcept>
+#include "smart_dnn/shape/ShapeOperations.hpp"
+#include "smart_dnn/shape/Shape.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template<typename T, typename DeviceType>
 class BroadcastView {
@@ -144,6 +142,6 @@ public:
 
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // BROADCAST_VIEW_HPP

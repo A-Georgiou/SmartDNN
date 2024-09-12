@@ -2,13 +2,13 @@
 #define TESTS_LAYERS_TEST_FULLY_CONNECTED_CPP
 
 #include <gtest/gtest.h>
-#include "../utils/tensor_helpers.hpp"
-#include "../../smart_dnn/Optimizers/AdamOptimizer.hpp"
-#include "../../smart_dnn/Layers/FullyConnectedLayer.hpp"
-#include "../../smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
-#include "../../smart_dnn/Regularisation/DropoutLayer.hpp"
+#include "tests/utils/tensor_helpers.hpp"
+#include "smart_dnn/optimizers/AdamOptimizer.hpp"
+#include "smart_dnn/layers/FullyConnectedLayer.hpp"
+#include "smart_dnn/regularisation/BatchNormalizationLayer.hpp"
+#include "smart_dnn/regularisation/DropoutLayer.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 TEST(FullyConnectedLayerTest, ForwardPassHardcodedFullyConnected) {
     FullyConnectedLayer<float> fcLayer(2, 3);  // Input size = 2, Output size = 3
@@ -239,7 +239,6 @@ TEST(FullyConnectedLayerTest, BatchedDataProcessing) {
     }
 }
 
-
-}
+} // namespace sdnn
 
 #endif // TESTS_LAYERS_TEST_FULLY_CONNECTED_CPP

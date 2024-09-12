@@ -1,10 +1,10 @@
 #ifndef DROPOUT_LAYER_HPP
 #define DROPOUT_LAYER_HPP
 
-#include "../Tensor/Tensor.hpp"
-#include "../Layer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Layer.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T=float>
 class DropoutLayer : public Layer<T> {
@@ -37,6 +37,6 @@ private:
     std::optional<TensorType> mask;
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // DROPOUT_LAYER_HPP

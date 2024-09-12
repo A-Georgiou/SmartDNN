@@ -6,6 +6,8 @@
 #include <vector>
 #include <sstream>
 
+namespace sdnn {
+
 struct Shape {
     ~Shape() = default;
 
@@ -135,5 +137,7 @@ private:
         }
     }
 };
+
+} // namespace sdnn
 
 #endif // SHAPE_HPP

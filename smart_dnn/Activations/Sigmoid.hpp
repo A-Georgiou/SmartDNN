@@ -1,10 +1,10 @@
 #ifndef SIGMOID_HPP
 #define SIGMOID_HPP
 
-#include "../Activation.hpp"
-#include "../Tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Activation.hpp"
+#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 /*
 
@@ -29,6 +29,6 @@ public:
     }
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // SIGMOID_HPP

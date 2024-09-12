@@ -3,10 +3,10 @@
 
 #include <gtest/gtest.h>
 #include <sstream>
-#include "../smart_dnn/Tensor/Tensor.hpp"
-#include "../smart_dnn/Tensor/TensorData.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/tensor/TensorData.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
     template <typename T>
     inline void ValidateTensorShape(const Tensor<T>& tensor, int expectedRank, int expectedSize, const std::vector<int>& expectedDimensions) {
@@ -70,6 +70,6 @@ namespace smart_dnn {
         return testing::AssertionSuccess();
     }
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // TENSOR_HELPERS_HPP

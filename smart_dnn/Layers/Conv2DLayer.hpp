@@ -10,7 +10,7 @@
 #include "../Optimizer.hpp"
 #include "../Tensor/AdvancedTensorOperations.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T=float>
 class Conv2DLayer : public Layer<T> {
@@ -277,6 +277,6 @@ private:
     }
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // CONV2D_LAYER_HPP

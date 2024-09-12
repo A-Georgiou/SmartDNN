@@ -1,12 +1,12 @@
 #ifndef ACTIVATION_LAYER_HPP
 #define ACTIVATION_LAYER_HPP
 
-#include "../Layer.hpp"
-#include "../Activation.hpp"
+#include "smart_dnn/Layer.hpp"
+#include "smart_dnn/Activation.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 #include <optional>
-#include "../Tensor/Tensor.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T=float>
 class ActivationLayer : public Layer<T> {
@@ -32,6 +32,6 @@ private:
     std::optional<TensorType> input;
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // ACTIVATION_LAYER_HPP

@@ -2,9 +2,19 @@ cmake_minimum_required(VERSION 3.10)
 project(SmartDNN)
 set(CMAKE_CXX_STANDARD 17)
 
+option(USE_CPU_TENSORS "Run SmartDNN without any additional libraries" ON)
+option(USE_ARRAYFIRE_TENSORS "Run SmartDNN with ArrayFire tensors" ON)
+
+# Find ArrayFire package
+if (USE_ARRAYFIRE_TENSORS)
+    find_package(ArrayFire REQUIRED)
+endif()
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frtti")
 
 # Compiler-specific flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
@@ -17,11 +27,17 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(CMAKE_CXX_FLAGS_RELEASE "/O2")
 endif()
 
-include_directories(smart_dnn)
+include_directories(${PROJECT_SOURCE_DIR})
 
 add_executable(SmartDNN
     src/main.cpp
+    smart_dnn/tensor/TensorBase.cpp
+    smart_dnn/tensor/Backend/Default/CPUTensorBackend.cpp
+    smart_dnn/tensor/TensorBackendUtil.cpp
 )
+
+# Link ArrayFire library to SmartDNN executable
+target_link_libraries(SmartDNN ArrayFire::af)
 
 # Enable logging for debug builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

@@ -5,7 +5,7 @@
 #include "../Tensor/Tensor.hpp"
 #include "../Tensor/AdvancedTensorOperations.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T=float>
 class FlattenLayer : public Layer<T> {
@@ -55,6 +55,6 @@ private:
     std::optional<Shape> originalShape;
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // FLATTEN_LAYER_HPP

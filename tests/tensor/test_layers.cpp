@@ -2,14 +2,14 @@
 #define TEST_LAYERS_CPP
 
 #include <gtest/gtest.h>
-#include "../../smart_dnn/Layers/Conv2DLayer.hpp"
-#include "../utils/tensor_helpers.hpp"
-#include "../../smart_dnn/Optimizers/AdamOptimizer.hpp"
-#include "../../smart_dnn/Layers/FullyConnectedLayer.hpp"
-#include "../../smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
-#include "../../smart_dnn/Regularisation/DropoutLayer.hpp"
+#include "smart_dnn/layers/Conv2DLayer.hpp"
+#include "tests/utils/tensor_helpers.hpp"
+#include "smart_dnn/optimizers/AdamOptimizer.hpp"
+#include "smart_dnn/layers/FullyConnectedLayer.hpp"
+#include "smart_dnn/regularisation/BatchNormalizationLayer.hpp"
+#include "smart_dnn/regularisation/DropoutLayer.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 /*
 

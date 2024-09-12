@@ -1,10 +1,10 @@
 #ifndef SMART_DNN_IMPL_HPP
 #define SMART_DNN_IMPL_HPP
 
-#include "../SmartDNN.hpp"
-#include "../Debugging/Logger.hpp"
+#include "smart_dnn/SmartDNN.hpp"
+#include "smart_dnn/debugging/Logger.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T>
 SmartDNN<T>::SmartDNN() {
@@ -115,7 +115,7 @@ void SmartDNN<T>::setTrainingMode(bool trainingMode) {
     }
 }
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 
 #endif // SMART_DNN_IMPL_HPP

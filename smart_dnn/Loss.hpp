@@ -1,9 +1,9 @@
 #ifndef LOSS_HPP
 #define LOSS_HPP
 
-#include "Tensor/Tensor.hpp"
+#include "tensor/Tensor.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T>
 class Loss {
@@ -21,6 +21,6 @@ public:
     };
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // LOSS_HPP

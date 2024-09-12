@@ -4,10 +4,10 @@
 #include "Layer.hpp"
 #include "Loss.hpp"
 #include "Optimizer.hpp"
-#include "Tensor/Tensor.hpp"
+#include "tensor/Tensor.hpp"
 #include <vector>
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T=float>
 class SmartDNN {
@@ -40,8 +40,8 @@ private:
     Optimizer<T>* optimizer;
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
-#include "SmartDNN/SmartDNN.impl.hpp"
+#include "model/SmartDNN.impl.hpp"
 
 #endif // SMART_DNN_HPP

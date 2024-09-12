@@ -3,14 +3,14 @@
 #define TEST_CONV_2D_CPP
 
 #include <gtest/gtest.h>
-#include "../../smart_dnn/Layers/Conv2DLayer.hpp"
-#include "../utils/tensor_helpers.hpp"
-#include "../../smart_dnn/Optimizers/AdamOptimizer.hpp"
-#include "../../smart_dnn/Layers/FullyConnectedLayer.hpp"
-#include "../../smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
-#include "../../smart_dnn/Regularisation/DropoutLayer.hpp"
+#include "tests/utils/tensor_helpers.hpp"
+#include "smart_dnn/layers/Conv2DLayer.hpp"
+#include "smart_dnn/optimizers/AdamOptimizer.hpp"
+#include "smart_dnn/layers/FullyConnectedLayer.hpp"
+#include "smart_dnn/regularisation/BatchNormalizationLayer.hpp"
+#include "smart_dnn/regularisation/DropoutLayer.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 TEST(Conv2DLayerTest, ForwardPassHardcodedConv2D) {
     Conv2DLayer<float> convLayer(1, 1, 3); // 1 input channel, 1 output channel, 3x3 kernel
@@ -177,6 +177,6 @@ TEST(Conv2DLayerTest, WeightUpdateWithOptimizer) {
     ASSERT_FALSE(TensorEquals(initialBiases, updatedBiases));
 }
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // TEST_CONV_2D_CPP

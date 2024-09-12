@@ -3,7 +3,7 @@
 
 #include "Shape.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 class ShapeOperations {
 public:
@@ -58,7 +58,7 @@ public:
     }
     };
 
-    static size_t computeFlatIndex(const Shape& shape, const std::vector<int>& indices) {
+    static size_t computeFlatIndex(const Shape& shape, const std::vector<size_t>& indices) {
         if (indices.size() != shape.rank()) {
             throw std::invalid_argument("Number of indices must match the rank of the shape.");
         }

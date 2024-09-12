@@ -1,15 +1,14 @@
 #ifndef SOFTMAX_HPP
 #define SOFTMAX_HPP
 
-#include "../Activation.hpp"
-#include "../Tensor/Tensor.hpp"
+#include "smart_dnn/Activation.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 #include <cmath>
 #include <algorithm>
 #include <numeric>
 #include <vector>
 
-namespace smart_dnn {
-
+namespace sdnn {
 
 /*
 
@@ -93,6 +92,6 @@ public:
     }
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // SOFTMAX_HPP

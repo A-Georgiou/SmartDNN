@@ -8,7 +8,7 @@
 #include <vector>
 #include <optional>
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T = float>
 class FullyConnectedLayer : public Layer<T> {
@@ -145,6 +145,6 @@ private:
     std::optional<TensorType> biasGradients;
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // FULLY_CONNECTED_LAYER_HPP

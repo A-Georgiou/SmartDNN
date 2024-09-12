@@ -2,11 +2,10 @@
 #define TEST_ADVANCED_TENSOR_OPERATIONS_CPP
 
 #include <gtest/gtest.h>
-#include "../utils/tensor_helpers.hpp"
-#include "../../smart_dnn/Tensor/AdvancedTensorOperations.hpp"
+#include "tests/utils/tensor_helpers.hpp"
+#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
 
-
-namespace smart_dnn {
+namespace sdnn {
 
 /*
 
@@ -396,6 +395,6 @@ TEST(AdvancedTensorOperationsTest, TestBatchedMatrixMultiplication) {
 }
 
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // TEST_ADVANCED_TENSOR_OPERATIONS_CPP

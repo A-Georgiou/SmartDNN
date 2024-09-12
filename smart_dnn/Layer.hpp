@@ -1,10 +1,10 @@
 #ifndef LAYER_HPP
 #define LAYER_HPP
 
-#include "Tensor/Tensor.hpp"
+#include "tensor/Tensor.hpp"
 #include "Optimizer.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
     template <typename T>
     class Layer {
@@ -21,6 +21,6 @@ namespace smart_dnn {
         bool trainingMode = true;
     };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // LAYER_HPP

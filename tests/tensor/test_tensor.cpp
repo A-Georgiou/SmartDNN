@@ -1,7 +1,7 @@
 #ifndef TEST_TENSOR_CPP
 #define TEST_TENSOR_CPP
 
-#include "../utils/tensor_helpers.hpp"
+#include "tests/utils/tensor_helpers.hpp"
 
 /*
 
@@ -9,7 +9,7 @@
 
 */
 
-namespace smart_dnn {
+namespace sdnn {
 
 TEST(TensorInitialisationTest, ExpectDefaultShapeInitialisation) {
     Tensor a({1, 2, 3});
@@ -247,6 +247,6 @@ TEST(TensorScalarOperatorTest, ExpectValidScalarDivisionInverse) {
     ValidateTensorData(b, std::vector<float>(6, 2.0f));
 }
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // TEST_TENSOR_CPP

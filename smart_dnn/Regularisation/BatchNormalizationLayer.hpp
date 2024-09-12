@@ -1,13 +1,13 @@
 #ifndef BATCH_NORMALIZATION_LAYER_HPP
 #define BATCH_NORMALIZATION_LAYER_HPP
 
-#include "../Tensor/Tensor.hpp"
-#include "../Layer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Layer.hpp"
 #include <cmath>
 #include <optional>
 #include <iostream>
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T = float>
 class BatchNormalizationLayer : public Layer<T> {
@@ -135,6 +135,6 @@ private:
     }
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // BATCH_NORMALIZATION_LAYER_HPP

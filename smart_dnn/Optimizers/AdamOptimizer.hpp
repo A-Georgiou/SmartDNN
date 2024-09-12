@@ -3,10 +3,10 @@
 
 #include <unordered_map>
 #include <cmath>
-#include "../Tensor/Tensor.hpp"
-#include "../Optimizer.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Optimizer.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T = float>
 struct AdamOptions {
@@ -128,6 +128,6 @@ private:
     }
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // ADAM_OPTIMIZER_HPP

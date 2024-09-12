@@ -1,7 +1,7 @@
 #ifndef TENSOR_DATA_CPU_IMPL_HPP
 #define TENSOR_DATA_CPU_IMPL_HPP
 
-namespace smart_dnn {
+namespace sdnn {
 
 // Specialization for CPUDevice
 #define TEMPLATE_TENSOR template <typename T>
@@ -127,6 +127,6 @@ std::string TENSOR_DATA_CPU::toDataString() const {
 #undef TEMPLATE_TENSOR
 #undef TENSOR_DATA_CPU
 
-}; // namespace smart_dnn
+}; // namespace sdnn
 
 #endif // TENSOR_DATA_CPU_IMPL_HPP

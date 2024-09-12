@@ -4,9 +4,9 @@
 #include <iostream>
 #include <vector>
 #include <random>
-#include "../Tensor/Tensor.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> generateLinearDataset(int num_samples, float noise=1.0) {
     std::vector<Tensor<float>> inputs;
@@ -62,6 +62,6 @@ std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> generateBatche
     return {input_batches, target_batches};
 }
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // SAMPLE_GENERATOR_HPP

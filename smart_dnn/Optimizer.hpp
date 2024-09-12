@@ -2,9 +2,9 @@
 #define OPTIMIZER_HPP
 
 #include <vector>
-#include "Tensor/Tensor.hpp"
+#include "tensor/Tensor.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T=float>
 class Optimizer {
@@ -20,6 +20,6 @@ public:
     virtual inline void load(std::istream& is) { (void)is; };
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // OPTIMIZER_HPP

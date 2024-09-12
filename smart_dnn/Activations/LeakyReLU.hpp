@@ -1,12 +1,12 @@
 #ifndef LEAKY_RELU_HPP
 #define LEAKY_RELU_HPP
 
-#include "../Activation.hpp"
-#include "../Tensor/Tensor.hpp"
-#include "../Tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Activation.hpp"
+#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
 #include <algorithm>
 
-namespace smart_dnn {
+namespace sdnn {
 
 /*
 
@@ -36,6 +36,6 @@ private:
     T alpha;
 };
 
-}
+} // namespace sdnn
 
 #endif // LEAKY_RELU_HPP

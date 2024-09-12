@@ -2,14 +2,14 @@
 #define TEST_ACTIVATIONS_CPP
 
 #include <gtest/gtest.h>
-#include "../../smart_dnn/Activations/ReLU.hpp"
-#include "../../smart_dnn/Activations/LeakyReLU.hpp"
-#include "../../smart_dnn/Activations/Sigmoid.hpp"
-#include "../../smart_dnn/Activations/Softmax.hpp"
-#include "../../smart_dnn/Activations/Tanh.hpp"
+#include "smart_dnn/activations/ReLU.hpp"
+#include "smart_dnn/activations/LeakyReLU.hpp"
+#include "smart_dnn/activations/Sigmoid.hpp"
+#include "smart_dnn/activations/Softmax.hpp"
+#include "smart_dnn/activations/Tanh.hpp"
 #include <cmath>
 
-namespace smart_dnn {
+namespace sdnn {
 
 // Helper function to check if two floats are approximately equal
 bool approxEqual(float a, float b, float epsilon = 1e-5f) {
@@ -163,6 +163,6 @@ TEST(TanhTest, BackwardPass) {
     }
 }
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // TEST_ACTIVATIONS_CPP

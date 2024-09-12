@@ -1,16 +1,15 @@
 #ifndef ADVANCED_TENSOR_OPERATIONS_HPP
 #define ADVANCED_TENSOR_OPERATIONS_HPP
 
+#include <functional>
 #include "TensorData.hpp"
 #include "DeviceTypes.hpp"
 #include "Tensor.hpp"
-#include "../Shape/ShapeOperations.hpp"
-#include "../Tensor/SliceView.hpp"
-#include "../Tensor/TensorOperations.hpp"
-#include "../Tensor/BroadcastView.hpp"
-#include <functional>
+#include "smart_dnn/shape/ShapeOperations.hpp"
+#include "smart_dnn/tensor/TensorOperations.hpp"
+#include "smart_dnn/tensor/BroadcastView.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 // Forward declaration of the primary template
 template <typename T, typename DeviceType=CPUDevice>
@@ -626,6 +625,6 @@ private:
     
 };
 
-}; // namespace smart_dnn
+}; // namespace sdnn
 
 #endif // ADVANCED_TENSOR_OPERATIONS_HPP

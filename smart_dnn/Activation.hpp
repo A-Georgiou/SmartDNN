@@ -1,9 +1,9 @@
 #ifndef ACTIVATION_HPP
 #define ACTIVATION_HPP
 
-#include "Tensor/Tensor.hpp"
+#include "tensor/Tensor.hpp"
 
-namespace smart_dnn {
+namespace sdnn {
 
 template <typename T>
 class Activation {
@@ -13,6 +13,6 @@ public:
     virtual Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const= 0;
 };
 
-} // namespace smart_dnn
+} // namespace sdnn
 
 #endif // ACTIVATION_HPP
