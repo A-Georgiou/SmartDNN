@@ -99,6 +99,14 @@ namespace sdnn {
         std::memcpy((*data_).data(), data.data(), shape.size() * sizeof(T));
     }
 
+    template<typename T>
+    CPUTensor::CPUTensor(const Shape& shape, const T* data, dtype type)
+        : shape_(shape), type_(type) {
+        size_t total_elements = shape.size();
+        allocateMemory(total_elements * sizeof(T));
+        std::memcpy((*data_).data(), data, total_elements * sizeof(T));
+    }
+
     template<typename TargetType>
     void writeElement(void* buffer, size_t index, double value) {
         static_cast<TargetType*>(buffer)[index] = static_cast<TargetType>(value);

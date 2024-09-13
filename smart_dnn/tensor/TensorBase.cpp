@@ -2,25 +2,9 @@
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"  // Full definition required for std::unique_ptr
 #include "smart_dnn/tensor/TensorBackend.hpp"
 #include "smart_dnn/tensor/TensorBackendUtil.hpp"
-#include "smart_dnn/tensor/TensorView.hpp"
 
 namespace sdnn {
-/*
-
-HELPER FUNCTIONS
-
-*/
-
-template <typename T>
-dtype dtypeFromType() {
-    return dtype_trait<T>::value;
-}
-
-template <typename T>
-bool Tensor::isSameType() const {
-    return type() == dtype_trait<T>::value;
-}
-
+    
 /*
 
 TENSOR CLASS IMPLEMENTATION
@@ -30,10 +14,6 @@ TENSOR CLASS IMPLEMENTATION
 Tensor::~Tensor() = default;
 
 Tensor::Tensor(std::unique_ptr<TensorAdapter> tensorImpl): tensorImpl_(std::move(tensorImpl)) {}
-
-template <typename T>
-Tensor::Tensor(const Shape& shape, const std::vector<T>& data)
-    : tensorImpl_(createTensorAdapter(shape, data.data(), dtype_trait<T>::value)) {}
 
 Tensor::Tensor(const Tensor& tensor)
     : tensorImpl_(tensor.tensorImpl_->clone()) {}
@@ -95,11 +75,11 @@ Tensor& Tensor::operator/=(const double& scalar) {
     return *this;
 }
 
-TensorView Tensor::operator[](const std::initializer_list<size_t>& indices) {
+Tensor Tensor::operator[](const std::initializer_list<size_t>& indices) {
     return tensorImpl_->at(indices);
 }
 
-TensorView Tensor::operator[](const std::vector<size_t>& indices) {
+Tensor Tensor::operator[](const std::vector<size_t>& indices) {
     return tensorImpl_->at(indices);
 }
 
@@ -112,28 +92,7 @@ bool Tensor::operator!=(const Tensor& other) const{
     return !(tensorImpl_->equal(other));
 }
 
-template <typename T>
-T Tensor::at(size_t index) const {
-    if (!isSameType<T>()) {
-        throw std::invalid_argument(
-            "Tensor::at: requested type does not match tensor type"
-        );
-    }
-    T out;
-    tensorImpl_->at(index, &out);
-    return out;
-}
 
-template <typename T>
-T Tensor::at(const std::vector<size_t>& indices) const {
-    if (!isSameType<T>()) {
-        throw std::invalid_argument(
-            "Tensor::at: requested type does not match tensor type");
-    }
-    T out;
-    tensorImpl_->at(indices, &out);
-    return out;
-}
 
 void Tensor::set(size_t index, const double& value) {
     tensorImpl_->set(index, value);

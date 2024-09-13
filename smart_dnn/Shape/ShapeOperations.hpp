@@ -76,6 +76,23 @@ public:
         return flatIndex;
     }
 
+    static std::vector<size_t> unflattenIndex(size_t flatIndex, const Shape& shape) {
+        std::vector<size_t> indices(shape.rank());
+        const std::vector<size_t>& strides = shape.getStride();
+
+        if (flatIndex >= shape.size()) {
+            throw std::out_of_range("Flat index out of bounds");
+        }
+
+        for (int i = 0; i < shape.rank(); ++i) {
+            indices[i] = flatIndex / strides[i];
+            flatIndex %= strides[i];
+        }
+
+        return indices;
+    }
+
+
 } // namespace smart_dnn
 
 #endif // SHAPE_OPERATIONS_HPP

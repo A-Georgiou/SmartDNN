@@ -2,8 +2,8 @@
 #define TENSOR_CREATION_UTIL_HPP
 
 #include <memory>
-#include "smart_dnn/tensor/TensorAdapterBase.hpp" // Include TensorAdapterBase
-#include "smart_dnn/tensor/Backend/Default/CPUTensor.hpp"  // Include CPUTensor definition
+#include "smart_dnn/tensor/TensorAdapterBase.hpp"
+#include "smart_dnn/tensor/Backend/Default/CPUTensor.hpp"
 
 namespace sdnn {
 
@@ -13,7 +13,6 @@ namespace sdnn {
     #if USE_ARRAYFIRE_TENSORS
         return std::make_unique<ArrayFireTensorAdapter>(std::forward<Args>(args)...);
     #else
-        // Create CPUTensor and return as std::unique_ptr<TensorAdapter>
         return std::make_unique<CPUTensor>(std::forward<Args>(args)...);
     #endif
     }

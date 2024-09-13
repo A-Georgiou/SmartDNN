@@ -3,6 +3,7 @@
 #include <memory>
 #include "smart_dnn/tensor/TensorBase.hpp"
 #include "smart_dnn/tensor/Backend/Default/CPUTensor.hpp"
+#include "smart_dnn/tensor/Backend/Default/BroadcastView.hpp"
 
 namespace sdnn {
 
@@ -27,31 +28,41 @@ Tensor applyOperation(const Tensor& a, Op operation) {
 
 template<typename Op>
 Tensor elementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
-    if (a.shape() != b.shape() || a.type() != b.type()) {
-        throw std::invalid_argument("Tensor shapes/types do not match for operation");
-    }
+    const Shape& shapeA = a.shape();
+    const Shape& shapeB = b.shape();
+    Shape broadcastShape = ShapeOperations::broadcastShapes(shapeA, shapeB);
 
-    auto result = std::make_unique<CPUTensor>(a.shape(), a.type());
-    const auto& a_cpu = a.getImpl<CPUTensor>();
-    const auto& b_cpu = b.getImpl<CPUTensor>();
+    auto result = std::make_unique<CPUTensor>(broadcastShape, a.type());
 
     result->applyTypedOperation([&](auto* type_ptr) {
         using T = std::remove_pointer_t<decltype(type_ptr)>;
-        const T* a_data = a_cpu.typedData<T>();
-        const T* b_data = b_cpu.typedData<T>();
+        
+        BroadcastView<T> viewA(a, broadcastShape);
+        BroadcastView<T> viewB(b, broadcastShape);
+
         T* result_data = result->typedData<T>();
 
-        for (size_t i = 0; i < a.shape().size(); ++i) {
-            result_data[i] = operation(a_data[i], b_data[i]);
+        for (size_t i = 0; i < broadcastShape.size(); ++i) {
+            result_data[i] = operation(viewA[i], viewB[i]);
         }
     });
 
     return Tensor(std::move(result));
 }
 
+
+template<typename Op>
+void applyBroadcastView(const Tensor& tensor, const Shape& broadcastShape, Op op) {
+    applyTypedOperationHelper(tensor.type(), [&](auto dummy) {
+        using T = decltype(dummy);
+        BroadcastView<T> view(tensor, broadcastShape);
+        op(view);
+    });
+}
+
 template<typename Op>
 Tensor scalarOp(const Tensor& a, const double& scalar, Op operation) {
-    std::unique_ptr<CPUTensor> result = std::make_unique<CPUTensor>(a.shape(), a.type());
+    auto result = std::make_unique<CPUTensor>(a.shape(), a.type());
     const auto& a_cpu = a.getImpl<CPUTensor>();
 
     result->applyTypedOperation([&](auto* type_ptr) {

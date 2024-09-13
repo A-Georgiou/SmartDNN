@@ -26,6 +26,9 @@ public:
     template<typename T>
     CPUTensor(const Shape& shape, const std::vector<T>& data);
 
+    template<typename T>
+    CPUTensor(const Shape& shape, const T* data, dtype type);
+
     // Copy and move
     CPUTensor(const CPUTensor& other);
     CPUTensor(CPUTensor&& other) noexcept;

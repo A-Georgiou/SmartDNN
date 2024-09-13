@@ -30,9 +30,9 @@ add_executable(SmartDNN
     src/main.cpp
     smart_dnn/tensor/TensorBase.cpp
     smart_dnn/tensor/TensorAdapterBase.cpp
+    smart_dnn/tensor/TensorBackendUtil.cpp
     smart_dnn/tensor/Backend/Default/CPUTensor.cpp
     smart_dnn/tensor/Backend/Default/CPUTensorBackend.cpp
-    smart_dnn/tensor/TensorBackendUtil.cpp
 )
 
 # Link ArrayFire library to SmartDNN executable

@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/shape/ShapeOperations.hpp"
 #include "smart_dnn/DTypes.hpp"
 
 // Forward declare TensorAdapter and TensorBackend
@@ -11,7 +12,9 @@ namespace sdnn {
 
 class TensorAdapter;
 class TensorBackend;
-class TensorView;
+
+template<typename... Args>
+std::unique_ptr<TensorAdapter> createTensorAdapter(Args&&... args);
 
 class Tensor {
 public:
@@ -22,6 +25,7 @@ public:
 
     template <typename T>
     Tensor(const Shape& shape, const std::vector<T>& data);
+
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept;
 
@@ -40,18 +44,12 @@ public:
     Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other) noexcept;
 
-    TensorView operator[](const std::initializer_list<size_t>& indices);
-    TensorView operator[](const std::vector<size_t>& indices);
+    Tensor operator[](const std::initializer_list<size_t>& indices);
+    Tensor operator[](const std::vector<size_t>& indices);
 
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;
-
-    template <typename T>
-    T at(size_t index) const;
-    
-    template <typename T>
-    T at(const std::vector<size_t>& indices) const;
-
+        
     void set(size_t index, const double& value);
     void set(const std::vector<size_t>& indices, const double& value);
 
@@ -63,19 +61,24 @@ public:
     std::string toDataString() const;
 
     template <typename T>
+    T at(const std::vector<size_t>& indices) const;
+
+    template <typename T>
+    T at(size_t index) const;
+
+    template <typename T>
     bool isSameType() const;
 
     template <typename T>
-    const T& getImpl() const  {
-        const T* impl = dynamic_cast<const T*>(tensorImpl_.get());
-        if (!impl) {
-            throw std::runtime_error("Invalid tensor implementation type");
-        }
-        return *impl;
-    }
+    const T& getImpl() const;
 protected:
     Tensor() = default;
 };
+
+template <typename T>
+dtype dtypeFromType() {
+    return dtype_trait<T>::value;
+}
 
 // Free functions for element-wise operations
 Tensor add(const Tensor& lhs, const Tensor& rhs);
@@ -123,5 +126,8 @@ Tensor rand(const Shape& shape, dtype type = dtype::f32);
 Tensor fill(const Shape& shape, dtype type = dtype::f32, const double& fillValue = 0.0f);
 
 }; // namespace sdnn
+
+#include "smart_dnn/tensor/TensorAdapterBase.hpp"
+#include "smart_dnn/tensor/TensorBase.tpp"
 
 #endif // TENSOR_BASE_HPP
