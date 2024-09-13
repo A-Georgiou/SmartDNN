@@ -1,169 +1,136 @@
 #ifndef CPU_TENSOR_HPP
 #define CPU_TENSOR_HPP
 
-#include <iomanip>
-#include <functional>
-#include <memory>
 #include <vector>
-#include <initializer_list>
+#include <memory>
+#include <stdexcept>
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"
+#include "smart_dnn/tensor/TensorBase.hpp"
 
 namespace sdnn {
 
-// Base class for holding data of any type
-class DataHolder {
-public:
-    virtual ~DataHolder() = default;
-
-    // Virtual method to clone the data (for copying purposes)
-    virtual std::unique_ptr<DataHolder> clone() const = 0;
-
-    virtual const std::type_info& getType() const = 0;
-
-    // Virtual method to return a pointer to the data
-    virtual void* getData() = 0;
-    virtual const void* getData() const = 0;
-
-    // Virtual method to return the size of the data
-    virtual size_t getSize() const = 0;
-};
-
-// Templated class for holding our data - This is a migration of how TensorData worked
-template<typename T>
-class TypedDataHolder : public DataHolder {
-public:
-    TypedDataHolder(size_t size) : data_(std::make_unique<T[]>(size)), size_(size) {}
-
-    std::unique_ptr<DataHolder> clone() const override {
-        auto cloned = std::make_unique<TypedDataHolder<T>>(size_);
-        std::copy(data_.get(), data_.get() + size_, cloned->data_.get());
-        return cloned;
-    }
-
-    const std::type_info& getType() const override {
-        return typeid(T);
-    }
-    
-    void* getData() override {
-        return static_cast<void*>(data_.get());
-    }
-
-    const void* getData() const override {
-        return static_cast<void*>(data_.get());
-    }
-
-    size_t getSize() const override {
-        return size_;
-    }
-
-    T& operator[](size_t index) {
-        if (index >= size_) {
-            throw std::out_of_range("Index out of bounds");
-        }
-        return data_[index];
-    }
-
-    const T& operator[](size_t index) const {
-        if (index >= size_) {
-            throw std::out_of_range("Index out of bounds");
-        }
-        return data_[index];
-    }
-
-private:
-    std::unique_ptr<T[]> data_;
-    size_t size_;
-};
-
+class TensorView;
 
 class CPUTensor : public TensorAdapter {
 public:
     CPUTensor() = default;
-    ~CPUTensor() override = default;
+    ~CPUTensor() override;
 
-    // Constructor with shape and dtype
+    // Constructors
     CPUTensor(const Shape& shape, dtype type = dtype::f32);
-
-    // Constructor with shape, data pointer, and dtype
-    CPUTensor(const Shape& shape, const void* data, dtype type);
-
-    // Constructor with shape, std::vector, and dtype
+    CPUTensor(const Shape& shape, const double* data, dtype type = dtype::f32);
     CPUTensor(const Shape& shape, const std::vector<double>& data, dtype type = dtype::f32);
+    
+    template<typename T>
+    CPUTensor(const Shape& shape, const std::vector<T>& data);
 
-    // Constructor with shape and fill value (overload for double)
-    CPUTensor(const Shape& shape, double value, dtype type = dtype::f32);
-
-    // Copy constructor
+    // Copy and move
     CPUTensor(const CPUTensor& other);
+    CPUTensor(CPUTensor&& other) noexcept;
+    CPUTensor& operator=(const CPUTensor& other);
+    CPUTensor& operator=(CPUTensor&& other) noexcept;
 
-    // Move constructor
-    CPUTensor(CPUTensor&& other) noexcept = default;
+    TensorView operator[](size_t index);
+    const TensorView operator[](size_t index) const;
 
     // Data access
-    void data(void* out) override;
-    const Shape& shape() const override { return shape_; };
-    size_t size() const override { return shape_.size(); };
+    void* data() override { return data_.data(); }
+    const void* data() const override { return data_.data(); }
+    const Shape& shape() const override { return shape_; }
+    const std::vector<size_t>& stride() const override { return shape_.getStride(); }
+    size_t size() const override { return shape_.size(); }
     dtype type() const override { return type_; }
 
-    // Basic operations
-    Tensor addInPlace(const Tensor& other) override;
-    Tensor subtractInPlace(const Tensor& other) override;
-    Tensor multiplyInPlace(const Tensor& other) override;
-    Tensor divideInPlace(const Tensor& other) override;
+    Tensor at(const std::vector<size_t>& indices) const override;
+    void set(const std::vector<size_t>& indices, const double& value) override;
+    void set(size_t index, const double& value) override;
 
-    // Comparison operator
+    // Operations
+    void addInPlace(const Tensor& other) override;
+    void subtractInPlace(const Tensor& other) override;
+    void multiplyInPlace(const Tensor& other) override;
+    void divideInPlace(const Tensor& other) override;
+
+    void addScalarInPlace(double scalar) override;
+    void subtractScalarInPlace(double scalar) override;
+    void multiplyScalarInPlace(double scalar) override;
+    void divideScalarInPlace(double scalar) override;
+
+    // Utility functions
     bool equal(const Tensor& other) const override;
+    bool greaterThan(const Tensor& other) const override;
+    bool lessThan(const Tensor& other) const override;
 
-    // Scalar operations
-    Tensor addScalarInPlace(double scalar) override;
-    Tensor subtractScalarInPlace(double scalar) override;
-    Tensor multiplyScalarInPlace(double scalar) override;
-    Tensor divideScalarInPlace(double scalar) override;
+    std::string toString() override;
+    std::string toDataString() override;
 
-    // String representation
-    std::string toString() const override;
-    std::string toDataString() const override;
-
-    // Fill the tensor with a given value
+    template<typename T>
+    void fill(T value);
     void fill(const double& value) override;
 
-    // Element access
-    double CPUTensor::at(size_t index) const;
-
-    Tensor at(const std::vector<size_t>& indices) const override;
-    void set(size_t index, const double& value) override;
-    void set(const std::vector<size_t>& indices, const double& value) override;
-
-    // Shape operations
     void reshape(const Shape& newShape) override;
-
-    // Memory management
     std::unique_ptr<TensorAdapter> clone() const override;
-
-    // Backend access
     TensorBackend& backend() const override;
+
+    template<typename TypedOp>
+    void applyTypedOperation(TypedOp op);
+
+    template<typename TypedOp>
+    void applyTypedOperation(TypedOp op) const;
+
+    template<typename CompOp>
+    bool elementWiseComparison(const Tensor& other, CompOp op) const;
+
+    template<typename Op>
+    void elementWiseOperation(const Tensor& other, Op op);
+
+    template<typename Op>
+    void scalarOperation(double scalar, Op op);
+
+    template<typename T>
+    T* typedData() {
+        return safe_cast<std::remove_pointer_t<T>>(data_.data(), type_);
+    }
+
+    template<typename T>
+    const T* typedData() const {
+        return safe_cast<const std::remove_pointer_t<T>>(data_.data(), type_);
+    }
+
+    // Element access
+    template<typename T>
+    T at(size_t index) const {
+        if (index >= shape_.size()) {
+            throw std::out_of_range("Index out of range");
+        }
+        return typedData<T>()[index];
+    }
+
+    template<typename T>
+    void set(size_t index, T value) {
+        if (index >= shape_.size()) {
+            throw std::out_of_range("Index out of range");
+        }
+        typedData<T>()[index] = value;
+    }
 
 private:
     Shape shape_;
     dtype type_;
-    std::unique_ptr<DataHolder> data_;
+    std::vector<char> data_;
 
-    // Helper function to allocate memory based on dtype
-    void allocateMemory(dtype type, size_t size);
+    void allocateMemory(size_t size);
+    friend class TensorView;
 
-    // Helper function to get the size of a dtype in bytes
-    size_t getDtypeSize(dtype type) const;
-
-    // Helper function to create a DataHolder based on dtype
-    std::unique_ptr<DataHolder> createDataHolder(dtype type, size_t size);
-
-    template <typename T>
-    bool isCorrectType() const;
+    // Helper functions for value access and modification
+    double getValueAsDouble(size_t index) const;
+    void setValueFromDouble(size_t index, double value);
 };
+
 } // namespace sdnn
 
-#include "smart_dnn/tensor/Backend/Default/CPUTensor.impl.hpp"
+#include "CPUTensor.tpp"
 
 #endif // CPU_TENSOR_HPP

@@ -3,6 +3,12 @@
 
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorBackend.hpp" 
+#include <algorithm>
+#include <vector>
+#include <stdexcept>
+#include <memory>
+#include <vector>
+#include <string>
 
 namespace sdnn {
 
@@ -13,7 +19,7 @@ public:
     CPUTensorBackend() = default;
     ~CPUTensorBackend();
 
-    Tensor createTensor(const Shape& shape, const void* data, dtype type) const override;
+    Tensor createTensor(const Shape& shape, const double* data, dtype type) const override;
 
     Tensor fill(const Shape& shape, double value, dtype type) const override;
 
@@ -70,9 +76,7 @@ public:
     void print(const Tensor& tensor) override;
 };
 
-
 }; // namespace sdnn
-
 
 
 #endif // CPU_TENSOR_BACKEND_HPP

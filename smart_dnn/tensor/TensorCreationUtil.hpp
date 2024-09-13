@@ -14,7 +14,7 @@ namespace sdnn {
         return std::make_unique<ArrayFireTensorAdapter>(std::forward<Args>(args)...);
     #else
         // Create CPUTensor and return as std::unique_ptr<TensorAdapter>
-        return std::make_unique<CPUTensor<float>>(std::forward<Args>(args)...);
+        return std::make_unique<CPUTensor>(std::forward<Args>(args)...);
     #endif
     }
 

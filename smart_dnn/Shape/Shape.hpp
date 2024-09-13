@@ -9,6 +9,7 @@
 namespace sdnn {
 
 struct Shape {
+    Shape() = default;
     ~Shape() = default;
 
     Shape(const Shape& other) noexcept

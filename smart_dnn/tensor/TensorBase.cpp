@@ -94,6 +94,15 @@ Tensor& Tensor::operator/=(const double& scalar) {
     return *this;
 }
 
+Tensor Tensor::operator[](const std::initializer_list<size_t>& indices) {
+    return tensorImpl_->at(indices);
+}
+
+Tensor Tensor::operator[](const std::vector<size_t>& indices) {
+    return tensorImpl_->at(indices);
+}
+
+
 bool Tensor::operator==(const Tensor& other) const{
     return tensorImpl_->equal(other);
 }
@@ -152,7 +161,6 @@ std::string Tensor::toString() const {
 std::string Tensor::toDataString() const {
     return tensorImpl_->toDataString();
 }
-
 
 
 /*
@@ -262,23 +270,20 @@ Tensor mean(const Tensor& input, const std::vector<int>& axes, bool keepDims){
 }
 
 Tensor zeros(const Shape& shape, dtype type) {
-    std::cout << "zeros" << std::endl;
     return defaultTensorBackend().fill(shape, 0.0, type);
 }
 
 Tensor ones(const Shape& shape, dtype type) {
-    std::cout << "ones" << std::endl;
     return defaultTensorBackend().fill(shape, 1.0, type);
 }
 
 Tensor rand(const Shape& shape, dtype type) {
-    std::cout << "rand" << std::endl;
-    //return defaultTensorBackend().rand(shape, type);
+    return defaultTensorBackend().rand(shape, type);
 }
 
 Tensor fill(const Shape& shape, dtype type, const double& fillValue) {
     std::cout << "fill" << std::endl;
-    //return defaultTensorBackend().fill(shape, fillValue, type);
+    return defaultTensorBackend().fill(shape, fillValue, type);
 }
 
 }; // namespace sdnn

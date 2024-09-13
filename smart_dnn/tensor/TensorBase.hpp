@@ -23,7 +23,6 @@ public:
     Tensor(const Shape& shape, const std::vector<T>& data);
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept;
-    
 
     // Core operations (in-place)
     Tensor& operator+=(const Tensor& other);
@@ -39,6 +38,9 @@ public:
 
     Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other) noexcept;
+
+    Tensor operator[](const std::initializer_list<size_t>& indices);
+    Tensor operator[](const std::vector<size_t>& indices);
 
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;
@@ -61,6 +63,15 @@ public:
 
     template <typename T>
     bool isSameType() const;
+
+    template <typename T>
+    const T& getImpl() const  {
+        const T* impl = dynamic_cast<const T*>(tensorImpl_.get());
+        if (!impl) {
+            throw std::runtime_error("Invalid tensor implementation type");
+        }
+        return *impl;
+    }
 protected:
     Tensor() = default;
 };
@@ -88,6 +99,11 @@ Tensor operator+(const Tensor& tensor, const double& scalar);
 Tensor operator-(const Tensor& tensor, const double& scalar);
 Tensor operator*(const Tensor& tensor, const double& scalar);
 Tensor operator/(const Tensor& tensor, const double& scalar);
+
+Tensor operator+(const double& scalar, const Tensor& tensor);
+Tensor operator-(const double& scalar, const Tensor& tensor);
+Tensor operator*(const double& scalar, const Tensor& tensor);
+Tensor operator/(const double& scalar, const Tensor& tensor);
 
 // Other operations
 Tensor matmul(const Tensor& lhs, const Tensor& rhs);

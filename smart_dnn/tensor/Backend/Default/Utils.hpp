@@ -28,5 +28,4 @@ namespace sdnn {
         }
     }
 
-}
 } // namespace sdnn

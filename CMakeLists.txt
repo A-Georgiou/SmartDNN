@@ -18,9 +18,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frtti")
 
 # Compiler-specific flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
-    set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(CMAKE_CXX_FLAGS "/W4")
     set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od")
@@ -32,6 +29,8 @@ include_directories(${PROJECT_SOURCE_DIR})
 add_executable(SmartDNN
     src/main.cpp
     smart_dnn/tensor/TensorBase.cpp
+    smart_dnn/tensor/TensorAdapterBase.cpp
+    smart_dnn/tensor/Backend/Default/CPUTensor.cpp
     smart_dnn/tensor/Backend/Default/CPUTensorBackend.cpp
     smart_dnn/tensor/TensorBackendUtil.cpp
 )
