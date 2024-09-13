@@ -6,7 +6,7 @@
 #include "smart_dnn/shape/ShapeOperations.hpp"
 #include "smart_dnn/tensor/Backend/Default/CPUTensorBackend.hpp"
 #include "smart_dnn/shape/Shape.hpp"
-#include "smart_dnn/tensor/Backend/Default/TensorView.hpp"
+#include "smart_dnn/tensor/TensorView.hpp"
 #include <typeindex>
 #include <memory>
 
@@ -97,18 +97,16 @@ const TensorView CPUTensor::operator[](size_t index) const {
 
 void CPUTensor::set(const std::vector<size_t>& indices, const double& value) {
     size_t flatIndex = computeFlatIndex(shape_, indices);
-    typedData<double>()[flatIndex] = value;
+    setValueFromDouble(flatIndex, value);
 }
 
 void CPUTensor::set(size_t index, const double& value){
-    typedData<double>()[index] = value;
+    setValueFromDouble(index, value);
 }
 
-Tensor CPUTensor::at(const std::vector<size_t>& indices) const {
+TensorView CPUTensor::at(const std::vector<size_t>& indices) const {
     size_t flatIndex = computeFlatIndex(shape_, indices);
-    size_t byteOffset = flatIndex * dtype_size(type_);
-    const double* elementPtr = reinterpret_cast<const double*>(data_.data()) + byteOffset;
-    return backend().createTensor({1}, elementPtr, type_);
+    return TensorView(const_cast<CPUTensor&>(*this), flatIndex);
  }
 
 void CPUTensor::addInPlace(const Tensor& other) {

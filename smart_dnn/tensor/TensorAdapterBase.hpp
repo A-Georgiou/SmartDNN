@@ -9,6 +9,7 @@ namespace sdnn {
 
 class Tensor;
 class TensorBackend;
+class TensorView;
 
 class TensorAdapter {
 public:
@@ -56,7 +57,7 @@ public:
     virtual void fill(const double& value) = 0;
 
     // Element access.
-    virtual Tensor at(const std::vector<size_t>& indices) const = 0;
+    virtual TensorView at(const std::vector<size_t>& indices) const = 0;
     virtual void set(size_t index, const double& value) = 0;
     virtual void set(const std::vector<size_t>& indices, const double& value) = 0;
 
@@ -68,6 +69,11 @@ public:
 
     // Backend access
     virtual TensorBackend& backend() const = 0;
+
+    virtual double getValueAsDouble(size_t index) const = 0;
+    virtual void setValueFromDouble(size_t index, double value) = 0;
+
+    friend class TensorView;
 };
 
 } // namespace sdnn

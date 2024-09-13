@@ -11,6 +11,7 @@ namespace sdnn {
 
 class TensorAdapter;
 class TensorBackend;
+class TensorView;
 
 class Tensor {
 public:
@@ -39,8 +40,8 @@ public:
     Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other) noexcept;
 
-    Tensor operator[](const std::initializer_list<size_t>& indices);
-    Tensor operator[](const std::vector<size_t>& indices);
+    TensorView operator[](const std::initializer_list<size_t>& indices);
+    TensorView operator[](const std::vector<size_t>& indices);
 
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;

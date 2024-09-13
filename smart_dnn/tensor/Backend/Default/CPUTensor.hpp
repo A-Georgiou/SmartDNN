@@ -43,7 +43,7 @@ public:
     size_t size() const override { return shape_.size(); }
     dtype type() const override { return type_; }
 
-    Tensor at(const std::vector<size_t>& indices) const override;
+    TensorView at(const std::vector<size_t>& indices) const override;
     void set(const std::vector<size_t>& indices, const double& value) override;
     void set(size_t index, const double& value) override;
 
@@ -116,17 +116,16 @@ public:
         typedData<T>()[index] = value;
     }
 
+    double getValueAsDouble(size_t index) const override;
+    void setValueFromDouble(size_t index, double value) override;
+
 private:
     Shape shape_;
     dtype type_;
     std::vector<char> data_;
 
     void allocateMemory(size_t size);
-    friend class TensorView;
 
-    // Helper functions for value access and modification
-    double getValueAsDouble(size_t index) const;
-    void setValueFromDouble(size_t index, double value);
 };
 
 } // namespace sdnn

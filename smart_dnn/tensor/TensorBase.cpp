@@ -2,6 +2,7 @@
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"  // Full definition required for std::unique_ptr
 #include "smart_dnn/tensor/TensorBackend.hpp"
 #include "smart_dnn/tensor/TensorBackendUtil.hpp"
+#include "smart_dnn/tensor/TensorView.hpp"
 
 namespace sdnn {
 /*
@@ -94,11 +95,11 @@ Tensor& Tensor::operator/=(const double& scalar) {
     return *this;
 }
 
-Tensor Tensor::operator[](const std::initializer_list<size_t>& indices) {
+TensorView Tensor::operator[](const std::initializer_list<size_t>& indices) {
     return tensorImpl_->at(indices);
 }
 
-Tensor Tensor::operator[](const std::vector<size_t>& indices) {
+TensorView Tensor::operator[](const std::vector<size_t>& indices) {
     return tensorImpl_->at(indices);
 }
 

@@ -1,26 +1,29 @@
-#include "smart_dnn/tensor/Backend/Default/CPUTensor.hpp"
+#ifndef TENSOR_VIEW_HPP
+#define TENSOR_VIEW_HPP
+
+#include "smart_dnn/tensor/TensorAdapterBase.hpp"
 
 namespace sdnn{
 
 class TensorView {
     public:
-        TensorView(CPUTensor& tensor, size_t index)
+        TensorView(TensorAdapter& tensor, size_t index)
             : tensor_(tensor), index_(index) {}
 
-        // Implicit conversion to double for reading values
         operator double() const {
             return tensor_.getValueAsDouble(index_);
         }
 
-        // Assignment operator for setting values
         TensorView& operator=(double value) {
             tensor_.setValueFromDouble(index_, value);
             return *this;
         }
 
     private:
-        CPUTensor& tensor_;
+        TensorAdapter& tensor_;
         size_t index_;
 };
 
 }
+
+#endif // TENSOR_VIEW_HPP
