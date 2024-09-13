@@ -164,6 +164,18 @@ void CPUTensor::reshape(const Shape& newShape) {
     shape_ = newShape;
 }
 
+void CPUTensor::apply(const std::function<void(double&)>& func) {
+        applyTypedOperation([&](auto* type_ptr) {
+            using T = std::remove_pointer_t<decltype(type_ptr)>;
+            T* data = this->typedData<T>();
+            for (size_t i = 0; i < this->size(); ++i) {
+                double value = static_cast<double>(data[i]);
+                func(value);
+                data[i] = static_cast<T>(value);
+            }
+        });
+    }
+
 std::unique_ptr<TensorAdapter> CPUTensor::clone() const {
     return std::make_unique<CPUTensor>(*this);
 }

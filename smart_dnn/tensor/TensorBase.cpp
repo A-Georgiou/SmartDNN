@@ -83,7 +83,6 @@ Tensor Tensor::operator[](const std::vector<size_t>& indices) {
     return tensorImpl_->at(indices);
 }
 
-
 bool Tensor::operator==(const Tensor& other) const{
     return tensorImpl_->equal(other);
 }
@@ -91,8 +90,6 @@ bool Tensor::operator==(const Tensor& other) const{
 bool Tensor::operator!=(const Tensor& other) const{
     return !(tensorImpl_->equal(other));
 }
-
-
 
 void Tensor::set(size_t index, const double& value) {
     tensorImpl_->set(index, value);
@@ -120,6 +117,10 @@ std::string Tensor::toString() const {
 
 std::string Tensor::toDataString() const {
     return tensorImpl_->toDataString();
+}
+
+void Tensor::apply(const std::function<void(double&)>& func) {
+    tensorImpl_->apply(func);
 }
 
 

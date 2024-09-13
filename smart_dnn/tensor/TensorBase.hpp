@@ -57,6 +57,8 @@ public:
     dtype type() const noexcept;
     const TensorBackend& backend() const;
 
+    void apply(const std::function<void(double&)>& func);
+
     std::string toString() const;
     std::string toDataString() const;
 

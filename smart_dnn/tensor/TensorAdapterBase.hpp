@@ -48,6 +48,8 @@ public:
     virtual void multiplyScalarInPlace(double scalar) = 0;
     virtual void divideScalarInPlace(double scalar) = 0;
 
+    virtual void apply(const std::function<void(double&)>& func) = 0;
+
     // String representation.
     virtual std::string toString() = 0;
     virtual std::string toDataString() = 0;

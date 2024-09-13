@@ -69,6 +69,8 @@ public:
     std::string toString() override;
     std::string toDataString() override;
 
+    void apply(const std::function<void(double&)>& func) override;
+
     template<typename T>
     void fill(T value);
     void fill(const double& value) override;
