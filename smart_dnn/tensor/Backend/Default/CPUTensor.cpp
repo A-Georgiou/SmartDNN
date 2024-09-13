@@ -6,36 +6,34 @@
 #include "smart_dnn/shape/ShapeOperations.hpp"
 #include "smart_dnn/tensor/Backend/Default/CPUTensorBackend.hpp"
 #include "smart_dnn/shape/Shape.hpp"
-#include "smart_dnn/tensor/TensorView.hpp"
 #include <typeindex>
 #include <memory>
 
 namespace sdnn {
 
 CPUTensor::~CPUTensor() {
-    data_.clear();
+    (*data_).clear();
 }
 
 CPUTensor::CPUTensor(const Shape& shape, dtype type)
-    : shape_(shape), type_(type) {
+    : shape_(shape), type_(type), data_(std::make_shared<std::vector<char>>()) {
     allocateMemory(shape.size() * dtype_size(type));
 }
 
 CPUTensor::CPUTensor(const Shape& shape, const double* data, dtype type)
-    : shape_(shape), type_(type) {
+    : shape_(shape), type_(type), data_(std::make_shared<std::vector<char>>()) {
     size_t total_elements = shape.size();
     allocateMemory(total_elements * dtype_size(type));
-
     for (size_t i = 0; i < total_elements; ++i) {
         applyTypedOperationHelper(type_, [this, &data, i](auto dummy) {
             using TargetType = decltype(dummy);
-            writeElement<TargetType>(data_.data(), i, data[i]);
+            writeElement<TargetType>((*data_).data(), i, data[i]);
         });
     }
 }
 
 CPUTensor::CPUTensor(const Shape& shape, const std::vector<double>& data, dtype type)
-    : shape_(shape), type_(type) {
+    : shape_(shape), type_(type), data_(std::make_shared<std::vector<char>>()) {
     if (shape.size() != data.size()) {
         throw std::invalid_argument("Data size does not match shape");
     }
@@ -43,22 +41,20 @@ CPUTensor::CPUTensor(const Shape& shape, const std::vector<double>& data, dtype 
     for (size_t i = 0; i < shape.size(); ++i){
         applyTypedOperationHelper(type, [this, &data, i](auto dummy) {
             using TargetType = decltype(dummy);
-            writeElement<TargetType>(data_.data(), i, data[i]);
+            writeElement<TargetType>((*data_).data(), i, data[i]);
         });
     }
 }
 
-CPUTensor::CPUTensor(const CPUTensor& other){
-    shape_ = other.shape_;
-    type_ = other.type_;
-    allocateMemory(shape_.size() * dtype_size(type_));
-    std::memcpy(data_.data(), other.data_.data(), shape_.size() * dtype_size(type_));
+CPUTensor::CPUTensor(const CPUTensor& other)
+    : shape_(other.shape_), type_(other.type_), data_(other.data_), indexMap_(other.indexMap_) {
 }
 
 CPUTensor::CPUTensor(CPUTensor&& other) noexcept {
     shape_ = std::move(other.shape_);
     type_ = std::move(other.type_);
     data_ = std::move(other.data_);
+    indexMap_ = std::move(other.indexMap_);
 }
 
 
@@ -66,8 +62,8 @@ CPUTensor& CPUTensor::operator=(const CPUTensor& other) {
     if (this != &other) {
         shape_ = other.shape_;
         type_ = other.type_;
-        allocateMemory(shape_.size() * dtype_size(type_));
-        std::memcpy(data_.data(), other.data_.data(), shape_.size() * dtype_size(type_));
+        data_ = other.data_; // Share the data
+        indexMap_ = other.indexMap_;
     }
     return *this;
 }
@@ -77,22 +73,23 @@ CPUTensor& CPUTensor::operator=(CPUTensor&& other) noexcept {
         shape_ = std::move(other.shape_);
         type_ = std::move(other.type_);
         data_ = std::move(other.data_);
+        indexMap_ = std::move(other.indexMap_);
     }
     return *this;
 }
 
-TensorView CPUTensor::operator[](size_t index) {
+Tensor CPUTensor::operator[](size_t index) {
     if (index >= shape_.size()) {
         throw std::out_of_range("Index out of range");
     }
-    return TensorView(*this, index);
+    return Tensor(at({index}));
 }
 
-const TensorView CPUTensor::operator[](size_t index) const {
+const Tensor CPUTensor::operator[](size_t index) const {
     if (index >= shape_.size()) {
         throw std::out_of_range("Index out of range");
     }
-    return TensorView(const_cast<CPUTensor&>(*this), index);
+    return Tensor(at({index}));
 }
 
 void CPUTensor::set(const std::vector<size_t>& indices, const double& value) {
@@ -104,9 +101,9 @@ void CPUTensor::set(size_t index, const double& value){
     setValueFromDouble(index, value);
 }
 
-TensorView CPUTensor::at(const std::vector<size_t>& indices) const {
+Tensor CPUTensor::at(const std::vector<size_t>& indices) const {
     size_t flatIndex = computeFlatIndex(shape_, indices);
-    return TensorView(const_cast<CPUTensor&>(*this), flatIndex);
+    return Tensor(at({flatIndex}));
  }
 
 void CPUTensor::addInPlace(const Tensor& other) {
@@ -194,8 +191,26 @@ void CPUTensor::fill(const double& value) {
     scalarOperation(value, [](auto& a, double b) { a = b; });
 }
 
+CPUTensor CPUTensor::subView(const std::vector<size_t>& indices) const {
+    std::vector<size_t> newIndexMap;
+    for (const auto& index : indices) {
+        newIndexMap.push_back(index); // Store the flat index directly
+    }
+
+    // The new shape will be 1-dimensional, equal to the number of selected indices
+    Shape newShape({static_cast<int>(indices.size())});
+
+    return CPUTensor(newShape, data_, std::move(newIndexMap), type_);
+}
+
+
+// Safer allocation.
 inline void CPUTensor::allocateMemory(size_t size) {
-    data_.resize(size);
+    if (!data_) {
+        data_ = std::make_shared<std::vector<char>>(size);
+    } else {
+        data_->resize(size);
+    }
 }
 
 TensorBackend& CPUTensor::backend() const {
@@ -204,15 +219,19 @@ TensorBackend& CPUTensor::backend() const {
 }
 
 double CPUTensor::getValueAsDouble(size_t index) const {
-    if (index >= shape_.size()) {
-        throw std::out_of_range("Index out of range");
+    if (!indexMap_.empty()) {
+        // If indexMap_ is not empty, use it to access the correct element
+        if (index >= indexMap_.size()) {
+            throw std::out_of_range("Index out of range");
+        }
+        index = indexMap_[index]; // Map the index to the flat data index
     }
 
     double result = 0.0;
 
     applyTypedOperationHelper(type_, [this, index, &result](auto dummy) {
         using T = decltype(dummy);
-        const T* data = reinterpret_cast<const T*>(data_.data());
+        const T* data = reinterpret_cast<const T*>((*data_).data());
         result = static_cast<double>(data[index]);
     });
 
@@ -226,7 +245,7 @@ void CPUTensor::setValueFromDouble(size_t index, double value) {
 
     applyTypedOperationHelper(type_, [this, index, value](auto dummy) {
         using T = decltype(dummy);
-        T* data = reinterpret_cast<T*>(data_.data());
+        T* data = reinterpret_cast<T*>((*data_).data());
         data[index] = static_cast<T>(value);
     });
 }

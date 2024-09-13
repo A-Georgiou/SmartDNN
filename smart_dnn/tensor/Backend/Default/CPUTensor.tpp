@@ -21,7 +21,7 @@ namespace sdnn {
     void CPUTensor::applyTypedOperation(TypedOp op) {
         applyTypedOperationHelper(type_, [this, &op](auto dummy) {
             using T = decltype(dummy);
-            op(reinterpret_cast<T*>(data_.data()));
+            op(reinterpret_cast<T*>((*data_).data()));
         });
     }
 
@@ -29,7 +29,7 @@ namespace sdnn {
     void CPUTensor::applyTypedOperation(TypedOp op) const {
         applyTypedOperationHelper(type_, [this, &op](auto dummy) {
             using T = decltype(dummy);
-            op(reinterpret_cast<const T*>(data_.data()));
+            op(reinterpret_cast<const T*>((*data_).data()));
         });
     }
 
@@ -96,7 +96,7 @@ namespace sdnn {
             throw std::invalid_argument("Data size does not match shape");
         }
         allocateMemory(shape.size() * sizeof(T));
-        std::memcpy(data_.data(), data.data(), shape.size() * sizeof(T));
+        std::memcpy((*data_).data(), data.data(), shape.size() * sizeof(T));
     }
 
     template<typename TargetType>

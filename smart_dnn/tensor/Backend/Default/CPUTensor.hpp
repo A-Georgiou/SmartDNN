@@ -11,8 +11,6 @@
 
 namespace sdnn {
 
-class TensorView;
-
 class CPUTensor : public TensorAdapter {
 public:
     CPUTensor() = default;
@@ -22,7 +20,9 @@ public:
     CPUTensor(const Shape& shape, dtype type = dtype::f32);
     CPUTensor(const Shape& shape, const double* data, dtype type = dtype::f32);
     CPUTensor(const Shape& shape, const std::vector<double>& data, dtype type = dtype::f32);
-    
+    CPUTensor(const Shape& shape, std::shared_ptr<std::vector<char>> sharedData, std::vector<size_t> indexMap, dtype type)
+        : shape_(shape), type_(type), data_(std::move(sharedData)), indexMap_(std::move(indexMap)) {}
+
     template<typename T>
     CPUTensor(const Shape& shape, const std::vector<T>& data);
 
@@ -32,18 +32,18 @@ public:
     CPUTensor& operator=(const CPUTensor& other);
     CPUTensor& operator=(CPUTensor&& other) noexcept;
 
-    TensorView operator[](size_t index);
-    const TensorView operator[](size_t index) const;
+    Tensor operator[](size_t index);
+    const Tensor operator[](size_t index) const;
 
     // Data access
-    void* data() override { return data_.data(); }
-    const void* data() const override { return data_.data(); }
+    void* data() override { return (*data_).data(); }
+    const void* data() const override { return (*data_).data(); }
     const Shape& shape() const override { return shape_; }
     const std::vector<size_t>& stride() const override { return shape_.getStride(); }
     size_t size() const override { return shape_.size(); }
     dtype type() const override { return type_; }
 
-    TensorView at(const std::vector<size_t>& indices) const override;
+    Tensor at(const std::vector<size_t>& indices) const override;
     void set(const std::vector<size_t>& indices, const double& value) override;
     void set(size_t index, const double& value) override;
 
@@ -69,6 +69,7 @@ public:
     template<typename T>
     void fill(T value);
     void fill(const double& value) override;
+    CPUTensor subView(const std::vector<size_t>& indices) const;
 
     void reshape(const Shape& newShape) override;
     std::unique_ptr<TensorAdapter> clone() const override;
@@ -91,12 +92,12 @@ public:
 
     template<typename T>
     T* typedData() {
-        return safe_cast<std::remove_pointer_t<T>>(data_.data(), type_);
+        return safe_cast<std::remove_pointer_t<T>>((*data_).data(), type_);
     }
 
     template<typename T>
     const T* typedData() const {
-        return safe_cast<const std::remove_pointer_t<T>>(data_.data(), type_);
+        return safe_cast<const std::remove_pointer_t<T>>((*data_).data(), type_);
     }
 
     // Element access
@@ -122,7 +123,8 @@ public:
 private:
     Shape shape_;
     dtype type_;
-    std::vector<char> data_;
+    std::shared_ptr<std::vector<char>> data_;
+    std::vector<size_t> indexMap_; // Map for advanced indexing
 
     void allocateMemory(size_t size);
 
