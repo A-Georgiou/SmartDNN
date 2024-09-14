@@ -18,13 +18,17 @@ Tensor applyOperation(const Tensor& a, Op operation) {
         T* result_data = result->typedData<T>();
 
         for (size_t i = 0; i < a.shape().size(); ++i) {
-            result_data[i] = operation(a_data[i]);
+            // Add an explicit conversion for boolean types (dtype::b8).
+            if constexpr (std::is_same_v<T, bool>) {
+                result_data[i] = static_cast<bool>(operation(a_data[i]));
+            } else {
+                result_data[i] = operation(a_data[i]);
+            }
         }
     });
 
     return Tensor(std::move(result));
 }
-
 
 template<typename Op>
 Tensor elementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
