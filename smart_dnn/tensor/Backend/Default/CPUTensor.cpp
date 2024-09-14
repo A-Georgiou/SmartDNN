@@ -177,7 +177,9 @@ void CPUTensor::apply(const std::function<void(double&)>& func) {
     }
 
 std::unique_ptr<TensorAdapter> CPUTensor::clone() const {
-    return std::make_unique<CPUTensor>(*this);
+    auto newTensor = std::make_unique<CPUTensor>(shape_, type_);
+    newTensor->data_ = std::make_shared<std::vector<char>>(*data_);
+    return newTensor;
 }
 
 std::string CPUTensor::toString() {

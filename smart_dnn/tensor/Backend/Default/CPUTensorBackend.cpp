@@ -78,6 +78,12 @@ namespace sdnn {
                             [](auto sum, size_t count) { return sum / static_cast<decltype(sum)>(count); });
     }
 
+    Tensor CPUTensorBackend::apply(const Tensor& tensor, const std::function<void(double&)>& func) const {
+        auto output = tensor.tensorImpl_->clone();
+        output->apply(func);
+        return Tensor(std::move(output));
+    }
+
     Tensor CPUTensorBackend::matmul(const Tensor& a, const Tensor& b) const {
         Shape newShape = Shape({1});
         return Tensor(createTensorAdapter(newShape));

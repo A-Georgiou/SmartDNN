@@ -99,6 +99,10 @@ void Tensor::set(const std::vector<size_t>& indices, const double& value) {
     tensorImpl_->set(indices, value);
 }
 
+Tensor Tensor::clone() const {
+    return Tensor(tensorImpl_->clone());
+}
+
 const Shape& Tensor::shape() const noexcept {
     return tensorImpl_->shape();
 }
@@ -208,6 +212,10 @@ Tensor operator*(const double& scalar, const Tensor& tensor) {
 
 Tensor operator/(const double& scalar, const Tensor& tensor) {
     return tensor.backend().scalarDiv(scalar, tensor);
+}
+
+Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) {
+    return tensor.backend().apply(tensor, func);
 }
 
 Tensor matmul(const Tensor& lhs, const Tensor& rhs) {

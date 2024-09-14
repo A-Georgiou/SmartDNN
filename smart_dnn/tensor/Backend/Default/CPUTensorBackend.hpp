@@ -40,6 +40,8 @@ public:
     Tensor sum(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
     Tensor mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
 
+    Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const override;
+
     Tensor matmul(const Tensor& a, const Tensor& b) const override;
 
     Tensor reshape(const Tensor& tensor, const Shape& newShape) const override;

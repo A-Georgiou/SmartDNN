@@ -53,6 +53,8 @@ public:
     void set(size_t index, const double& value);
     void set(const std::vector<size_t>& indices, const double& value);
 
+    Tensor clone() const;
+
     const Shape& shape() const noexcept;
     dtype type() const noexcept;
     const TensorBackend& backend() const;
@@ -110,6 +112,8 @@ Tensor operator+(const double& scalar, const Tensor& tensor);
 Tensor operator-(const double& scalar, const Tensor& tensor);
 Tensor operator*(const double& scalar, const Tensor& tensor);
 Tensor operator/(const double& scalar, const Tensor& tensor);
+
+Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func);
 
 // Other operations
 Tensor matmul(const Tensor& lhs, const Tensor& rhs);
