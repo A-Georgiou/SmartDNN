@@ -6,15 +6,13 @@
 
 namespace sdnn {
 
-template <typename T>
-SmartDNN<T>::SmartDNN() {
+SmartDNN::SmartDNN() {
     lossFunction = nullptr;
     optimizer = nullptr;
 }
 
-template <typename T>
-SmartDNN<T>::~SmartDNN() {
-    for (Layer<T>* layer : layers) {
+SmartDNN::~SmartDNN() {
+    for (Layer* layer : layers) {
         delete layer;
     }
 
@@ -22,53 +20,47 @@ SmartDNN<T>::~SmartDNN() {
     delete optimizer;
 }
 
-template <typename T>
-void SmartDNN<T>::addLayer(Layer<T>* layer) {
+void SmartDNN::addLayer(Layer* layer) {
     layers.push_back(layer);
 }
 
-template <typename T>
-void SmartDNN<T>::backward(const Tensor<T>& gradOutput)  {
-    Tensor<T> grad = gradOutput;
+void SmartDNN::backward(const Tensor& gradOutput)  {
+    Tensor grad = gradOutput;
     for (auto it = layers.rbegin(); it != layers.rend(); ++it) {
         grad = (*it)->backward(grad); 
     }
 }
 
-template <typename T>
-void SmartDNN<T>::updateWeights(Optimizer<T>& optimizer) {
+void SmartDNN::updateWeights(Optimizer& optimizer) {
         for (auto& layer : layers) {
             layer->updateWeights(optimizer);  // Assuming each layer has its own updateWeights method
         }
     }
 
 
-template <typename T>
-void SmartDNN<T>::compile(Loss<T>* loss, Optimizer<T>* optimizer) {
+void SmartDNN::compile(Loss* loss, Optimizer* optimizer) {
     this->lossFunction = loss;
     this->optimizer = optimizer;
 }
 
-template <typename T>
-Layer<T>* SmartDNN<T>::getLayer(size_t index) const {
+Layer* SmartDNN::getLayer(size_t index) const {
     return layers[index];
 }
 
-template <typename T>
-void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<Tensor<T>>& targets, int epochs) {
+void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets, int epochs) {
     for (int epoch = 0; epoch < epochs; ++epoch) {
-        Tensor<T> totalLoss{Shape({1}), T(0)};
+        Tensor totalLoss = zeros({1}, dtype::f32);
         size_t inputSize = inputs.size();
 
         for (size_t i = 0; i < inputSize; ++i) {
 
-            Tensor<T> prediction = inputs[i];
-            for (Layer<T>* layer : layers) {
+            Tensor prediction = inputs[i];
+            for (Layer* layer : layers) {
                 prediction = layer->forward(prediction);
             }
 
             totalLoss += lossFunction->compute(prediction, targets[i]);
-            Tensor<T> gradOutput = lossFunction->gradient(prediction, targets[i]);
+            Tensor gradOutput = lossFunction->gradient(prediction, targets[i]);
 
             for (int j = layers.size() - 1; j >= 0; --j) {
                 gradOutput = layers[j]->backward(gradOutput);
@@ -76,41 +68,36 @@ void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<
             }
 
         }
-        std::cout << "Epoch " << epoch << " - Loss: " << (totalLoss / T(inputs.size())).toDataString() << std::endl;
+        std::cout << "Epoch " << epoch << " - Loss: " << (totalLoss / (inputs.size())).toDataString() << std::endl;
     }
 }
 
-template <typename T>
-Tensor<T> SmartDNN<T>::predict(const Tensor<T>& input) {
-    Tensor<T> prediction = input;
-    for (Layer<T>* layer : layers) {
+Tensor SmartDNN::predict(const Tensor& input) {
+    Tensor prediction = input;
+    for (Layer* layer : layers) {
         prediction = layer->forward(prediction);
     }
     return prediction;
 }
 
-template <typename T>
-std::vector<Tensor<T>> SmartDNN<T>::predict(const std::vector<Tensor<T>>& inputs) {
-    std::vector<Tensor<T>> predictions;
-    for (const Tensor<T>& input : inputs) {
+std::vector<Tensor> SmartDNN::predict(const std::vector<Tensor>& inputs) {
+    std::vector<Tensor> predictions;
+    for (const Tensor& input : inputs) {
         predictions.push_back(predict(input));
     }
     return predictions;
 }
 
-template <typename T>
-void SmartDNN<T>::trainingMode() {
+void SmartDNN::trainingMode() {
     setTrainingMode(true);
 }
 
-template <typename T>
-void SmartDNN<T>::evalMode() {
+void SmartDNN::evalMode() {
     setTrainingMode(false);
 }
 
-template <typename T>
-void SmartDNN<T>::setTrainingMode(bool trainingMode) {
-    for (Layer<T>* layer : layers) {
+void SmartDNN::setTrainingMode(bool trainingMode) {
+    for (Layer* layer : layers) {
         layer->setTrainingMode(trainingMode);
     }
 }

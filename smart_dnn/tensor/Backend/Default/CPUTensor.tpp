@@ -99,16 +99,62 @@ namespace sdnn {
         std::memcpy((*data_).data(), data.data(), shape.size() * sizeof(T));
     }
 
-    template<typename T>
-    CPUTensor::CPUTensor(const Shape& shape, const T* data, dtype type)
-        : shape_(shape), type_(type) {
-        size_t total_elements = shape.size();
-        allocateMemory(total_elements * sizeof(T));
-        std::memcpy((*data_).data(), data, total_elements * sizeof(T));
+    template <typename T>
+    CPUTensor::CPUTensor(const Shape& shape, const std::vector<T>& data, dtype type)
+        : shape_(shape), type_(type), data_(std::make_shared<std::vector<char>>()) {
+        if (shape.size() != data.size()) {
+            throw std::invalid_argument("Data size does not match shape");
+        }
+        allocateMemory(shape.size() * dtype_size(type));
+        applyTypedOperationHelper(type, [this, &data](auto dummy) {
+            using TargetType = decltype(dummy);
+            for (size_t i = 0; i < data.size(); ++i) {
+                writeElement<TargetType>(this->data_->data(), i, data[i]);
+            }
+        });
     }
 
-    template<typename TargetType>
-    void writeElement(void* buffer, size_t index, double value) {
-        static_cast<TargetType*>(buffer)[index] = static_cast<TargetType>(value);
+    template <typename T>
+    CPUTensor::CPUTensor(const Shape& shape, const T* data, dtype type)
+        : shape_(shape), type_(type), data_(std::make_shared<std::vector<char>>()) {
+        initializeData(data, shape.size());
+    }
+
+    template<typename T>
+    void CPUTensor::setValueAtIndex(size_t index, T value) {
+        if (index >= shape_.size()) {
+            throw std::out_of_range("Index out of range");
+        }
+
+        applyTypedOperationHelper(type_, [this, index, value](auto dummy) {
+            using TargetType = decltype(dummy);
+            writeElement<TargetType, T>(data_->data(), index, value);
+        });
+    }
+
+    template<typename TargetType, typename SourceType>
+    void CPUTensor::writeElement(void* buffer, size_t index, SourceType value) {
+        TargetType* typedBuffer = static_cast<TargetType*>(buffer);
+        typedBuffer[index] = static_cast<TargetType>(value);
+    }
+
+    template <typename T>
+    void CPUTensor::initializeData(const T* data, size_t total_elements) {
+        size_t type_size = dtype_size(type_);
+        size_t total_size = total_elements * type_size;
+        
+        allocateMemory(total_size);
+        
+        if (data != nullptr) {
+            applyTypedOperationHelper(type_, [this, data, total_elements](auto dummy) {
+                using TargetType = decltype(dummy);
+                TargetType* dest_data = reinterpret_cast<TargetType*>(this->data_->data());
+                for (size_t i = 0; i < total_elements; ++i) {
+                    dest_data[i] = static_cast<TargetType>(data[i]);
+                }
+            });
+        } else {
+            std::memset(data_->data(), 0, total_size);
+        }
     }
 }; // namespace sdnn

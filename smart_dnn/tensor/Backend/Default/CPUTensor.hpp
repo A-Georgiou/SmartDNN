@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <memory>
+#include <algorithm>
+#include <cstring>
 #include <stdexcept>
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/shape/Shape.hpp"
@@ -18,16 +20,21 @@ public:
 
     // Constructors
     CPUTensor(const Shape& shape, dtype type = dtype::f32);
-    CPUTensor(const Shape& shape, const double* data, dtype type = dtype::f32);
-    CPUTensor(const Shape& shape, const std::vector<double>& data, dtype type = dtype::f32);
+    CPUTensor(const Shape& shape, const void* data, dtype type = dtype::f32);
     CPUTensor(const Shape& shape, std::shared_ptr<std::vector<char>> sharedData, std::vector<size_t> indexMap, dtype type)
         : shape_(shape), type_(type), data_(std::move(sharedData)), indexMap_(std::move(indexMap)) {}
 
-    template<typename T>
+    template <typename T>
     CPUTensor(const Shape& shape, const std::vector<T>& data);
 
-    template<typename T>
+    template <typename T>
+    CPUTensor(const Shape& shape, const std::vector<T>& data, dtype type);
+
+    template <typename T>
     CPUTensor(const Shape& shape, const T* data, dtype type);
+
+    template <typename T>
+    void initializeData(const T* data, size_t total_elements);
 
     // Copy and move
     CPUTensor(const CPUTensor& other);
@@ -47,8 +54,12 @@ public:
     dtype type() const override { return type_; }
 
     Tensor at(const std::vector<size_t>& indices) const override;
+    Tensor at(size_t index) const override;
     void set(const std::vector<size_t>& indices, const double& value) override;
     void set(size_t index, const double& value) override;
+
+    template <typename T>
+    void setValueAtIndex(size_t index, T value);
 
     // Operations
     void addInPlace(const Tensor& other) override;
@@ -132,6 +143,10 @@ private:
     std::vector<size_t> indexMap_; // Map for advanced indexing
 
     void allocateMemory(size_t size);
+
+    template<typename TargetType, typename SourceType = double>
+    void writeElement(void* buffer, size_t index, SourceType value);
+
 
 };
 

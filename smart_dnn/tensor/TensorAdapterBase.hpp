@@ -59,6 +59,8 @@ public:
 
     // Element access.
     virtual Tensor at(const std::vector<size_t>& indices) const = 0;
+    virtual Tensor at(size_t index) const = 0;
+    
     virtual void set(size_t index, const double& value) = 0;
     virtual void set(const std::vector<size_t>& indices, const double& value) = 0;
 

@@ -6,6 +6,7 @@
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/shape/ShapeOperations.hpp"
 #include "smart_dnn/DTypes.hpp"
+#include "smart_dnn/tensor/TensorBackendUtil.hpp"
 
 // Forward declare TensorAdapter and TensorBackend
 namespace sdnn {
@@ -46,6 +47,7 @@ public:
 
     Tensor operator[](const std::initializer_list<size_t>& indices);
     Tensor operator[](const std::vector<size_t>& indices);
+    Tensor operator[](size_t index);
 
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;
@@ -130,6 +132,27 @@ Tensor ones(const Shape& shape, dtype type = dtype::f32);
 Tensor rand(const Shape& shape, dtype type = dtype::f32);
 
 Tensor fill(const Shape& shape, dtype type = dtype::f32, const double& fillValue = 0.0f);
+
+template <typename T>
+Tensor fromVector(const Shape& shape, const std::vector<T>& vec, dtype type) {
+    return Tensor(createTensorAdapter(shape, vec.data(), type));
+}
+
+template <typename T>
+Tensor fromVector(const Shape& shape, const std::vector<T>& vec) {
+    return fromVector(shape, vec, dtype_trait<T>::value);
+}
+
+template <typename T>
+Tensor fromVector(const Shape& shape, const std::initializer_list<T> values, dtype type) {
+    std::vector<T> vec(values);
+    return Tensor(createTensorAdapter(shape, vec, type));
+}
+
+template <typename T>
+Tensor fromVector(const Shape& shape, const std::initializer_list<T> values) {
+    return fromVector(shape, values, dtype_trait<T>::value);
+}  
 
 }; // namespace sdnn
 

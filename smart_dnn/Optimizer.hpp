@@ -2,19 +2,18 @@
 #define OPTIMIZER_HPP
 
 #include <vector>
-#include "tensor/Tensor.hpp"
+#include "smart_dnn/tensor/TensorBase.hpp"
 
 namespace sdnn {
 
-template <typename T=float>
 class Optimizer {
 public:
     virtual ~Optimizer() = default;
 
     virtual void optimize(
-            const std::vector<std::reference_wrapper<Tensor<T>>>& weights,
-            const std::vector<std::reference_wrapper<Tensor<T>>>& gradients,
-            T learningRateOverride = T(-1.0)) = 0;
+            const std::vector<std::reference_wrapper<Tensor>>& weights,
+            const std::vector<std::reference_wrapper<Tensor>>& gradients,
+            double learningRateOverride = -1.0) = 0;
 
     virtual inline void save(std::ostream& os) const { (void)os; };
     virtual inline void load(std::istream& is) { (void)is; };

@@ -1,7 +1,6 @@
 #include "smart_dnn/tensor/TensorBase.hpp" 
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"  // Full definition required for std::unique_ptr
 #include "smart_dnn/tensor/TensorBackend.hpp"
-#include "smart_dnn/tensor/TensorBackendUtil.hpp"
 
 namespace sdnn {
     
@@ -81,6 +80,10 @@ Tensor Tensor::operator[](const std::initializer_list<size_t>& indices) {
 
 Tensor Tensor::operator[](const std::vector<size_t>& indices) {
     return tensorImpl_->at(indices);
+}
+
+Tensor Tensor::operator[](size_t index) {
+    return tensorImpl_->at(index);
 }
 
 bool Tensor::operator==(const Tensor& other) const{
@@ -251,7 +254,6 @@ Tensor rand(const Shape& shape, dtype type) {
 }
 
 Tensor fill(const Shape& shape, dtype type, const double& fillValue) {
-    std::cout << "fill" << std::endl;
     return defaultTensorBackend().fill(shape, fillValue, type);
 }
 

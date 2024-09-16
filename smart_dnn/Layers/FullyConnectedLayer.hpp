@@ -1,22 +1,19 @@
 #ifndef FULLY_CONNECTED_LAYER_HPP
 #define FULLY_CONNECTED_LAYER_HPP
 
-#include "../Tensor/Tensor.hpp"
-#include "../Tensor/AdvancedTensorOperations.hpp"
-#include "../Optimizer.hpp"
-#include "../Layer.hpp"
+#include "smart_dnn/tensor/TensorBase.hpp"
+#include "smart_dnn/Optimizer.hpp"
+#include "smart_dnn/Layer.hpp"
 #include <vector>
 #include <optional>
 
 namespace sdnn {
 
-template <typename T = float>
-class FullyConnectedLayer : public Layer<T> {
-    using TensorType = Tensor<T>;
+class FullyConnectedLayer : public Layer {
 public:
     FullyConnectedLayer(int inputSize, int outputSize) {
-        weights.emplace(TensorType::rand(Shape({inputSize, outputSize})));
-        biases.emplace(TensorType::zeros(Shape({1, outputSize})));
+        weights.emplace(rand(Shape({inputSize, outputSize})));
+        biases.emplace(zeros(Shape({1, outputSize})));
     }
 
     /*
@@ -29,17 +26,17 @@ public:
     
     */
     
-    TensorType forward(const TensorType& input) override {
+    Tensor forward(const Tensor& input) override {
         this->input = input;
-        TensorType reshapedInput = input;
+        Tensor reshapedInput = input;
         if (input.getShape().rank() == 1) {
-            reshapedInput = AdvancedTensorOperations<T>::reshape(input, {1, input.getShape()[0]});
+            reshapedInput = reshape(input, {1, input.getShape()[0]});
         }
-        TensorType output = AdvancedTensorOperations<T>::matmul(reshapedInput, *weights);
+        Tensor output = matmul(reshapedInput, *weights);
         output = output + *biases;
 
         if (input.getShape().rank() == 1) {
-            output = AdvancedTensorOperations<T>::reshape(output, {output.getShape()[1]});
+            output = reshape(output, {output.getShape()[1]});
         }
         return output;
     }
@@ -53,41 +50,38 @@ public:
     Output: Gradient tensor shape (batch_size, input_size)
 
     */
-    TensorType backward(const TensorType& gradOutput) override {
+    Tensor backward(const Tensor& gradOutput) override {
         if (!input) {
             throw std::runtime_error("Input tensor is not initialized!");
         }
 
-        TensorType inputTensor = *input;
+        Tensor inputTensor = *input;
 
         // Ensure input is 2D
         if (inputTensor.getShape().rank() == 1)
-            inputTensor = AdvancedTensorOperations<T>::reshape(inputTensor, {1, inputTensor.getShape()[0]});
+            inputTensor = reshape(inputTensor, {1, inputTensor.getShape()[0]});
 
         // Ensure gradOutput is 2D (for non-batched input case)
-        TensorType reshapedGradOutput = gradOutput;
+        Tensor reshapedGradOutput = gradOutput;
         if (gradOutput.getShape().rank() == 1) {
-            reshapedGradOutput = AdvancedTensorOperations<T>::reshape(gradOutput, {1, gradOutput.getShape()[0]});
+            reshapedGradOutput = reshape(gradOutput, {1, gradOutput.getShape()[0]});
         }
 
         // Calculate weight gradients
-        TensorType inputTransposed = AdvancedTensorOperations<T>::transpose(inputTensor, 0, 1); // Shape: (input_size, batch_size)
-        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, reshapedGradOutput)); // Shape: (input_size, output_size)
+        Tensor inputTransposed = transpose(inputTensor, {1, 0}); // Shape: (input_size, batch_size)
+        weightGradients.emplace(matmul(inputTransposed, reshapedGradOutput)); // Shape: (input_size, output_size)
 
         // Calculate bias gradients
-        biasGradients.emplace(AdvancedTensorOperations<T>::reshape(
-            AdvancedTensorOperations<T>::sum(reshapedGradOutput, 0),
-            {1, biases->getShape()[1]}
-        ));
+        biasGradients.emplace(reshape(sum(reshapedGradOutput), {1, biases->getShape()[1]}));
 
         // Calculate input gradients
-        TensorType weightsTransposed = AdvancedTensorOperations<T>::transpose(*weights, 0, 1); // Shape: (output_size, input_size)
-        TensorType gradInput = AdvancedTensorOperations<T>::matmul(reshapedGradOutput, weightsTransposed); // Shape: (batch_size, input_size)
+        Tensor weightsTransposed = transpose(*weights, {0, 1}); // Shape: (output_size, input_size)
+        Tensor gradInput = matmul(reshapedGradOutput, weightsTransposed); // Shape: (batch_size, input_size)
 
         return gradInput;
     }
 
-    void updateWeights(Optimizer<T>& optimizer) override {
+    void updateWeights(Optimizer& optimizer) override {
         if (!weights || !biases || !weightGradients || !biasGradients) {
             throw std::runtime_error("Weights or gradients are not initialized!");
         }
@@ -102,47 +96,47 @@ public:
     
     */
 
-    TensorType getWeights() const {
+    Tensor getWeights() const {
         return *weights;
     }
 
-    TensorType getBiases() const {
+    Tensor getBiases() const {
         return *biases;
     }
 
-    TensorType getWeightGradients() const {
+    Tensor getWeightGradients() const {
         return *weightGradients;
     }
 
-    TensorType getBiasGradients() const {
+    Tensor getBiasGradients() const {
         return *biasGradients;
     }
 
-    void setWeights(const TensorType& newWeights) {
+    void setWeights(const Tensor& newWeights) {
         weights = newWeights;
     }
 
-    void setBiases(const TensorType& newBiases) {
+    void setBiases(const Tensor& newBiases) {
         if (newBiases.getShape().rank() != 2 || newBiases.getShape()[0] != 1) {
             throw std::invalid_argument("Biases must have shape (1, outputSize)");
         }
         biases = newBiases;
     }
 
-    void setBiasGradient(const TensorType& newBiasGradient) {
+    void setBiasGradient(const Tensor& newBiasGradient) {
         biasGradients = newBiasGradient;
     }
 
-    void setWeightGradient(const TensorType& newWeightGradient) {
+    void setWeightGradient(const Tensor& newWeightGradient) {
         weightGradients = newWeightGradient;
     }
 
 private:
-    std::optional<TensorType> weights;
-    std::optional<TensorType> biases;
-    std::optional<TensorType> input;
-    std::optional<TensorType> weightGradients;
-    std::optional<TensorType> biasGradients;
+    std::optional<Tensor> weights;
+    std::optional<Tensor> biases;
+    std::optional<Tensor> input;
+    std::optional<Tensor> weightGradients;
+    std::optional<Tensor> biasGradients;
 };
 
 } // namespace sdnn

@@ -9,18 +9,14 @@
 #include "smart_dnn/tensor/TensorCreationUtil.hpp"
 #include "smart_dnn/tensor/Backend/Default/Utils.hpp"
 #include "smart_dnn/RandomEngine.hpp"
+#include "smart_dnn/tensor/Backend/Default/AdvancedTensorOperations.hpp"
 #include <vector>
 
 namespace sdnn {
 
     CPUTensorBackend::~CPUTensorBackend() = default;
 
-    Tensor CPUTensorBackend::createTensor(const Shape& shape, const double* data, dtype type) const {
-        auto tensorAdapter = createTensorAdapter(shape, data, type);
-        return Tensor(std::move(tensorAdapter));
-    }
-
-    Tensor CPUTensorBackend::fill(const Shape& shape, double value, dtype type) const {
+    Tensor CPUTensorBackend::fill(const Shape& shape, const double& value, dtype type) const {
         std::vector<double> data(shape.size(), value);
         auto tensorAdapter = createTensorAdapter(shape, data.data(), type);
         return Tensor(std::move(tensorAdapter));
@@ -67,9 +63,19 @@ namespace sdnn {
     }
 
     Tensor CPUTensorBackend::sum(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
+        if (axes.empty()) {
+            return sumNoAxes(tensor);
+        }
         return reduction(tensor, axes, keepDims, 
                             [](auto a, auto b) { return a + b; },
                             [](auto sum, size_t) { return sum; });
+    }
+
+    Tensor CPUTensorBackend::sumNoAxes(const Tensor& tensor) const {
+        double sum = 0.0;
+        tensor.tensorImpl_->apply([&sum](double& a) { sum += a; });
+        Shape newShape = Shape({1});
+        return Tensor(createTensorAdapter(newShape, &sum, tensor.type()));
     }
 
     Tensor CPUTensorBackend::mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
@@ -85,8 +91,7 @@ namespace sdnn {
     }
 
     Tensor CPUTensorBackend::matmul(const Tensor& a, const Tensor& b) const {
-        Shape newShape = Shape({1});
-        return Tensor(createTensorAdapter(newShape));
+        return AdvancedTensorOperations::matmul(a, b);
     }
 
     Tensor CPUTensorBackend::reshape(const Tensor& tensor, const Shape& newShape) const {
@@ -96,7 +101,43 @@ namespace sdnn {
     }
 
     Tensor CPUTensorBackend::transpose(const Tensor& tensor, const std::vector<int>& axes) const {
-        return Tensor(createTensorAdapter(tensor.shape()));
+        const auto& shape = tensor.shape();
+        const auto& type = tensor.type();
+        
+        if (axes.size() != shape.rank()) {
+            throw std::invalid_argument("Number of axes must match tensor dimensions");
+        }
+        
+        std::vector<int> newDims(shape.rank());
+        std::vector<size_t> oldToNew(shape.rank());
+        for (size_t i = 0; i < shape.rank(); ++i) {
+            if (axes[i] < 0 || axes[i] >= shape.rank()) {
+                throw std::invalid_argument("Invalid axis");
+            }
+            newDims[i] = shape[axes[i]];
+            oldToNew[axes[i]] = i;
+        }
+
+        Shape newShape(newDims);
+        auto output = createTensorAdapter(newShape, type);
+        
+        const size_t totalSize = shape.size();
+        const auto& oldStrides = shape.getStride();
+        const auto& newStrides = newShape.getStride();
+
+        #pragma omp parallel for
+        for (size_t i = 0; i < totalSize; ++i) {
+            std::vector<size_t> oldIndices = unflattenIndex(i, shape);
+            size_t newIndex = 0;
+            for (size_t d = 0; d < shape.rank(); ++d) {
+                newIndex += oldIndices[axes[d]] * newStrides[d];
+            }
+            
+            double value = tensor.tensorImpl_->getValueAsDouble(i);
+            output->setValueFromDouble(newIndex, value);
+        }
+        
+        return Tensor(std::move(output));
     }
 
     Tensor CPUTensorBackend::exp(const Tensor& tensor) const {
@@ -157,7 +198,6 @@ namespace sdnn {
         std::vector<double> data(shape.size());
         for (size_t i = 0; i < shape.size(); ++i) {
             data[i] = static_cast<double>(RandomEngine::getRand());
-            std::cout << data[i] << std::endl;
         }
         return Tensor(createTensorAdapter(shape, data, type));
     }

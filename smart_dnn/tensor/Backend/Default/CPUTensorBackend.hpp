@@ -3,6 +3,7 @@
 
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorBackend.hpp" 
+#include "smart_dnn/tensor/TensorCreationUtil.hpp"
 #include <algorithm>
 #include <vector>
 #include <stdexcept>
@@ -19,9 +20,7 @@ public:
     CPUTensorBackend() = default;
     ~CPUTensorBackend();
 
-    Tensor createTensor(const Shape& shape, const double* data, dtype type) const override;
-
-    Tensor fill(const Shape& shape, double value, dtype type) const override;
+    Tensor fill(const Shape& shape, const double& value, dtype type) const override;
 
     // Basic operations
     Tensor add(const Tensor& a, const Tensor& b) const override;
@@ -38,6 +37,7 @@ public:
     Tensor scalarDiv(const double& scalar, const Tensor& tensor) const override;
 
     Tensor sum(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
+    Tensor sumNoAxes(const Tensor& tensor) const;
     Tensor mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
 
     Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const override;

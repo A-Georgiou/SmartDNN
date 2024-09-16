@@ -87,7 +87,7 @@ template<typename Op, typename Finalize>
 Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDims, Op operation, Finalize finalize) {
     const auto& input = tensor.getImpl<CPUTensor>();
     const auto& inputShape = tensor.shape();
-    const size_t inputRank = inputShape.size();
+    const size_t inputRank = inputShape.rank();
 
     std::vector<int> normalizedAxes = axes;
     for (auto& axis : normalizedAxes) {
@@ -134,7 +134,6 @@ Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDi
         std::vector<size_t> currentIndex(inputRank, 0);
 
         for (size_t i = 0; i < outputSize; ++i) {
-            // Compute the range for this output element
             size_t start = 0;
             size_t end = 1;
             for (int axis : normalizedAxes) {
@@ -158,10 +157,8 @@ Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDi
                 ++count;
             }
 
-            // Finalize and store the result
             outputData[i] = finalize(accumulator, count);
 
-            // Update current index
             for (int j = outputShape.size() - 1; j >= 0; --j) {
                 if (++currentIndex[j] < outputShape[j]) {
                     break;
