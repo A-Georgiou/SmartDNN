@@ -1,9 +1,35 @@
 
 
 namespace sdnn {
+
+    template <typename T>
+    Tensor::Tensor(const Shape& shape, const std::vector<T>& data, dtype type)
+    : tensorImpl_(createTensorAdapter(shape, data.data(), type)) {}
+
+    template <typename T>
+    Tensor::Tensor(const Shape& shape, const T* data, dtype type)
+    : tensorImpl_(createTensorAdapter(shape, data, type)) {}
+
     template <typename T>
     Tensor::Tensor(const Shape& shape, const std::vector<T>& data)
     : tensorImpl_(createTensorAdapter(shape, data.data(), dtype_trait<T>::value)) {}
+
+    template <typename T>
+    Tensor::Tensor(const Shape& shape, const T* data)
+    : tensorImpl_(createTensorAdapter(shape, data, dtype_trait<T>::value)) {}
+
+    template <typename T>
+    Tensor::Tensor(const Shape& shape, const T data, dtype type)
+    : tensorImpl_(createTensorAdapter(shape, &data, type)) {}
+
+    template <typename T>
+    Tensor::Tensor(const Shape& shape, const T data)
+    : tensorImpl_(createTensorAdapter(shape, data, dtype_trait<T>::value)) {}
+
+    template <typename T>
+    Tensor::Tensor(const Shape& shape, std::initializer_list<T> values) 
+    : tensorImpl_(createTensorAdapter(shape, values, dtype_trait<T>::value))
+    {}
 
     template <typename T>
     T Tensor::at(const std::vector<size_t>& indices) const {

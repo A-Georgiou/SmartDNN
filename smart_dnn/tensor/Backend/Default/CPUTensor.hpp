@@ -5,11 +5,13 @@
 #include <memory>
 #include <algorithm>
 #include <cstring>
+#include <any>
 #include <stdexcept>
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
+#include "smart_dnn/tensor/Backend/Default/TensorIndex.hpp"
 
 namespace sdnn {
 
@@ -21,8 +23,11 @@ public:
     // Constructors
     CPUTensor(const Shape& shape, dtype type = dtype::f32);
     CPUTensor(const Shape& shape, const void* data, dtype type = dtype::f32);
-    CPUTensor(const Shape& shape, std::shared_ptr<std::vector<char>> sharedData, std::vector<size_t> indexMap, dtype type)
-        : shape_(shape), type_(type), data_(std::move(sharedData)), indexMap_(std::move(indexMap)) {}
+    CPUTensor(const Shape& shape, std::shared_ptr<std::vector<char>> sharedData, dtype type)
+        : shape_(shape), type_(type), data_(std::move(sharedData)) {}
+
+    CPUTensor(const Shape& shape, std::shared_ptr<std::vector<char>> sharedData, dtype type, std::optional<TensorIndex> index)
+        : shape_(shape), type_(type), data_(std::move(sharedData)), index_(std::move(index)) {};
 
     template <typename T>
     CPUTensor(const Shape& shape, const std::vector<T>& data);
@@ -35,6 +40,15 @@ public:
 
     template <typename T>
     void initializeData(const T* data, size_t total_elements);
+
+    template <typename T>
+    CPUTensor(const Shape& shape, const T data, dtype type);
+
+    template <typename T>
+    CPUTensor(const Shape& shape, const T data);
+
+    template <typename T>
+    CPUTensor(const Shape& shape, std::initializer_list<T> values, dtype type);
 
     // Copy and move
     CPUTensor(const CPUTensor& other);
@@ -55,11 +69,11 @@ public:
 
     Tensor at(const std::vector<size_t>& indices) const override;
     Tensor at(size_t index) const override;
-    void set(const std::vector<size_t>& indices, const double& value) override;
-    void set(size_t index, const double& value) override;
+    void set(const std::vector<size_t>& indices, const void* value) override;
+    void set(size_t index, const void* value) override;
 
     template <typename T>
-    void setValueAtIndex(size_t index, T value);
+    void setValueAtIndex(size_t index, T&& value);
 
     // Operations
     void addInPlace(const Tensor& other) override;
@@ -116,23 +130,6 @@ public:
         return safe_cast<const std::remove_pointer_t<T>>((*data_).data(), type_);
     }
 
-    // Element access
-    template<typename T>
-    T at(size_t index) const {
-        if (index >= shape_.size()) {
-            throw std::out_of_range("Index out of range");
-        }
-        return typedData<T>()[index];
-    }
-
-    template<typename T>
-    void set(size_t index, T value) {
-        if (index >= shape_.size()) {
-            throw std::out_of_range("Index out of range");
-        }
-        typedData<T>()[index] = value;
-    }
-
     double getValueAsDouble(size_t index) const override;
     void setValueFromDouble(size_t index, double value) override;
 
@@ -140,14 +137,20 @@ private:
     Shape shape_;
     dtype type_;
     std::shared_ptr<std::vector<char>> data_;
-    std::vector<size_t> indexMap_; // Map for advanced indexing
+    std::optional<TensorIndex> index_;
 
     void allocateMemory(size_t size);
 
     template<typename TargetType, typename SourceType = double>
     void writeElement(void* buffer, size_t index, SourceType value);
 
+    template <typename T>
+    void setValueHelper(size_t flatIndex, T&& value);
 
+    void setValueHelper(size_t flatIndex, const void* value);
+
+    template <typename AccessOp>
+    void accessData(AccessOp op) const;
 };
 
 } // namespace sdnn

@@ -2,7 +2,6 @@
 #define RELU_HPP
 
 #include "smart_dnn/Activation.hpp"
-#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
 
 namespace sdnn {
 
@@ -15,15 +14,15 @@ namespace sdnn {
     f'(x) = 1 if x > 0, 0 otherwise
 
 */
-template <typename T=float>
-class ReLU : public Activation<T> {
+
+class ReLU : public Activation {
 public:
-    Tensor<T> forward(const Tensor<T>& input) const override {
-        return AdvancedTensorOperations<T>::apply(input, [](T x) { return std::max(T(0), x); });
+    Tensor forward(const Tensor& input) const override {
+        return apply(input, [](double& x) { x = std::max(0.0, x); });
     }
 
-    Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
-        return AdvancedTensorOperations<T>::apply(input, [](T x) { return x > T(0) ? T(1) : T(0); }) * gradOutput;
+    Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
+        return apply(input, [](double& x) { x = x > 0 ? 1 : 0; }) * gradOutput;
     }
 };
 

@@ -25,7 +25,25 @@ public:
     explicit Tensor(std::unique_ptr<TensorAdapter> tensorImpl);
 
     template <typename T>
+    Tensor(const Shape& shape, const std::vector<T>& data, dtype type);
+
+    template <typename T>
     Tensor(const Shape& shape, const std::vector<T>& data);
+
+    template <typename T>
+    Tensor(const Shape& shape, const T* data, dtype type);
+
+    template <typename T>
+    Tensor(const Shape& shape, const T* data);
+
+    template <typename T>
+    Tensor(const Shape& shape, const T data);
+
+    template <typename T>
+    Tensor(const Shape& shape, const T data, dtype type);
+
+    template <typename T>
+    Tensor(const Shape& shape, std::initializer_list<T> values);
 
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept;
@@ -48,12 +66,13 @@ public:
     Tensor operator[](const std::initializer_list<size_t>& indices);
     Tensor operator[](const std::vector<size_t>& indices);
     Tensor operator[](size_t index);
+    const Tensor operator[](size_t index) const;
 
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;
         
-    void set(size_t index, const double& value);
-    void set(const std::vector<size_t>& indices, const double& value);
+    void set(size_t index, const void* value);
+    void set(const std::vector<size_t>& indices, const void* value);
 
     Tensor clone() const;
 
@@ -121,6 +140,7 @@ Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func);
 Tensor matmul(const Tensor& lhs, const Tensor& rhs);
 Tensor transpose(const Tensor& tensor, const std::vector<int>& axes = {});
 Tensor reshape(const Tensor& tensor, const Shape& newShape);
+Tensor sqrt(const Tensor& tensor);
 
 // Reduction operations
 Tensor sum(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims = false);

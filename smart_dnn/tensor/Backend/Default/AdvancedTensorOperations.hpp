@@ -230,7 +230,7 @@ private:
         const auto& shapeB = b.shape();
 
         if (shapeA[1] != shapeB[0]) {
-            throw std::invalid_argument("Matrix and vector dimensions must match for multiplication.");
+            throw std::invalid_argument("Matrix and vector dimensions must match for multiplication. Mismatch in shapes: " + shapeA.toString() + " and " + shapeB.toString());
         }
 
         Shape resultShape({shapeA[0]});
@@ -264,7 +264,7 @@ private:
         const auto& shapeB = b.shape();
 
         if (shapeA[1] != shapeB[0]) {
-            throw std::invalid_argument("Matrix dimensions must match for multiplication.");
+            throw std::invalid_argument("Matrix and vector dimensions must match for multiplication. Mismatch in shapes: " + shapeA.toString() + " and " + shapeB.toString());
         }
 
         Shape resultShape({shapeA[0], shapeB[1]});

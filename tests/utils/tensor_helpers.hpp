@@ -4,6 +4,8 @@
 #include <gtest/gtest.h>
 #include <sstream>
 #include "smart_dnn/tensor/TensorBase.hpp"
+#include "smart_dnn/tensor/TensorAdapterBase.hpp"
+#include "smart_dnn/tensor/TensorCreationUtil.hpp"
 
 namespace sdnn {
 
@@ -26,37 +28,35 @@ namespace sdnn {
 
     template <typename T>
     inline void ValidateTensorData(const Tensor& tensor, const std::vector<T>& expectedData) {
-        EXPECT_EQ(tensor.getData().size(), expectedData.size())
+        EXPECT_EQ(tensor.shape().size(), expectedData.size())
             << "Expected data size: " << expectedData.size() 
             << ", Actual data size: " << tensor.shape().size();
 
         for (size_t i = 0; i < tensor.shape().size(); ++i) {
-            EXPECT_NEAR(tensor[i], expectedData[i], 1e-6)
+            EXPECT_NEAR(tensor.at<T>(i), expectedData[i], 1e-6)
                 << "Mismatch at index " << i 
-                << ". Expected: " << *expected_it 
-                << ", Actual: " << *tensor_it;
+                << ". Expected: " << expectedData[i] 
+                << ", Actual: " << tensor.at<T>(i);
         }
     }
 
 
     inline testing::AssertionResult TensorEquals(const Tensor& tensor1, const Tensor& tensor2) {
         if (tensor1.type() != tensor2.type()) {
-            return testing::AssertionFailure() << "Tensor types do not match. "
-                << "Type1: " << tensor1.type() 
-                << ", Type2: " << tensor2.type();
+            return testing::AssertionFailure() << "Tensor types do not match.";
         }
 
-        if (tensor1.getShape() != tensor2.getShape()) {
+        if (tensor1.shape() != tensor2.shape()) {
             return testing::AssertionFailure() << "Tensor shapes do not match. "
                 << "Shape1: " << tensor1.shape().toString() 
                 << ", Shape2: " << tensor2.shape().toString();
         }
 
         for (size_t i = 0; i < tensor1.shape().size(); ++i) {
-            if (std::abs(tensor1[i] - tensor2[i]) > 1e-6) {
+            if (std::abs(tensor1.at<float>(i) - tensor2.at<float>(i)) > 1e-6) {
                 return testing::AssertionFailure() << "Tensor data mismatch at index " << i 
-                    << ". Value1: " << tensor1[i] 
-                    << ", Value2: " << tensor2[i];
+                    << ". Value1: " << tensor1.at<float>(i) 
+                    << ", Value2: " << tensor2.at<float>(i);
             }
         }
 

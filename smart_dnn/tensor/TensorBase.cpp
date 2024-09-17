@@ -86,6 +86,10 @@ Tensor Tensor::operator[](size_t index) {
     return tensorImpl_->at(index);
 }
 
+const Tensor Tensor::operator[](size_t index) const {
+    return tensorImpl_->at(index);
+}
+
 bool Tensor::operator==(const Tensor& other) const{
     return tensorImpl_->equal(other);
 }
@@ -94,11 +98,11 @@ bool Tensor::operator!=(const Tensor& other) const{
     return !(tensorImpl_->equal(other));
 }
 
-void Tensor::set(size_t index, const double& value) {
+void Tensor::set(size_t index, const void* value) {
     tensorImpl_->set(index, value);
 }
 
-void Tensor::set(const std::vector<size_t>& indices, const double& value) {
+void Tensor::set(const std::vector<size_t>& indices, const void* value) {
     tensorImpl_->set(indices, value);
 }
 
@@ -231,6 +235,10 @@ Tensor reshape(const Tensor& tensor, const Shape& newShape) {
 
 Tensor transpose(const Tensor& tensor, const std::vector<int>& axes) {
     return tensor.backend().transpose(tensor, axes);
+}
+
+Tensor sqrt(const Tensor& tensor) {
+    return tensor.backend().sqrt(tensor);
 }
 
 Tensor sum(const Tensor& input, const std::vector<int>& axes, bool keepDims){

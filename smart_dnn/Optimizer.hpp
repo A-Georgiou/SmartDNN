@@ -13,7 +13,7 @@ public:
     virtual void optimize(
             const std::vector<std::reference_wrapper<Tensor>>& weights,
             const std::vector<std::reference_wrapper<Tensor>>& gradients,
-            double learningRateOverride = -1.0) = 0;
+            float learningRateOverride = -1.0) = 0;
 
     virtual inline void save(std::ostream& os) const { (void)os; };
     virtual inline void load(std::istream& is) { (void)is; };

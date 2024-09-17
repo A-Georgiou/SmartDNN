@@ -1,5 +1,4 @@
 namespace sdnn {
-    
     template<typename TypedOp>
     void applyTypedOperationHelper(dtype type, TypedOp op) {
         switch (type) {
@@ -15,6 +14,23 @@ namespace sdnn {
             case dtype::u64: op(uint64_t{}); break;
             default: throw std::runtime_error("Unsupported dtype for operation");
         }
+    }
+
+    template <typename AccessOp>
+    void CPUTensor::accessData(AccessOp op) const {
+        if (index_) {
+            // Use TensorIndex for access
+            for (size_t i = 0; i < shape_.size(); ++i) {
+                std::vector<size_t> indices = unflattenIndex(i, shape_);
+                size_t flatIndex = index_->flattenIndex(indices);
+                op(flatIndex);
+            }
+        } else {
+            // Direct access without TensorIndex
+            for (size_t i = 0; i < shape_.size(); ++i) {
+                op(i);
+            }
+    }
     }
 
     template<typename TypedOp>
@@ -36,21 +52,22 @@ namespace sdnn {
     template<typename CompOp>
     bool CPUTensor::elementWiseComparison(const Tensor& other, CompOp op) const {
         if (shape_ != other.shape() || type_ != other.type()) {
-            return false;  // Tensors with different shapes or types are not equal
+            return false;
         }
         const CPUTensor& otherCPU = dynamic_cast<const CPUTensor&>(*other.tensorImpl_);
         
         bool result = true;
-        applyTypedOperation([&](auto* type_ptr) {
-            using T = std::remove_pointer_t<decltype(type_ptr)>;
-            const auto* a = this->typedData<T>();
-            const auto* b = otherCPU.typedData<T>();
-            for (size_t i = 0; i < shape_.size(); ++i) {
-                if (!op(a[i], b[i])) {
+        accessData([&](size_t i) {
+            applyTypedOperationHelper(type_, [&](auto dummy) {
+                using T = decltype(dummy);
+                const T* a = reinterpret_cast<const T*>(data_->data()) + i;
+                const T* b = reinterpret_cast<const T*>(otherCPU.data_->data()) + i;
+                if (!op(*a, *b)) {
                     result = false;
                     return;  // Early exit if comparison fails
                 }
-            }
+            });
+            return result;  // Continue iteration if result is still true
         });
         return result;
     }
@@ -63,30 +80,42 @@ namespace sdnn {
         }
         const CPUTensor& otherCPU = dynamic_cast<const CPUTensor&>(*other.tensorImpl_);
         
-        applyTypedOperation([&](auto* type_ptr) {
-            using T = std::remove_pointer_t<decltype(type_ptr)>;
-            auto* a = typedData<T>();
-            const auto* b = otherCPU.typedData<T>();
-            for (size_t i = 0; i < shape_.size(); ++i) {
-                op(a[i], b[i]);
-            }
+        accessData([&](size_t i) {
+            applyTypedOperationHelper(type_, [&](auto dummy) {
+                using T = decltype(dummy);
+                T* a = reinterpret_cast<T*>(data_->data()) + i;
+                const T* b = reinterpret_cast<const T*>(otherCPU.data_->data()) + i;
+                op(*a, *b);
+            });
         });
     }
 
     template<typename Op>
     void CPUTensor::scalarOperation(double scalar, Op op) {
-        applyTypedOperation([&](auto* type_ptr) {
-            using T = std::remove_pointer_t<decltype(type_ptr)>;
-            auto* a = typedData<T>();
-            for (size_t i = 0; i < shape_.size(); ++i) {
-                op(a[i], static_cast<T>(scalar));
-            }
+        accessData([&](size_t i) {
+            applyTypedOperationHelper(type_, [&](auto dummy) {
+                using T = decltype(dummy);
+                T* a = reinterpret_cast<T*>(data_->data()) + i;
+                op(*a, static_cast<T>(scalar));
+            });
         });
     }
 
     template<typename T>
     void CPUTensor::fill(T value) {
-        std::fill(typedData<T>(), typedData<T>() + shape_.size(), value);
+        applyTypedOperationHelper(type_, [this, value](auto dummy) {
+            using TargetType = decltype(dummy);
+            TargetType* data = reinterpret_cast<TargetType*>(this->data_->data());
+            TargetType typedValue;
+            
+            if constexpr (std::is_pointer_v<T>) {
+                typedValue = static_cast<TargetType>(*value);
+            } else {
+                typedValue = static_cast<TargetType>(value);
+            }
+            
+            std::fill_n(data, shape_.size(), typedValue);
+        });
     }
 
     template <typename T>
@@ -120,8 +149,39 @@ namespace sdnn {
         initializeData(data, shape.size());
     }
 
+    template <typename T>
+    CPUTensor::CPUTensor(const Shape& shape, const T data, dtype type)
+        : shape_(shape), type_(type), data_(std::make_shared<std::vector<char>>()) {
+        allocateMemory(shape.size() * dtype_size(type));
+        fill(data);
+    }
+
+    template <typename T>
+    CPUTensor::CPUTensor(const Shape& shape, const T data)
+        : shape_(shape), type_(dtype_trait<T>::value), data_(std::make_shared<std::vector<char>>()) {
+        allocateMemory(shape.size() * dtype_size(type_));
+        fill(data);
+    }
+
+    template <typename T>
+    CPUTensor::CPUTensor(const Shape& shape, const std::initializer_list<T> values, dtype type)
+        : shape_(shape), type_(type), data_(std::make_shared<std::vector<char>>()) {
+        if (shape.size() != values.size()) {
+            throw std::invalid_argument("Data size does not match shape");
+        }
+        allocateMemory(shape.size() * dtype_size(type_));
+        applyTypedOperationHelper(type_, [this, values](auto dummy) {
+            using TargetType = decltype(dummy);
+            TargetType* data = reinterpret_cast<TargetType*>(this->data_->data());
+            size_t i = 0;
+            for (const auto& value : values) {
+                data[i++] = static_cast<TargetType>(value);
+            }
+        });
+    }
+
     template<typename T>
-    void CPUTensor::setValueAtIndex(size_t index, T value) {
+    void CPUTensor::setValueAtIndex(size_t index, T&& value) {
         if (index >= shape_.size()) {
             throw std::out_of_range("Index out of range");
         }

@@ -15,14 +15,6 @@ public:
     TensorAdapter() = default;
     virtual ~TensorAdapter();
 
-    TensorAdapter(const TensorAdapter& other) = default;
-    TensorAdapter(TensorAdapter&& other) noexcept = default;
-    TensorAdapter(const Shape& shape, dtype type = dtype::f32);
-    TensorAdapter(const Shape& shape, const void* data, dtype type = dtype::f32);
-    TensorAdapter(const Shape& shape, std::initializer_list<double> values);
-    TensorAdapter(const Shape& shape, const std::vector<double>&& data, dtype type = dtype::f32);
-    TensorAdapter(const Shape& shape, double value, dtype type = dtype::f32);
-
     // Existing methods that are already virtual
     virtual void* data() = 0;
     virtual const void* data() const = 0;
@@ -61,8 +53,8 @@ public:
     virtual Tensor at(const std::vector<size_t>& indices) const = 0;
     virtual Tensor at(size_t index) const = 0;
     
-    virtual void set(size_t index, const double& value) = 0;
-    virtual void set(const std::vector<size_t>& indices, const double& value) = 0;
+    virtual void set(size_t index, const void* value) = 0;
+    virtual void set(const std::vector<size_t>& indices, const void* value) = 0;
 
     // Shape operations.
     virtual void reshape(const Shape& newShape) = 0;

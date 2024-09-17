@@ -29,14 +29,14 @@ public:
     Tensor forward(const Tensor& input) override {
         this->input = input;
         Tensor reshapedInput = input;
-        if (input.getShape().rank() == 1) {
-            reshapedInput = reshape(input, {1, input.getShape()[0]});
+        if (input.shape().rank() == 1) {
+            reshapedInput = reshape(input, {1, input.shape()[0]});
         }
         Tensor output = matmul(reshapedInput, *weights);
         output = output + *biases;
 
-        if (input.getShape().rank() == 1) {
-            output = reshape(output, {output.getShape()[1]});
+        if (input.shape().rank() == 1) {
+            output = reshape(output, {output.shape()[1]});
         }
         return output;
     }
@@ -58,24 +58,26 @@ public:
         Tensor inputTensor = *input;
 
         // Ensure input is 2D
-        if (inputTensor.getShape().rank() == 1)
-            inputTensor = reshape(inputTensor, {1, inputTensor.getShape()[0]});
+        if (inputTensor.shape().rank() == 1)
+            inputTensor = reshape(inputTensor, {1, inputTensor.shape()[0]});
 
         // Ensure gradOutput is 2D (for non-batched input case)
         Tensor reshapedGradOutput = gradOutput;
-        if (gradOutput.getShape().rank() == 1) {
-            reshapedGradOutput = reshape(gradOutput, {1, gradOutput.getShape()[0]});
+        if (gradOutput.shape().rank() == 1) {
+            reshapedGradOutput = reshape(gradOutput, {1, gradOutput.shape()[0]});
         }
 
         // Calculate weight gradients
         Tensor inputTransposed = transpose(inputTensor, {1, 0}); // Shape: (input_size, batch_size)
+
         weightGradients.emplace(matmul(inputTransposed, reshapedGradOutput)); // Shape: (input_size, output_size)
 
         // Calculate bias gradients
-        biasGradients.emplace(reshape(sum(reshapedGradOutput), {1, biases->getShape()[1]}));
+        biasGradients.emplace(reshape(sum(reshapedGradOutput, {0}), {1, biases->shape()[1]}));
 
         // Calculate input gradients
-        Tensor weightsTransposed = transpose(*weights, {0, 1}); // Shape: (output_size, input_size)
+        Tensor weightsTransposed = transpose(*weights, {1, 0}); // Shape: (output_size, input_size)
+
         Tensor gradInput = matmul(reshapedGradOutput, weightsTransposed); // Shape: (batch_size, input_size)
 
         return gradInput;
@@ -117,7 +119,7 @@ public:
     }
 
     void setBiases(const Tensor& newBiases) {
-        if (newBiases.getShape().rank() != 2 || newBiases.getShape()[0] != 1) {
+        if (newBiases.shape().rank() != 2 || newBiases.shape()[0] != 1) {
             throw std::invalid_argument("Biases must have shape (1, outputSize)");
         }
         biases = newBiases;
