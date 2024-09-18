@@ -20,7 +20,13 @@ public:
     CPUTensorBackend() = default;
     ~CPUTensorBackend();
 
-    Tensor fill(const Shape& shape, const double& value, dtype type) const override;
+    Tensor fill(const Shape& shape, const DataItem& value, dtype type) const override;
+
+    template <typename T>
+    Tensor fill(const Shape& shape, const T fillValue, dtype type) const{
+        T fillValueTemp = fillValue;
+        return this->fill(shape, {&fillValueTemp, dtype_trait<T>::value}, type);
+    }
 
     // Basic operations
     Tensor add(const Tensor& a, const Tensor& b) const override;

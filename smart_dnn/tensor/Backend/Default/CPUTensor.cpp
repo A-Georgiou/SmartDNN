@@ -17,29 +17,8 @@ CPUTensor::~CPUTensor() {
 }
 
 CPUTensor::CPUTensor(const Shape& shape, dtype type)
-    : shape_(shape), type_(type), data_(std::make_shared<std::vector<char>>()) {
-    allocateMemory(shape.size() * dtype_size(type));
-}
-
-CPUTensor::CPUTensor(const Shape& shape, const void* data, dtype type)
-    : shape_(shape), type_(type), data_(std::make_shared<std::vector<char>>()) {
-    size_t total_elements = shape.size();
-    size_t type_size = dtype_size(type);
-    size_t total_size = total_elements * type_size;
-    
-    allocateMemory(total_size);
-    
-    if (data != nullptr) {
-        applyTypedOperationHelper(type, [this, data, total_elements](auto dummy) {
-            using T = decltype(dummy);
-            const T* typed_data = static_cast<const T*>(data);
-            for (size_t i = 0; i < total_elements; ++i) {
-                writeElement<T>(this->data_->data(), i, typed_data[i]);
-            }
-        });
-    } else {
-        std::memset(data_->data(), 0, total_size);
-    }
+    : shape_(shape), type_(type) {
+    allocateMemory();
 }
 
 CPUTensor::CPUTensor(const CPUTensor& other)
@@ -104,28 +83,18 @@ const Tensor CPUTensor::operator[](size_t index) const {
     return at(index);
 }
 
-void CPUTensor::set(const std::vector<size_t>& indices, const void* value) {
+void CPUTensor::set(const std::vector<size_t>& indices, const DataItem& value) {
     size_t flatIndex = index_ ? index_->flattenIndex(indices) : computeFlatIndex(shape_, indices);
-    accessData([&](size_t i) {
-        applyTypedOperationHelper(type_, [&](auto dummy) {
-            using T = decltype(dummy);
-            T* data = reinterpret_cast<T*>(data_->data()) + i;
-            *data = static_cast<T>(value);
-        });
-    });
+    set(flatIndex, value);
 }
 
-void CPUTensor::set(size_t index, const void* value) {
+void CPUTensor::set(size_t index, const DataItem& value) {
     if (index >= shape_.size()) {
         throw std::out_of_range("Index out of range");
     }
-    accessData([&](size_t i) {
-        applyTypedOperationHelper(type_, [&](auto dummy) {
-            using T = decltype(dummy);
-            T* data = reinterpret_cast<T*>(data_->data()) + i;
-            *data = static_cast<T>(value);
-        });
-    });
+    size_t byte_offset = index * dtype_size(type_);
+    void* dest = data_->data() + byte_offset;
+    convert_dtype(dest, value.data, type_, value.type);
 }
 
 // Suggested improvements
@@ -250,14 +219,10 @@ std::string CPUTensor::toDataString() {
     return ss.str();
 }
 
-void CPUTensor::fill(const double& value) {
-    accessData([&](size_t i) {
-        applyTypedOperationHelper(type_, [&](auto dummy) {
-            using T = decltype(dummy);
-            T* data = reinterpret_cast<T*>(data_->data()) + i;
-            *data = static_cast<T>(value);
-        });
-    });
+void CPUTensor::fill(const DataItem& value) {
+    for (size_t i = 0; i < shape_.size(); ++i) {
+        set(i, value);
+    }
 }
 
 CPUTensor CPUTensor::subView(const std::vector<size_t>& indices) const {
@@ -273,7 +238,8 @@ CPUTensor CPUTensor::subView(const std::vector<size_t>& indices) const {
 }
 
 // Safer allocation.
-inline void CPUTensor::allocateMemory(size_t size) {
+inline void CPUTensor::allocateMemory() {
+    size_t size = shape_.size() * dtype_size(type_);
     if (!data_) {
         data_ = std::make_shared<std::vector<char>>(size);
     } else {
@@ -310,6 +276,11 @@ void CPUTensor::setValueFromDouble(size_t index, double value) {
             });
         }
     });
+}
+
+void CPUTensor::getValueAsType(size_t index, const DataItem& data) const {
+    size_t getPosition = index * dtype_size(type_);
+    convert_dtype(data.data, data_->data() + getPosition, data.type, type_);
 }
 
 

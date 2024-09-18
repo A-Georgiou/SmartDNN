@@ -20,6 +20,17 @@ namespace sdnn {
         u32 = 10, // 32-bit unsigned integer
         u64 = 11  // 64-bit unsigned integer
     };
+    
+    struct DataItem {
+        void* data;
+        dtype type;
+    };
+
+    struct DataContainer {
+        void* data;
+        dtype type;
+        size_t num_elements;
+    };
 
     template<typename T>
     struct dtype_trait;
@@ -60,6 +71,23 @@ namespace sdnn {
         return static_cast<const T*>(data);
     }
 
+    template<typename TypedOp>
+    void applyTypedOperationHelper(dtype type, TypedOp op) {
+        switch (type) {
+            case dtype::f32: op(float{}); break;
+            case dtype::f64: op(double{}); break;
+            case dtype::b8: op(bool{}); break;
+            case dtype::s16: op(int16_t{}); break;
+            case dtype::s32: op(int32_t{}); break;
+            case dtype::s64: op(int64_t{}); break;
+            case dtype::u8: op(uint8_t{}); break;
+            case dtype::u16: op(uint16_t{}); break;
+            case dtype::u32: op(uint32_t{}); break;
+            case dtype::u64: op(uint64_t{}); break;
+            default: throw std::runtime_error("Unsupported dtype for operation");
+        }
+    }
+
    template<dtype DType>
     struct cpp_type;
 
@@ -76,21 +104,39 @@ namespace sdnn {
     template<> struct cpp_type<dtype::u64> { using type = uint64_t; };
 
     template <typename T>
-    constexpr T* dtype_cast(void* data, dtype dtype) {
+    constexpr T dtype_cast(const void* data, dtype dtype) {
         switch (dtype) {
-            case dtype::f32: return static_cast<T*>(static_cast<float*>(data));
-            case dtype::f64: return static_cast<T*>(static_cast<double*>(data));
-            case dtype::b8: return static_cast<T*>(static_cast<bool*>(data));
-            case dtype::s8: return static_cast<T*>(static_cast<int8_t*>(data));
-            case dtype::s16: return static_cast<T*>(static_cast<int16_t*>(data));
-            case dtype::s32: return static_cast<T*>(static_cast<int32_t*>(data));
-            case dtype::s64: return static_cast<T*>(static_cast<int64_t*>(data));
-            case dtype::u8: return static_cast<T*>(static_cast<uint8_t*>(data));
-            case dtype::u16: return static_cast<T*>(static_cast<uint16_t*>(data));
-            case dtype::u32: return static_cast<T*>(static_cast<uint32_t*>(data));
-            case dtype::u64: return static_cast<T*>(static_cast<uint64_t*>(data));
+            case dtype::f32: return static_cast<T>(*static_cast<const float*>(data));
+            case dtype::f64: return static_cast<T>(*static_cast<const double*>(data));
+            case dtype::b8:  return static_cast<T>(*static_cast<const bool*>(data));
+            case dtype::s8:  return static_cast<T>(*static_cast<const int8_t*>(data));
+            case dtype::s16: return static_cast<T>(*static_cast<const int16_t*>(data));
+            case dtype::s32: return static_cast<T>(*static_cast<const int32_t*>(data));
+            case dtype::s64: return static_cast<T>(*static_cast<const int64_t*>(data));
+            case dtype::u8:  return static_cast<T>(*static_cast<const uint8_t*>(data));
+            case dtype::u16: return static_cast<T>(*static_cast<const uint16_t*>(data));
+            case dtype::u32: return static_cast<T>(*static_cast<const uint32_t*>(data));
+            case dtype::u64: return static_cast<T>(*static_cast<const uint64_t*>(data));
             default: throw std::runtime_error("Unknown DataType");
         }
+    }
+
+    constexpr inline void* convert_dtype(void* dest, const void* src, dtype to_type, dtype from_type) {
+        switch(to_type) {
+            case dtype::f32: *static_cast<float*>(dest) = dtype_cast<float>(src, from_type); break;
+            case dtype::f64: *static_cast<double*>(dest) = dtype_cast<double>(src, from_type); break;
+            case dtype::b8:  *static_cast<bool*>(dest) = dtype_cast<bool>(src, from_type); break;
+            case dtype::s8:  *static_cast<int8_t*>(dest) = dtype_cast<int8_t>(src, from_type); break;
+            case dtype::s16: *static_cast<int16_t*>(dest) = dtype_cast<int16_t>(src, from_type); break;
+            case dtype::s32: *static_cast<int32_t*>(dest) = dtype_cast<int32_t>(src, from_type); break;
+            case dtype::s64: *static_cast<int64_t*>(dest) = dtype_cast<int64_t>(src, from_type); break;
+            case dtype::u8:  *static_cast<uint8_t*>(dest) = dtype_cast<uint8_t>(src, from_type); break;
+            case dtype::u16: *static_cast<uint16_t*>(dest) = dtype_cast<uint16_t>(src, from_type); break;
+            case dtype::u32: *static_cast<uint32_t*>(dest) = dtype_cast<uint32_t>(src, from_type); break;
+            case dtype::u64: *static_cast<uint64_t*>(dest) = dtype_cast<uint64_t>(src, from_type); break;
+            default: throw std::runtime_error("Unknown destination type");
+        }
+        return dest;
     }
 
     constexpr size_t dtype_size(dtype dt) {
@@ -125,38 +171,6 @@ namespace sdnn {
             case dtype::u64: return "u64";
             default: throw std::runtime_error("Unknown DataType");
         }
-    }
-
-    namespace detail {
-        template<dtype... Ts>
-        struct type_list {};
-
-        template<typename T, typename... Ts>
-        struct concat;
-
-        template<dtype... Ts, dtype... Us>
-        struct concat<type_list<Ts...>, type_list<Us...>> {
-            using type = type_list<Ts..., Us...>;
-        };
-
-        template<typename T>
-        struct to_unique_ptr {
-            using type = std::unique_ptr<T[]>;
-        };
-
-        template<dtype T>
-        using to_unique_ptr_t = typename to_unique_ptr<typename cpp_type<T>::type>::type;
-
-        using supported_types = type_list<dtype::f32, dtype::f64, dtype::s16, dtype::s32, dtype::s64, 
-                                        dtype::u8, dtype::u16, dtype::u32, dtype::u64>;
-
-        template<typename T>
-        struct variant_from_type_list;
-
-        template<dtype... Ts>
-        struct variant_from_type_list<type_list<Ts...>> {
-            using type = std::variant<to_unique_ptr_t<Ts>...>;
-        };
     }
 }
 

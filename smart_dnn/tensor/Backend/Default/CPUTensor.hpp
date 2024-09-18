@@ -22,7 +22,6 @@ public:
 
     // Constructors
     CPUTensor(const Shape& shape, dtype type = dtype::f32);
-    CPUTensor(const Shape& shape, const void* data, dtype type = dtype::f32);
     CPUTensor(const Shape& shape, std::shared_ptr<std::vector<char>> sharedData, dtype type)
         : shape_(shape), type_(type), data_(std::move(sharedData)) {}
 
@@ -42,10 +41,10 @@ public:
     void initializeData(const T* data, size_t total_elements);
 
     template <typename T>
-    CPUTensor(const Shape& shape, const T data, dtype type);
+    CPUTensor(const Shape& shape, const T& data, dtype type);
 
     template <typename T>
-    CPUTensor(const Shape& shape, const T data);
+    CPUTensor(const Shape& shape, const T& data);
 
     template <typename T>
     CPUTensor(const Shape& shape, std::initializer_list<T> values, dtype type);
@@ -69,11 +68,8 @@ public:
 
     Tensor at(const std::vector<size_t>& indices) const override;
     Tensor at(size_t index) const override;
-    void set(const std::vector<size_t>& indices, const void* value) override;
-    void set(size_t index, const void* value) override;
-
-    template <typename T>
-    void setValueAtIndex(size_t index, T&& value);
+    void set(const std::vector<size_t>& indices, const DataItem& value) override;
+    void set(size_t index, const DataItem& value) override;
 
     // Operations
     void addInPlace(const Tensor& other) override;
@@ -96,9 +92,7 @@ public:
 
     void apply(const std::function<void(double&)>& func) override;
 
-    template<typename T>
-    void fill(T value);
-    void fill(const double& value) override;
+    void fill(const DataItem& value) override;
     CPUTensor subView(const std::vector<size_t>& indices) const;
 
     void reshape(const Shape& newShape) override;
@@ -133,13 +127,15 @@ public:
     double getValueAsDouble(size_t index) const override;
     void setValueFromDouble(size_t index, double value) override;
 
+    void getValueAsType(size_t index, const DataItem& data) const override;
+
 private:
     Shape shape_;
     dtype type_;
     std::shared_ptr<std::vector<char>> data_;
     std::optional<TensorIndex> index_;
 
-    void allocateMemory(size_t size);
+    void allocateMemory();
 
     template<typename TargetType, typename SourceType = double>
     void writeElement(void* buffer, size_t index, SourceType value);

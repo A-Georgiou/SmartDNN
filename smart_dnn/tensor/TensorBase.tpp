@@ -7,20 +7,12 @@ namespace sdnn {
     : tensorImpl_(createTensorAdapter(shape, data.data(), type)) {}
 
     template <typename T>
-    Tensor::Tensor(const Shape& shape, const T* data, dtype type)
-    : tensorImpl_(createTensorAdapter(shape, data, type)) {}
-
-    template <typename T>
     Tensor::Tensor(const Shape& shape, const std::vector<T>& data)
-    : tensorImpl_(createTensorAdapter(shape, data.data(), dtype_trait<T>::value)) {}
-
-    template <typename T>
-    Tensor::Tensor(const Shape& shape, const T* data)
-    : tensorImpl_(createTensorAdapter(shape, data, dtype_trait<T>::value)) {}
+    : tensorImpl_(createTensorAdapter(shape, data)) {}
 
     template <typename T>
     Tensor::Tensor(const Shape& shape, const T data, dtype type)
-    : tensorImpl_(createTensorAdapter(shape, &data, type)) {}
+    : tensorImpl_(createTensorAdapter(shape, data, type)) {}
 
     template <typename T>
     Tensor::Tensor(const Shape& shape, const T data)
@@ -28,23 +20,42 @@ namespace sdnn {
 
     template <typename T>
     Tensor::Tensor(const Shape& shape, std::initializer_list<T> values) 
-    : tensorImpl_(createTensorAdapter(shape, values, dtype_trait<T>::value))
-    {}
+    : tensorImpl_(createTensorAdapter(shape, values, dtype_trait<T>::value)) {}
+
+    template <typename T>
+    void Tensor::set(size_t index, T&& data) {
+        T temp = std::forward<T>(data);
+        tensorImpl_->set(index, {static_cast<void*>(&temp), dtype_trait<T>::value});
+    }
+
+    template <typename T>
+    void Tensor::set(const std::vector<size_t>& indices, T&& data){
+        T temp = std::forward<T>(data);
+        tensorImpl_->set(indices, {static_cast<void*>(&temp), dtype_trait<T>::value});
+    }
 
     template <typename T>
     T Tensor::at(const std::vector<size_t>& indices) const {
-        if (!isSameType<T>()) {
-            throw std::invalid_argument("Tensor::at: requested type does not match tensor type");
-        }
-        return static_cast<T>(tensorImpl_->getValueAsDouble(computeFlatIndex(shape(), indices)));
+        T out;
+        getValueAsType(computeFlatIndex(shape(), indices), &out);
+        return out;
     }
 
     template <typename T>
     T Tensor::at(size_t index) const {
-        if (!isSameType<T>()) {
-            throw std::invalid_argument("Tensor::at: requested type does not match tensor type");
-        }
-        return static_cast<T>(tensorImpl_->getValueAsDouble(index));
+        T out;
+        getValueAsType(index, &out);
+        return out;
+    }
+
+    template <typename T>
+    void Tensor::getValueAsType(size_t index, T* out) const {
+        tensorImpl_->getValueAsType(index, {out, dtype_trait<T>::value});
+    }
+
+    template <typename T>
+    Tensor fill(const Shape& shape, const T& fillValue, dtype type) {
+        return defaultTensorBackend().fill(shape, {fillValue, dtype_trait<T>::value}, type);
     }
 
     template <typename T>

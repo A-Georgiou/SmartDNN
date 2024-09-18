@@ -1,17 +1,17 @@
-#include "../smart_dnn/Tensor/Tensor.hpp"
-#include "../smart_dnn/SmartDNN.hpp"
-#include "../smart_dnn/Activations/ReLU.hpp"
-#include "../smart_dnn/Activations/Softmax.hpp"
-#include "../smart_dnn/Loss/CategoricalCrossEntropyLoss.hpp"
-#include "../smart_dnn/Layers/FullyConnectedLayer.hpp"
-#include "../smart_dnn/Layers/ActivationLayer.hpp"
-#include "../smart_dnn/Layers/Conv2DLayer.hpp"
-#include "../smart_dnn/Regularisation/MaxPooling2DLayer.hpp"
-#include "../smart_dnn/Layers/FlattenLayer.hpp"
-#include "../smart_dnn/Optimizers/AdamOptimizer.hpp"
-#include "../smart_dnn/Datasets/MNistLoader.hpp"
-#include "../smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
-#include "../smart_dnn/Regularisation/DropoutLayer.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
+#include "smart_dnn/SmartDNN.hpp"
+#include "smart_dnn/Activations/ReLU.hpp"
+#include "smart_dnn/Activations/Softmax.hpp"
+#include "smart_dnn/Loss/CategoricalCrossEntropyLoss.hpp"
+#include "smart_dnn/Layers/FullyConnectedLayer.hpp"
+#include "smart_dnn/Layers/ActivationLayer.hpp"
+#include "smart_dnn/Layers/Conv2DLayer.hpp"
+#include "smart_dnn/Regularisation/MaxPooling2DLayer.hpp"
+#include "smart_dnn/Layers/FlattenLayer.hpp"
+#include "smart_dnn/Optimizers/AdamOptimizer.hpp"
+#include "smart_dnn/Datasets/MNistLoader.hpp"
+#include "smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
+#include "smart_dnn/Regularisation/DropoutLayer.hpp"
 
 int main() {
 
@@ -24,7 +24,7 @@ int main() {
     constexpr float LEARNING_RATE = 0.001f;
 
     // Initialize the SmartDNN MNist model
-    SmartDNN<float> model;
+    SmartDNN model;
 
     model.addLayer(new Conv2DLayer(1, 32, 3));           // Conv2D layer
     model.addLayer(new BatchNormalizationLayer(32));     // Batch normalization after conv

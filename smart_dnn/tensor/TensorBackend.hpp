@@ -14,7 +14,7 @@ public:
     TensorBackend() = default;
     ~TensorBackend() = default;
 
-    virtual Tensor fill(const Shape& shape, const double& value, dtype type) const = 0;
+    virtual Tensor fill(const Shape& shape, const DataItem& value, dtype type) const = 0;
 
     // Basic operations
     virtual Tensor add(const Tensor& a, const Tensor& b) const = 0;

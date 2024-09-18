@@ -47,14 +47,14 @@ public:
     virtual std::string toDataString() = 0;
 
     // Fill the tensor with a given value.
-    virtual void fill(const double& value) = 0;
+    virtual void fill(const DataItem& value) = 0;
 
     // Element access.
     virtual Tensor at(const std::vector<size_t>& indices) const = 0;
     virtual Tensor at(size_t index) const = 0;
     
-    virtual void set(size_t index, const void* value) = 0;
-    virtual void set(const std::vector<size_t>& indices, const void* value) = 0;
+    virtual void set(size_t index, const DataItem& value) = 0;
+    virtual void set(const std::vector<size_t>& indices, const DataItem& value) = 0;
 
     // Shape operations.
     virtual void reshape(const Shape& newShape) = 0;
@@ -67,6 +67,8 @@ public:
 
     virtual double getValueAsDouble(size_t index) const = 0;
     virtual void setValueFromDouble(size_t index, double value) = 0;
+
+    virtual void getValueAsType(size_t index, const DataItem& data) const = 0;
 };
 
 } // namespace sdnn

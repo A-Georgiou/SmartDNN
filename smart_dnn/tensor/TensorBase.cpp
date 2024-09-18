@@ -98,14 +98,6 @@ bool Tensor::operator!=(const Tensor& other) const{
     return !(tensorImpl_->equal(other));
 }
 
-void Tensor::set(size_t index, const void* value) {
-    tensorImpl_->set(index, value);
-}
-
-void Tensor::set(const std::vector<size_t>& indices, const void* value) {
-    tensorImpl_->set(indices, value);
-}
-
 Tensor Tensor::clone() const {
     return Tensor(tensorImpl_->clone());
 }
@@ -250,19 +242,17 @@ Tensor mean(const Tensor& input, const std::vector<int>& axes, bool keepDims){
 }
 
 Tensor zeros(const Shape& shape, dtype type) {
-    return defaultTensorBackend().fill(shape, 0.0, type);
+    int16_t zero = 0;
+    return defaultTensorBackend().fill(shape, {&zero, dtype::s16}, type);
 }
 
 Tensor ones(const Shape& shape, dtype type) {
-    return defaultTensorBackend().fill(shape, 1.0, type);
+    int16_t one = 1;
+    return defaultTensorBackend().fill(shape, {&one, dtype::s16}, type);
 }
 
 Tensor rand(const Shape& shape, dtype type) {
     return defaultTensorBackend().rand(shape, type);
-}
-
-Tensor fill(const Shape& shape, dtype type, const double& fillValue) {
-    return defaultTensorBackend().fill(shape, fillValue, type);
 }
 
 }; // namespace sdnn

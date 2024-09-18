@@ -31,12 +31,6 @@ public:
     Tensor(const Shape& shape, const std::vector<T>& data);
 
     template <typename T>
-    Tensor(const Shape& shape, const T* data, dtype type);
-
-    template <typename T>
-    Tensor(const Shape& shape, const T* data);
-
-    template <typename T>
     Tensor(const Shape& shape, const T data);
 
     template <typename T>
@@ -70,9 +64,12 @@ public:
 
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;
-        
-    void set(size_t index, const void* value);
-    void set(const std::vector<size_t>& indices, const void* value);
+
+    template <typename T>
+    void set(size_t index, T&& data);
+
+    template <typename T>
+    void set(const std::vector<size_t>& indices, T&& data);
 
     Tensor clone() const;
 
@@ -90,6 +87,9 @@ public:
 
     template <typename T>
     T at(size_t index) const;
+
+    template <typename T>
+    void getValueAsType(size_t index, T* out) const;
 
     template <typename T>
     bool isSameType() const;
@@ -151,7 +151,8 @@ Tensor zeros(const Shape& shape, dtype type = dtype::f32);
 Tensor ones(const Shape& shape, dtype type = dtype::f32);
 Tensor rand(const Shape& shape, dtype type = dtype::f32);
 
-Tensor fill(const Shape& shape, dtype type = dtype::f32, const double& fillValue = 0.0f);
+template <typename T>
+Tensor fill(const Shape& shape, const T& fillValue, dtype type = dtype::f32);
 
 template <typename T>
 Tensor fromVector(const Shape& shape, const std::vector<T>& vec, dtype type) {

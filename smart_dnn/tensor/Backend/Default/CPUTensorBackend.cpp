@@ -16,9 +16,9 @@ namespace sdnn {
 
     CPUTensorBackend::~CPUTensorBackend() = default;
 
-    Tensor CPUTensorBackend::fill(const Shape& shape, const double& value, dtype type) const {
-        std::vector<double> data(shape.size(), value);
-        auto tensorAdapter = createTensorAdapter(shape, data.data(), type);
+    Tensor CPUTensorBackend::fill(const Shape& shape, const DataItem& value, dtype type) const {
+        auto tensorAdapter = createTensorAdapter(shape, type);
+        tensorAdapter->fill(value);
         return Tensor(std::move(tensorAdapter));
     }
 
@@ -211,19 +211,19 @@ namespace sdnn {
     }
 
     Tensor CPUTensorBackend::zeros(const Shape& shape, dtype type) const {
-        return fill(shape, 0.0, type);
+        return this->fill(shape, 0, type);
     }
 
     Tensor CPUTensorBackend::zeros(int size, dtype type) const {
-        return fill(Shape({size}), 0.0, type);
+        return this->fill(Shape({size}), 0, type);
     }
 
     Tensor CPUTensorBackend::ones(const Shape& shape, dtype type) const {
-        return fill(shape, 1.0, type);
+        return this->fill(shape, 1, type);
     }
 
     Tensor CPUTensorBackend::ones(int size, dtype type) const {
-        return fill(Shape({size}), 1.0, type);
+        return this->fill(Shape({size}), 1, type);
     }
 
     Tensor CPUTensorBackend::identity(int size, dtype type) const {
