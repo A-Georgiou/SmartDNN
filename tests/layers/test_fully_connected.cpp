@@ -237,58 +237,6 @@ TEST(FullyConnectedLayerTest, BatchedDataProcessing) {
     }
 }
 
-/*
-TEST(FullyConnectedLayerTest, WeightUpdate) {
-    FullyConnectedLayer fcLayer(4, 3);  // Input size = 4, Output size = 3
-
-    // Create an input tensor and perform forward pass
-    Tensor input({2, 4}, 1.0f);
-    fcLayer.forward(input);
-
-    // Create a dummy gradient tensor and perform backward pass
-    Tensor gradOutput({2, 3}, 1.0f);  // All gradients are 1
-    fcLayer.backward(gradOutput);
-
-    // Create an Adam optimizer
-    AdamOptions adamOptions;
-    adamOptions.learningRate = 1e-3f;
-    AdamOptimizer optimizer(adamOptions);
-
-    // Get initial weights and biases for comparison
-    Tensor initialWeights = fcLayer.getWeights();
-    Tensor initialBiases = fcLayer.getBiases();
-
-    // Perform weight update
-    fcLayer.updateWeights(optimizer);
-
-    // Check that weights and biases have been updated
-    Tensor updatedWeights = fcLayer.getWeights();
-    Tensor updatedBiases = fcLayer.getBiases();
-
-    std::cout << "Initial weights shape: " << initialWeights.shape().toString() << std::endl;
-    std::cout << "Updated weights shape: " << updatedWeights.shape().toString() << std::endl;
-
-    std::cout << "Initial Biases shape: " << initialBiases.shape().toString() << std::endl;
-    std::cout << "Updated Biases shape: " << updatedBiases.shape().toString() << std::endl;
-
-    std::cout << "Initial weights: " << initialWeights.toString() << std::endl;
-    std::cout << "Updated weights: " << updatedWeights.toString() << std::endl;
-
-    std::cout << "Initial biases: " << initialBiases.toString() << std::endl;
-    std::cout << "Updated biases: " << updatedBiases.toString() << std::endl;
-
-    TensorEquals(initialWeights, updatedWeights);
-
-    for (size_t i = 0; i < updatedWeights.shape().size(); ++i) {
-        ASSERT_NE(updatedWeights.at<float>(i), initialWeights.at<float>(i));
-    }
-
-    for (size_t i = 0; i < updatedBiases.shape().size(); ++i) {
-        ASSERT_NE(updatedBiases.at<float>(i), initialBiases.at<float>(i));
-    }
-}
-
-*/
 } // namespace sdnn
 
 #endif // TESTS_LAYERS_TEST_FULLY_CONNECTED_CPP

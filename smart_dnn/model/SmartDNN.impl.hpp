@@ -32,10 +32,10 @@ void SmartDNN::backward(const Tensor& gradOutput)  {
 }
 
 void SmartDNN::updateWeights(Optimizer& optimizer) {
-        for (auto& layer : layers) {
-            layer->updateWeights(optimizer); 
-        }
+    for (auto& layer : layers) {
+        layer->updateWeights(optimizer); 
     }
+}
 
 
 void SmartDNN::compile(Loss* loss, Optimizer* optimizer) {
@@ -53,7 +53,6 @@ void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor
         size_t inputSize = inputs.size();
 
         for (size_t i = 0; i < inputSize; ++i) {
-
             Tensor prediction = inputs[i];
             for (Layer* layer : layers) {
                 prediction = layer->forward(prediction);

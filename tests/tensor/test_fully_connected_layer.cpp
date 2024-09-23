@@ -78,13 +78,6 @@ TEST(FullyConnectedLayerTest, WeightUpdate) {
     Tensor updatedWeights = fcLayer.getWeights();
     Tensor updatedBiases = fcLayer.getBiases();
 
-    std::cout << "Initial weights: " << initialWeights.toString() << std::endl;
-    std::cout << "Updated weights: " << updatedWeights.toString() << std::endl;
-
-    std::cout << "Initial biases: " << initialBiases.toString() << std::endl;
-    std::cout << "Updated biases: " << updatedBiases.toString() << std::endl;
-
-
     for (size_t i = 0; i < updatedWeights.shape().size(); ++i) {
         ASSERT_NE(updatedWeights.at<float>(i), initialWeights.at<float>(i));
     }

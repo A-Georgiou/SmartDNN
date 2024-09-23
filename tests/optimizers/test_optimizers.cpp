@@ -142,6 +142,99 @@ TEST(AdamOptimizerTest, NonDefaultBetaValues) {
     }
 }
 
+TEST(AdamOptimizerTest, DifferentBatchSizes) {
+    Tensor weights({2, 2}, {0.5f, -0.5f, 0.8f, -0.8f});
+    Tensor gradients({2, 2}, {0.1f, -0.1f, 0.2f, -0.2f});
+
+    AdamOptions batchSize1;
+    batchSize1.batchSize = 1;
+    AdamOptimizer optimizerBatchSize1(batchSize1);
+
+    AdamOptions batchSize4;
+    batchSize4.batchSize = 4;
+    AdamOptimizer optimizerBatchSize4(batchSize4);
+
+    Tensor weightsBatchSize1 = weights.clone();
+    Tensor weightsBatchSize4 = weights.clone();
+
+    optimizerBatchSize1.optimize({weightsBatchSize1}, {gradients});
+    optimizerBatchSize4.optimize({weightsBatchSize4}, {gradients});
+
+    for (size_t i = 0; i < weights.shape().size(); ++i) {
+        EXPECT_NEAR(weightsBatchSize1.at<float>(i), weightsBatchSize4.at<float>(i), 1e-6)
+            << "Weight update should be similar despite different batch sizes";
+    }
+}
+
+TEST(AdamOptimizerTest, L1AndL2Regularization) {
+    Tensor weights({2, 2}, {0.5f, -0.5f, 0.8f, -0.8f});
+    Tensor gradients({2, 2}, {0.1f, -0.1f, 0.2f, -0.2f});
+
+    AdamOptions l1l2Options;
+    l1l2Options.l1Strength = 0.01f;
+    l1l2Options.l2Strength = 0.01f;
+    AdamOptimizer optimizerL1L2(l1l2Options);
+
+    Tensor initialWeights = weights.clone();
+    optimizerL1L2.optimize({weights}, {gradients});
+
+    // Verify that weights are updated differently due to L1/L2 regularization
+    for (size_t i = 0; i < weights.shape().size(); ++i) {
+        EXPECT_NE(weights.at<float>(i), initialWeights.at<float>(i))
+            << "Weights should be updated with L1 and L2 regularization";
+    }
+}
+
+TEST(AdamOptimizerTest, ResetOptimizerState) {
+    // Original weights and gradients
+    Tensor weights({2, 2}, {0.5f, -0.5f, 0.8f, -0.8f});
+    Tensor gradients({2, 2}, {0.1f, -0.1f, 0.2f, -0.2f});
+
+    // Adam optimizer with default options
+    AdamOptions adamOptions;
+    adamOptions.learningRate = 0.1f;
+    AdamOptimizer optimizer(adamOptions);
+
+    // Apply the optimizer once
+    optimizer.optimize({weights}, {gradients});
+    Tensor weightsAfterFirstRun = weights.clone();
+
+    // Reset weights to the original state
+    weights = Tensor({2, 2}, {0.5f, -0.5f, 0.8f, -0.8f});
+
+    // Recreate the optimizer to simulate a "reset"
+    AdamOptimizer optimizerReset(adamOptions);
+    optimizerReset.optimize({weights}, {gradients});
+
+    // Verify that the weights after reset optimization are similar to the first run
+    for (size_t i = 0; i < weights.shape().size(); ++i) {
+        EXPECT_NEAR(weights.at<float>(i), weightsAfterFirstRun.at<float>(i), 1e-6)
+            << "Weights after reset should behave like a fresh optimizer";
+    }
+}
+
+TEST(AdamOptimizerTest, LongRunStability) {
+    Tensor weights({2, 2}, {0.5f, -0.5f, 0.8f, -0.8f});
+    Tensor gradients({2, 2}, {0.1f, -0.1f, 0.2f, -0.2f});
+
+    AdamOptions adamOptions;
+    adamOptions.learningRate = 0.01f;
+    AdamOptimizer optimizer(adamOptions);
+
+    std::vector<std::reference_wrapper<Tensor>> weightList = {weights};
+    std::vector<std::reference_wrapper<Tensor>> gradientList = {gradients};
+
+    for (int i = 0; i < 1000; ++i) {
+        optimizer.optimize(weightList, gradientList);
+    }
+
+    // Check that the weights haven't exploded or become NaN
+    for (size_t i = 0; i < weights.shape().size(); ++i) {
+        EXPECT_TRUE(std::isfinite(weights.at<float>(i)))
+            << "Weights should remain finite after many iterations";
+    }
+}
+
 }   // namespace sdnn
 
 #endif // TEST_OPTIMIZERS_CPP

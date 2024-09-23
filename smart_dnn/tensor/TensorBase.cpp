@@ -244,6 +244,14 @@ Tensor mean(const Tensor& input, const std::vector<int>& axes, bool keepDims){
     return input.backend().mean(input, axes, keepDims);
 }
 
+Tensor exp(const Tensor& tensor) {
+    return tensor.backend().exp(tensor);
+}
+
+Tensor log(const Tensor& tensor) {
+    return tensor.backend().log(tensor);
+}
+
 Tensor zeros(const Shape& shape, dtype type) {
     int16_t zero = 0;
     return defaultTensorBackend().fill(shape, {&zero, dtype::s16}, type);

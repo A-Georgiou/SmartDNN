@@ -61,32 +61,6 @@ CPUTensor& CPUTensor::operator=(CPUTensor&& other) noexcept {
     return *this;
 }
 
-Tensor CPUTensor::operator[](size_t index) {
-    if (index >= shape_[0]) {
-        throw std::out_of_range("Index out of range");
-    }
-    
-    std::vector<int> newDims = shape_.getDimensions();
-    newDims.erase(newDims.begin());
-
-    Shape newShape(newDims);
-    TensorIndex newIndex = index_ ? index_->subIndex(index) : TensorIndex(newShape, newShape.getStride(), index);
-    
-    return Tensor(std::make_unique<CPUTensor>(
-        newShape,
-        data_,
-        type_,
-        newIndex
-    ));
-}
-
-const Tensor CPUTensor::operator[](size_t index) const {
-    if (index >= shape_.size()) {
-        throw std::out_of_range("Index out of range");
-    }
-    return at(index);
-}
-
 void CPUTensor::set(const std::vector<size_t>& indices, const DataItem& value) {
     size_t flatIndex = index_ ? index_->flattenIndex(indices) : computeFlatIndex(shape_, indices);
     set(flatIndex, value);
@@ -101,7 +75,6 @@ void CPUTensor::set(size_t index, const DataItem& value) {
     convert_dtype(dest, value.data, type_, value.type);
 }
 
-// Suggested improvements
 Tensor CPUTensor::at(const std::vector<size_t>& indices) const {
     if (indices.size() != shape_.rank()) {
         throw std::invalid_argument("Number of indices doesn't match tensor dimensions");
@@ -115,11 +88,10 @@ Tensor CPUTensor::at(size_t index) const {
         throw std::out_of_range("Index out of range");
     }
 
-    // Create a new shape for the sub-tensor (scalar)
     Shape subShape({1});
     TensorIndex newIndex = index_ ? index_->subIndex(index) : TensorIndex(subShape, subShape.getStride(), index);
-    
-    // Create a new CPUTensor that shares the same data
+
+    // Create a new CPUTensor that shares the same data and has scalar shape
     auto subTensor = std::make_unique<CPUTensor>(
         subShape,
         data_,
@@ -283,12 +255,14 @@ void CPUTensor::setValueFromDouble(size_t index, double value) {
 }
 
 void CPUTensor::getValueAsType(size_t index, const DataItem& data) const {
-    size_t getPosition = index * dtype_size(type_);
+    size_t flatIndex = index_ ? index_->flattenIndex({index}) : index;
+    size_t getPosition = flatIndex * dtype_size(type_);
     convert_dtype(data.data, data_.get() + getPosition, data.type, type_);
 }
 
 void CPUTensor::setValueFromType(size_t index, const DataItem& data) {
-    size_t setPosition = index * dtype_size(type_);
+    size_t flatIndex = index_ ? index_->flattenIndex({index}) : index;
+    size_t setPosition = flatIndex * dtype_size(type_);
     convert_dtype(data_.get() + setPosition, data.data, type_, data.type);
 }
 

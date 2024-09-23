@@ -42,8 +42,9 @@ public:
     Tensor scalarSub(const double& scalar, const Tensor& tensor) const override;
     Tensor scalarDiv(const double& scalar, const Tensor& tensor) const override;
 
-    Tensor sum(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
     Tensor sumNoAxes(const Tensor& tensor) const;
+    Tensor sum(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
+    Tensor meanNoAxes(const Tensor& tensor) const;
     Tensor mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
 
     Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const override;

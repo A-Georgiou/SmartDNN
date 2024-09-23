@@ -60,12 +60,14 @@ namespace sdnn {
     template <typename AccessOp>
     void CPUTensor::accessData(AccessOp op) const {
         if (index_) {
+            #pragma omp parallel for
             for (size_t i = 0; i < shape_.size(); ++i) {
                 std::vector<size_t> indices = unflattenIndex(i, shape_);
                 size_t flatIndex = index_->flattenIndex(indices);
                 op(flatIndex);
             }
         } else {
+            #pragma omp parallel for
             for (size_t i = 0; i < shape_.size(); ++i) {
                 op(i);
             }

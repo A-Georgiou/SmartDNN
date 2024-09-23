@@ -32,6 +32,7 @@ public:
         if (input.shape().rank() == 1) {
             reshapedInput = reshape(input, {1, input.shape()[0]});
         }
+
         Tensor output = matmul(reshapedInput, *weights);
         output = output + *biases;
 

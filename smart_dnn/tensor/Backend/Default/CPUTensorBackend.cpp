@@ -62,23 +62,32 @@ namespace sdnn {
         return scalarOp(tensor, scalar, [](auto a, auto b) { return b / a; });
     }
 
+    Tensor CPUTensorBackend::sumNoAxes(const Tensor& tensor) const {
+        Tensor sum = zeros({1}, tensor.type());
+        tensor.tensorImpl_->apply([&sum](auto& a) { sum += a; });
+        return sum;
+    }
+
     Tensor CPUTensorBackend::sum(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
         if (axes.empty()) {
             return sumNoAxes(tensor);
         }
+
         return reduction(tensor, axes, keepDims, 
                             [](auto a, auto b) { return a + b; },
                             [](auto sum, size_t) { return sum; });
     }
 
-    Tensor CPUTensorBackend::sumNoAxes(const Tensor& tensor) const {
-        double sum = 0.0;
-        tensor.tensorImpl_->apply([&sum](double& a) { sum += a; });
-        Shape newShape = Shape({1});
-        return Tensor(createTensorAdapter(newShape, &sum, tensor.type()));
+    Tensor CPUTensorBackend::meanNoAxes(const Tensor& tensor) const {
+        Tensor sum = sumNoAxes(tensor);
+        return sum / tensor.shape().size();
     }
 
     Tensor CPUTensorBackend::mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
+        if (axes.empty()) {
+            return meanNoAxes(tensor);
+        }
+
         return reduction(tensor, axes, keepDims, 
                             [](auto a, auto b) { return a + b; },
                             [](auto sum, size_t count) { return sum / static_cast<decltype(sum)>(count); });
@@ -159,14 +168,11 @@ namespace sdnn {
     Tensor CPUTensorBackend::abs(const Tensor& tensor) const {
         return applyOperation(tensor, [](auto a) { 
             using T = decltype(a);
-
-        if constexpr (std::is_unsigned_v<T> || std::is_same_v<T, bool>) {
-            // For unsigned types and bool, return the value itself
-            return a;
-        } else {
-            // For signed types, compute absolute value manually
-            return a < T(0) ? -a : a;
-        }
+            if constexpr (std::is_unsigned_v<T> || std::is_same_v<T, bool>) {
+                return a;
+            } else {
+                return a < T(0) ? -a : a;
+            }
         });
     }
 
@@ -195,9 +201,9 @@ namespace sdnn {
     }
 
     Tensor CPUTensorBackend::rand(const Shape& shape, dtype type) const {
-        std::vector<double> data(shape.size());
+        std::vector<float> data(shape.size());
         for (size_t i = 0; i < shape.size(); ++i) {
-            data[i] = static_cast<double>(RandomEngine::getRand());
+            data[i] = static_cast<float>(RandomEngine::getXavierInit(shape.size()));
         }
         return Tensor(createTensorAdapter(shape, data, type));
     }
@@ -205,7 +211,7 @@ namespace sdnn {
     Tensor CPUTensorBackend::randn(const Shape& shape, dtype type, double min, double max) const {
         std::vector<double> data(shape.size());
         for (size_t i = 0; i < shape.size(); ++i) {
-            data[i] = static_cast<double>(RandomEngine::getRandRange(min, max)) / RAND_MAX;
+            data[i] = static_cast<double>(RandomEngine::getHeRandRange(shape.size(), min, max)) / RAND_MAX;
         }
         return Tensor(createTensorAdapter(shape, data, type));
     }

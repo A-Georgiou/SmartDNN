@@ -3,6 +3,7 @@
 
 #include "smart_dnn/Loss.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
+#include "smart_dnn/shape/ShapeOperations.hpp"
 #include <cmath>
 
 namespace sdnn {
@@ -14,28 +15,19 @@ public:
     Tensor compute(const Tensor& prediction, const Tensor& target) override {
         Tensor reshapedTarget = target;
 
-        if (prediction.shape() != target.shape()) {
-            if (target.shape().rank() == 1 && target.shape()[0] == prediction.shape()[0]) {
-                reshapedTarget = reshape(target, prediction.shape());
-            } else {
-                throw std::invalid_argument("Shapes of prediction and target do not match and cannot be broadcast.");
-            }
+        if (!ShapeOperations::areBroadcastable(prediction.shape(), target.shape())) {
+            throw std::invalid_argument("Shapes of prediction and target are not broadcast-compatible.");
         }
 
         Tensor diff = prediction - reshapedTarget;
-        Tensor mse = sum((diff * diff)) / diff.shape().size();
-        return mse;
+        return sum((diff * diff)) / diff.shape().size();
     }
 
     Tensor gradient(const Tensor& prediction, const Tensor& target) override {
         Tensor reshapedTarget = target;
 
-        if (prediction.shape() != target.shape()) {
-            if (target.shape().rank() == 1 && target.shape()[0] == prediction.shape()[0]) {
-                reshapedTarget = reshape(target, prediction.shape());
-            } else {
-                throw std::invalid_argument("Shapes of prediction and target do not match and cannot be broadcast.");
-            }
+         if (!ShapeOperations::areBroadcastable(prediction.shape(), target.shape())) {
+            throw std::invalid_argument("Shapes of prediction and target are not broadcast-compatible.");
         }
 
         Tensor grad = 2 * (prediction - reshapedTarget) / prediction.shape().size();

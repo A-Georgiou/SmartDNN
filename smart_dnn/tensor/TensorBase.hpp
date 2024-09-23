@@ -30,11 +30,11 @@ public:
     template <typename T>
     Tensor(const Shape& shape, const std::vector<T>& data);
 
-    template <typename T>
-    Tensor(const Shape& shape, const T data);
-
-    template <typename T>
+    template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
     Tensor(const Shape& shape, const T data, dtype type);
+
+    template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+    Tensor(const Shape& shape, const T data);
 
     template <typename T>
     Tensor(const Shape& shape, std::initializer_list<T> values);
@@ -147,6 +147,8 @@ Tensor matmul(const Tensor& lhs, const Tensor& rhs);
 Tensor transpose(const Tensor& tensor, const std::vector<int>& axes = {});
 Tensor reshape(const Tensor& tensor, const Shape& newShape);
 Tensor sqrt(const Tensor& tensor);
+Tensor exp(const Tensor& tensor);
+Tensor log(const Tensor& tensor);
 
 // Reduction operations
 Tensor sum(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims = false);

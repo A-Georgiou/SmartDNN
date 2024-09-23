@@ -55,9 +55,6 @@ public:
     CPUTensor& operator=(const CPUTensor& other);
     CPUTensor& operator=(CPUTensor&& other) noexcept;
 
-    Tensor operator[](size_t index);
-    const Tensor operator[](size_t index) const;
-
     // Data access
     void* data() override { return data_.get(); }
     const void* data() const override { return data_.get(); }

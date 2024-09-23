@@ -55,15 +55,24 @@ public:
         if (index >= shape_[0]) {
             throw std::out_of_range("Index out of range");
         }
-        
+
+        // If this is a scalar sub-view, return a new index with shape {1}
         std::vector<int> newShape = shape_.getDimensions();
-        newShape.erase(newShape.begin());
-        
+        if (newShape.size() > 1) {
+            newShape.erase(newShape.begin());  // Remove the first dimension
+        } else {
+            newShape = {1};  // Scalar shape
+        }
+
         std::vector<size_t> newStrides = strides_;
-        newStrides.erase(newStrides.begin());
-        
+        if (newStrides.size() > 1) {
+            newStrides.erase(newStrides.begin());
+        } else {
+            newStrides = {1};  // Single-element stride
+        }
+
         size_t newOffset = offset_ + index * strides_[0];
-        
+
         return TensorIndex(Shape(newShape), newStrides, newOffset);
     }
 
