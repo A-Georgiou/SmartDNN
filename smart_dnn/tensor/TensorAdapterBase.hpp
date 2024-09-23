@@ -69,6 +69,7 @@ public:
     virtual void setValueFromDouble(size_t index, double value) = 0;
 
     virtual void getValueAsType(size_t index, const DataItem& data) const = 0;
+    virtual void setValueFromType(size_t index, const DataItem& data) = 0;
 };
 
 } // namespace sdnn

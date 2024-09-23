@@ -40,7 +40,6 @@ namespace sdnn {
         }
     }
 
-
     inline testing::AssertionResult TensorEquals(const Tensor& tensor1, const Tensor& tensor2) {
         if (tensor1.type() != tensor2.type()) {
             return testing::AssertionFailure() << "Tensor types do not match.";

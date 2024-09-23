@@ -2,8 +2,7 @@
 #define LEAKY_RELU_HPP
 
 #include "smart_dnn/Activation.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
-#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/tensor/TensorBase.hpp"
 #include <algorithm>
 
 namespace sdnn {
@@ -17,23 +16,21 @@ namespace sdnn {
     f'(x) = 1 if x > 0, alpha otherwise
 
 */
-template <typename T = float>
-class LeakyReLU : public Activation<T> {
-public:
-    explicit LeakyReLU(T alpha = T(0.01)) : alpha(alpha) {}
 
-    Tensor<T> forward(const Tensor<T>& input) const override {
-        Tensor<T> output(input);
-        return AdvancedTensorOperations<T>::apply(input, [this](T x) { return (x > 0) ? x : (alpha * x); });
+class LeakyReLU : public Activation {
+public:
+    explicit LeakyReLU(float alpha = 0.01f) : alpha(alpha) {}
+
+    Tensor forward(const Tensor& input) const override {
+        return apply(input, [this](double& x) { x = (x > 0) ? x : (alpha * x); });
     }
 
-   Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
-        return AdvancedTensorOperations<T>::applyPair(input, gradOutput, 
-            [this](T x, T grad) { return (x >= T(0)) ? grad : (alpha * grad); });
+   Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
+        return apply(input, [this](auto& x) { x = (x > 0) ? 1 : alpha; }) * gradOutput;
     }
 
 private:
-    T alpha;
+    float alpha;
 };
 
 } // namespace sdnn

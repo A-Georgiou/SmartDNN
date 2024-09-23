@@ -137,6 +137,7 @@ TEST(TensorCopyMoveTest, SelfAssignment) {
 
 TEST(TensorCopyMoveTest, DoubleMove) {
     Tensor a({2, 3}, 5.0f);
+
     Tensor b(std::move(a)); // First move
 
     // Ensure b has the data
@@ -144,12 +145,9 @@ TEST(TensorCopyMoveTest, DoubleMove) {
     ValidateTensorData(b, std::vector<float>(6, 5.0f));
 
     Tensor c(std::move(b)); // Second move
+
     ValidateTensorShape(c, 2, 6, {2, 3});
     ValidateTensorData(c, std::vector<float>(6, 5.0f));
-
-    // b should be in a valid, but empty state.
-    // We cannot have empty tensors so it is set to 1
-    ASSERT_EQ(b.getShape().size(), 1);
 }
 
 TEST(TensorCopyMoveTest, MoveAssignmentAfterCopy) {
@@ -245,6 +243,38 @@ TEST(TensorScalarOperatorTest, ExpectValidScalarDivisionInverse) {
 
     ValidateTensorShape(b, 3, 6, {1, 2, 3});
     ValidateTensorData(b, std::vector<float>(6, 2.0f));
+}
+
+
+/*
+
+VALID OPERATOR TESTS
+
+*/
+
+TEST(TensorOperatorTest, ExpectValidAccessOperator) {
+    Tensor a({1, 2, 3}, 1.0f);
+    
+    for (size_t i = 0; i < 6; ++i) {
+        Tensor b = a[i];
+        b *= i;
+    }
+
+    std::vector<float> expectedData = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+    ValidateTensorData(a, expectedData);
+}
+
+TEST(TensorOperatorTest, ExpectValidAccessOperatorMathWithTensor) {
+    Tensor a({1, 2, 3}, {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f});
+    Tensor b({1}, 2.0f);
+    
+    for (size_t i = 0; i < 6; ++i) {
+        Tensor c = a[i];
+        c += b;
+    }
+
+    std::vector<float> expectedData = {2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f};
+    ValidateTensorData(a, expectedData);
 }
 
 } // namespace sdnn

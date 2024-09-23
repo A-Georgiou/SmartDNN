@@ -55,8 +55,8 @@ std::pair<std::vector<Tensor>, std::vector<Tensor>> generateBatchedLinearDataset
 
             std::vector<size_t> indices = {static_cast<size_t>(i), 0};
 
-            input_batch.set(indices, &x);
-            target_batch.set(indices, &y);
+            input_batch.set(indices, x);
+            target_batch.set(indices, y);
         }
 
         input_batches.push_back(input_batch);

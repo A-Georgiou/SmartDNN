@@ -7,7 +7,7 @@ namespace sdnn {
 // Mapping from dtype to corresponding primitive types
     std::type_index sdnnTypeToPrimitive(dtype type) {
         static const std::unordered_map<dtype, std::type_index> kDtypeToPrimitive = {
-            {dtype::f16, std::type_index(typeid(float))},  // Assuming f16 -> float
+            {dtype::f16, std::type_index(typeid(float))},  // Temporarily assuming f16 -> float
             {dtype::f32, std::type_index(typeid(float))},
             {dtype::f64, std::type_index(typeid(double))},
             {dtype::b8, std::type_index(typeid(bool))},

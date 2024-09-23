@@ -22,10 +22,10 @@ public:
 
     // Constructors
     CPUTensor(const Shape& shape, dtype type = dtype::f32);
-    CPUTensor(const Shape& shape, std::shared_ptr<std::vector<char>> sharedData, dtype type)
+    CPUTensor(const Shape& shape, std::shared_ptr<char[]> sharedData, dtype type)
         : shape_(shape), type_(type), data_(std::move(sharedData)) {}
 
-    CPUTensor(const Shape& shape, std::shared_ptr<std::vector<char>> sharedData, dtype type, std::optional<TensorIndex> index)
+    CPUTensor(const Shape& shape, std::shared_ptr<char[]> sharedData, dtype type, std::optional<TensorIndex> index)
         : shape_(shape), type_(type), data_(std::move(sharedData)), index_(std::move(index)) {};
 
     template <typename T>
@@ -41,10 +41,10 @@ public:
     void initializeData(const T* data, size_t total_elements);
 
     template <typename T>
-    CPUTensor(const Shape& shape, const T& data, dtype type);
+    CPUTensor(const Shape& shape, T data, dtype type);
 
     template <typename T>
-    CPUTensor(const Shape& shape, const T& data);
+    CPUTensor(const Shape& shape, T data);
 
     template <typename T>
     CPUTensor(const Shape& shape, std::initializer_list<T> values, dtype type);
@@ -59,8 +59,8 @@ public:
     const Tensor operator[](size_t index) const;
 
     // Data access
-    void* data() override { return (*data_).data(); }
-    const void* data() const override { return (*data_).data(); }
+    void* data() override { return data_.get(); }
+    const void* data() const override { return data_.get(); }
     const Shape& shape() const override { return shape_; }
     const std::vector<size_t>& stride() const override { return shape_.getStride(); }
     size_t size() const override { return shape_.size(); }
@@ -116,23 +116,23 @@ public:
 
     template<typename T>
     T* typedData() {
-        return safe_cast<std::remove_pointer_t<T>>((*data_).data(), type_);
+        return safe_cast<std::remove_pointer_t<T>>(data_.get(), type_);
     }
 
     template<typename T>
     const T* typedData() const {
-        return safe_cast<const std::remove_pointer_t<T>>((*data_).data(), type_);
+        return safe_cast<const std::remove_pointer_t<T>>(data_.get(), type_);
     }
 
     double getValueAsDouble(size_t index) const override;
     void setValueFromDouble(size_t index, double value) override;
-
+    void setValueFromType(size_t index, const DataItem& data) override;
     void getValueAsType(size_t index, const DataItem& data) const override;
 
 private:
     Shape shape_;
     dtype type_;
-    std::shared_ptr<std::vector<char>> data_;
+    std::shared_ptr<char[]> data_;
     std::optional<TensorIndex> index_;
 
     void allocateMemory();

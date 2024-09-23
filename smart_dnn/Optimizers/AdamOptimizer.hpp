@@ -89,7 +89,7 @@ private:
             Tensor gradientElement = gradient[j];
             Tensor mElement = mData[j];
             Tensor vElement = vData[j];
-
+            
             updateParameter(weightElement, gradientElement, mElement, vElement, alphaT);
         }
     }
@@ -109,7 +109,6 @@ private:
 
         // Update biased second moment estimate
         vValue = beta2 * vValue + (1 - beta2) * averagedGradient * averagedGradient;
-
         // Compute update
         Tensor mHat = mValue / (1 - std::pow(beta1, iterations));
         Tensor vHat = vValue / (1 - std::pow(beta2, iterations));

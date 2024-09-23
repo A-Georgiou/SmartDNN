@@ -18,11 +18,11 @@ namespace sdnn {
 class ReLU : public Activation {
 public:
     Tensor forward(const Tensor& input) const override {
-        return apply(input, [](double& x) { x = std::max(0.0, x); });
+        return apply(input, [](auto& x) { x = std::max(0.0, x); });
     }
 
     Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
-        return apply(input, [](double& x) { x = x > 0 ? 1 : 0; }) * gradOutput;
+        return apply(input, [](auto& x) { x = x > 0 ? 1 : 0; }) * gradOutput;
     }
 };
 

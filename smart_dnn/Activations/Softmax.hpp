@@ -2,7 +2,7 @@
 #define SOFTMAX_HPP
 
 #include "smart_dnn/Activation.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/tensor/TensorBase.hpp"
 #include <cmath>
 #include <algorithm>
 #include <numeric>
@@ -19,76 +19,74 @@ namespace sdnn {
     f'(x) = f(x) * (1 - f(x))
 
 */
-template <typename T=float>
-class Softmax : public Activation<T> {
+class Softmax : public Activation {
 public:
-    Tensor<T> forward(const Tensor<T>& input) const override {
-        if (input.getShape().rank() < 2) {
+    Tensor forward(const Tensor& input) const override {
+        /*
+        if (input.shape().rank() < 2) {
             throw std::invalid_argument("Input must have at least 2 dimensions (batch_size, features)");
         }
 
-        Tensor<T> output(input.getShape());
-        const T* inputData = input.getData().data();
-        T* outputData = output.getData().data();
+        Tensor output = input.clone(); // Create a copy of the input tensor to store the output
 
-        int batchSize = input.getShape()[0];
-        int featuresSize = input.getShape().size() / batchSize;
+        int batchSize = input.shape()[0];
+        int featuresSize = input.shape().size() / batchSize;
 
         for (int b = 0; b < batchSize; ++b) {
-            const T* batchInputData = inputData + b * featuresSize;
-            T* batchOutputData = outputData + b * featuresSize;
+            std::vector<size_t> batchIndices = {static_cast<size_t>(b)};
+            Tensor batchInput = input[batchIndices];  // Slice the batch from input
+            Tensor batchOutput = output[batchIndices]; // Slice the batch from output
 
-            T maxVal = *std::max_element(batchInputData, batchInputData + featuresSize);
-            T sum = T(0);
+            // Find the maximum value in the batch for numerical stability
+            double maxVal = sum(batchInput, {0}, false).at<double>(0); // Assuming sum can act as a reduction op to find max
+            Tensor maxTensor = fill(batchInput.shape(), maxVal, input.type());
+            Tensor shiftedInput = batchInput - maxTensor;
 
-            for (int i = 0; i < featuresSize; ++i) {
-                batchOutputData[i] = std::exp(batchInputData[i] - maxVal);
-                sum += batchOutputData[i];
-            }
+            Tensor expInput = exp(shiftedInput);  // exp(input - maxVal)
+            double sumExp = sum(expInput, {0}, false).at<double>(0); // Sum of exponentials
+            Tensor sumExpTensor = fill(expInput.shape(), sumExp, input.type());
 
-            for (int i = 0; i < featuresSize; ++i) {
-                batchOutputData[i] /= sum;
-            }
+            // Normalize the result: output = expInput / sum(expInput)
+            batchOutput = div(expInput, sumExpTensor);
         }
-
 
         return output;
+        */
+       return input;
     }
 
-    Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
-        if (input.getShape().rank() < 2 || gradOutput.getShape().rank() < 2) {
+    Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
+        /*
+        if (input.shape().rank() < 2 || gradOutput.shape().rank() < 2) {
             throw std::invalid_argument("Input and gradOutput must have at least 2 dimensions (batch_size, features)");
         }
-        
-        Tensor<T> forwardOutput = forward(input);
-        Tensor<T> gradInput(input.getShape());
 
-        const T* outputData = forwardOutput.getData().data();
-        const T* gradOutputData = gradOutput.getData().data();
-        T* gradInputData = gradInput.getData().data();
+        Tensor forwardOutput = forward(input);
+        Tensor gradInput(input.shape(), input.type());
 
-        int batchSize = input.getShape()[0];
-        int featuresSize = input.getShape().size() / batchSize;
+        int batchSize = input.shape()[0];
+        int featuresSize = input.shape().size() / batchSize;
 
         for (int b = 0; b < batchSize; ++b) {
-            const T* batchOutputData = outputData + b * featuresSize;
-            const T* batchGradOutputData = gradOutputData + b * featuresSize;
-            T* batchGradInputData = gradInputData + b * featuresSize;
+            std::vector<size_t> batchIndices = {b};
+            Tensor batchOutput = forwardOutput[batchIndices];
+            Tensor batchGradOutput = gradOutput[batchIndices];
+            Tensor batchGradInput = gradInput[batchIndices];
 
-            for (int i = 0; i < featuresSize; ++i) {
-                T gradient = T(0);
-                for (int j = 0; j < featuresSize; ++j) {
-                    if (i == j) {
-                        gradient += batchOutputData[i] * (T(1) - batchOutputData[j]) * batchGradOutputData[j];
-                    } else {
-                        gradient -= batchOutputData[i] * batchOutputData[j] * batchGradOutputData[j];
-                    }
-                }
-                batchGradInputData[i] = gradient;
-            }
+            auto backend = input.backend();
+
+            // Apply the softmax gradient formula:
+            // gradInput = output * (gradOutput - sum(gradOutput * output))
+            Tensor outputMulGrad = backend.mul(batchOutput, batchGradOutput);
+            double sumGradOutput = backend.sum(outputMulGrad, {0}, false).at<double>(0);
+            Tensor sumGradTensor = backend.fill(batchOutput.shape(), sumGradOutput, input.type());
+
+            batchGradInput = backend.mul(batchOutput, backend.sub(batchGradOutput, sumGradTensor));
         }
 
         return gradInput;
+        */
+       return gradOutput;
     }
 };
 

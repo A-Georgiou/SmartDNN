@@ -12,9 +12,7 @@
 
 namespace sdnn {
 
-CPUTensor::~CPUTensor() {
-    (*data_).clear();
-}
+CPUTensor::~CPUTensor() {}
 
 CPUTensor::CPUTensor(const Shape& shape, dtype type)
     : shape_(shape), type_(type) {
@@ -22,13 +20,20 @@ CPUTensor::CPUTensor(const Shape& shape, dtype type)
 }
 
 CPUTensor::CPUTensor(const CPUTensor& other)
-    : shape_(other.shape_), type_(other.type_), data_(other.data_) {
+    : shape_(other.shape_), type_(other.type_), data_(other.data_), index_(other.index_) {
 }
 
 CPUTensor::CPUTensor(CPUTensor&& other) noexcept {
-    shape_ = std::move(other.shape_);
-    type_ = std::move(other.type_);
-    data_ = std::move(other.data_);
+    if (this != &other) {
+        shape_ = std::move(other.shape_);
+        type_ = std::move(other.type_);
+        data_ = std::move(other.data_);
+        index_ = std::move(other.index_);
+    }
+    other.shape_ = Shape({1});
+    other.type_ = type_;
+    other.data_ = nullptr;
+    other.index_ = std::nullopt;
 }
 
 
@@ -37,6 +42,7 @@ CPUTensor& CPUTensor::operator=(const CPUTensor& other) {
         shape_ = other.shape_;
         type_ = other.type_;
         data_ = other.data_; // Share the data
+        index_ = other.index_;
     }
     return *this;
 }
@@ -46,7 +52,12 @@ CPUTensor& CPUTensor::operator=(CPUTensor&& other) noexcept {
         shape_ = std::move(other.shape_);
         type_ = std::move(other.type_);
         data_ = std::move(other.data_);
+        index_ = std::move(other.index_);
     }
+    other.shape_ = Shape({1});
+    other.type_ = type_;
+    other.data_ = nullptr;
+    other.index_ = std::nullopt;
     return *this;
 }
 
@@ -59,14 +70,7 @@ Tensor CPUTensor::operator[](size_t index) {
     newDims.erase(newDims.begin());
 
     Shape newShape(newDims);
-    
-    std::optional<TensorIndex> newIndex;
-    if (index_) {
-        newIndex = index_->subIndex(index);
-    } else {
-        size_t offset = index * shape_.size() / shape_[0];
-        newIndex = TensorIndex(newShape, newShape.getStride(), offset);
-    }
+    TensorIndex newIndex = index_ ? index_->subIndex(index) : TensorIndex(newShape, newShape.getStride(), index);
     
     return Tensor(std::make_unique<CPUTensor>(
         newShape,
@@ -93,7 +97,7 @@ void CPUTensor::set(size_t index, const DataItem& value) {
         throw std::out_of_range("Index out of range");
     }
     size_t byte_offset = index * dtype_size(type_);
-    void* dest = data_->data() + byte_offset;
+    void* dest = data_.get() + byte_offset;
     convert_dtype(dest, value.data, type_, value.type);
 }
 
@@ -113,12 +117,14 @@ Tensor CPUTensor::at(size_t index) const {
 
     // Create a new shape for the sub-tensor (scalar)
     Shape subShape({1});
+    TensorIndex newIndex = index_ ? index_->subIndex(index) : TensorIndex(subShape, subShape.getStride(), index);
     
     // Create a new CPUTensor that shares the same data
     auto subTensor = std::make_unique<CPUTensor>(
         subShape,
-        data_,  // Share the same data
-        type_
+        data_,
+        type_,
+        newIndex
     );
     
     return Tensor(std::move(subTensor));
@@ -186,17 +192,17 @@ void CPUTensor::apply(const std::function<void(double&)>& func) {
     accessData([&](size_t i) {
         applyTypedOperationHelper(type_, [&](auto dummy) {
             using T = std::remove_pointer_t<decltype(dummy)>;
-            T* data = reinterpret_cast<T*>(this->data_->data()) + i;
-            double value = static_cast<double>(*data);
+            T* dataElement = reinterpret_cast<T*>(this->data_.get()) + i;
+            double value = static_cast<double>(*dataElement);
             func(value);
-            *data = static_cast<T>(value);
+            *dataElement = static_cast<T>(value);
         });
     });
 }
 
 std::unique_ptr<TensorAdapter> CPUTensor::clone() const {
     auto newTensor = std::make_unique<CPUTensor>(shape_, type_);
-    newTensor->data_ = std::make_shared<std::vector<char>>(*data_);
+    std::memcpy(newTensor->data_.get(), data_.get(), shape_.size() * dtype_size(type_));
     return newTensor;
 }
 
@@ -211,7 +217,7 @@ std::string CPUTensor::toDataString() {
     accessData([&](size_t i) {
         applyTypedOperationHelper(type_, [&](auto dummy) {
             using T = std::remove_pointer_t<decltype(dummy)>;
-            const T* data = reinterpret_cast<const T*>(this->data_->data()) + i;
+            const T* data = reinterpret_cast<const T*>(this->data_.get()) + i;
             if (i > 0) ss << " ";
             ss << *data;
         });
@@ -241,9 +247,7 @@ CPUTensor CPUTensor::subView(const std::vector<size_t>& indices) const {
 inline void CPUTensor::allocateMemory() {
     size_t size = shape_.size() * dtype_size(type_);
     if (!data_) {
-        data_ = std::make_shared<std::vector<char>>(size);
-    } else {
-        data_->resize(size);
+        data_ = std::shared_ptr<char[]>(new char[size], std::default_delete<char[]>());
     }
 }
 
@@ -258,7 +262,7 @@ double CPUTensor::getValueAsDouble(size_t index) const {
         if (i == index) {
             applyTypedOperationHelper(type_, [&](auto dummy) {
                 using T = decltype(dummy);
-                const T* data = reinterpret_cast<const T*>(data_->data()) + i;
+                const T* data = reinterpret_cast<const T*>(data_.get()) + i;
                 result = static_cast<double>(*data);
             });
         }
@@ -271,7 +275,7 @@ void CPUTensor::setValueFromDouble(size_t index, double value) {
         if (i == index) {
             applyTypedOperationHelper(type_, [&](auto dummy) {
                 using T = decltype(dummy);
-                T* data = reinterpret_cast<T*>(data_->data()) + i;
+                T* data = reinterpret_cast<T*>(data_.get()) + i;
                 *data = static_cast<T>(value);
             });
         }
@@ -280,7 +284,12 @@ void CPUTensor::setValueFromDouble(size_t index, double value) {
 
 void CPUTensor::getValueAsType(size_t index, const DataItem& data) const {
     size_t getPosition = index * dtype_size(type_);
-    convert_dtype(data.data, data_->data() + getPosition, data.type, type_);
+    convert_dtype(data.data, data_.get() + getPosition, data.type, type_);
+}
+
+void CPUTensor::setValueFromType(size_t index, const DataItem& data) {
+    size_t setPosition = index * dtype_size(type_);
+    convert_dtype(data_.get() + setPosition, data.data, type_, data.type);
 }
 
 

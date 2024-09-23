@@ -18,7 +18,9 @@ Tensor::Tensor(const Tensor& tensor)
     : tensorImpl_(tensor.tensorImpl_->clone()) {}
 
 Tensor::Tensor(Tensor&& tensor) noexcept
-    : tensorImpl_(std::move(tensor.tensorImpl_)) {}
+    : tensorImpl_(std::move(tensor.tensorImpl_)) {
+        tensor.tensorImpl_ = nullptr;
+    }
 
 Tensor& Tensor::operator=(const Tensor& tensor) {
     if (this != &tensor) {
@@ -30,6 +32,7 @@ Tensor& Tensor::operator=(const Tensor& tensor) {
 Tensor& Tensor::operator=(Tensor&& tensor) noexcept {
     if (this != &tensor) {
         tensorImpl_ = std::move(tensor.tensorImpl_);
+        tensor.tensorImpl_ = nullptr;
     }
     return *this;
 }

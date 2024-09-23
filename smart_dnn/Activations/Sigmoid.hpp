@@ -2,7 +2,6 @@
 #define SIGMOID_HPP
 
 #include "smart_dnn/Activation.hpp"
-#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
 
 namespace sdnn {
 
@@ -15,17 +14,16 @@ namespace sdnn {
     f'(x) = f(x) * (1 - f(x))
 
 */
-template <typename T=float>
-class Sigmoid : public Activation<T> {
-    using TensorType = Tensor<T>;
+
+class Sigmoid : public Activation {
 public:
-    TensorType forward(const TensorType& input) const override {
-        return AdvancedTensorOperations<T>::apply(input, [](float x) { return T(1) / (T(1) + std::exp(-x)); });
+    Tensor forward(const Tensor& input) const override {
+        return apply(input, [](auto& x) { x =  1 / (1 + std::exp(-x)); });
     }
 
-    TensorType backward(const TensorType& input, const TensorType& gradOutput) const override {
-        TensorType sig = forward(input);
-        return sig * (T(1) - sig) * gradOutput;
+    Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
+        Tensor sig = forward(input);
+        return sig * (1 - sig) * gradOutput;
     }
 };
 

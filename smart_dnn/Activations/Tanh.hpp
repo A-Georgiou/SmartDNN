@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include "smart_dnn/Activation.hpp"
-#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
 
 namespace sdnn {
 
@@ -16,15 +15,15 @@ namespace sdnn {
     f'(x) = 1 - tanh(x)^2
 
 */
-template <typename T>
-class Tanh : public Activation<T> {
+
+class Tanh : public Activation {
 public:
-    Tensor<T> forward(const Tensor<T>& input) const override {
-        return AdvancedTensorOperations<T>::apply(input, [](T x) { return (std::exp(x * T(2)) - T(1)) / (std::exp(x * T(2)) + T(1)); });
+    Tensor forward(const Tensor& input) const override {
+        return apply(input, [](auto& x) { x = (std::exp(x * 2) - 1) / (std::exp(x * 2) + 1); });
     }
 
-    Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
-        return AdvancedTensorOperations<T>::apply(input, [](T x) {  return T(1) - std::tanh(x) * std::tanh(x);  }) * gradOutput;
+    Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
+        return apply(input, [](auto& x) {  x = 1 - std::tanh(x) * std::tanh(x);  }) * gradOutput;
     }
 };
 

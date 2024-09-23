@@ -33,7 +33,7 @@ void SmartDNN::backward(const Tensor& gradOutput)  {
 
 void SmartDNN::updateWeights(Optimizer& optimizer) {
         for (auto& layer : layers) {
-            layer->updateWeights(optimizer);  // Assuming each layer has its own updateWeights method
+            layer->updateWeights(optimizer); 
         }
     }
 

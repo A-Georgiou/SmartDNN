@@ -1,5 +1,5 @@
 #include <iostream>
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/tensor/TensorBase.hpp"
 #include "smart_dnn/SmartDNN.hpp"
 #include "smart_dnn/activations/ReLU.hpp"
 #include "smart_dnn/loss/MSELoss.hpp"
@@ -10,7 +10,7 @@
 
 int main() {
 
-    using namespace smart_dnn;
+    using namespace sdnn;
     
     constexpr int BATCH_SIZE = 100;
     constexpr int EPOCHS = 100;
@@ -20,9 +20,9 @@ int main() {
     auto [inputs, targets] = generateLinearDataset(BATCH_SIZE);
 
     SmartDNN model;
-    model.addLayer(FullyConnectedLayer(1, 10));
-    model.addLayer(ActivationLayer(ReLU()));
-    model.addLayer(FullyConnectedLayer(10, 1));
+    model.addLayer(new FullyConnectedLayer(1, 10));
+    model.addLayer(new ActivationLayer(ReLU()));
+    model.addLayer(new FullyConnectedLayer(10, 1));
 
     // Compile the model with a Mean Squared Error loss function and an Adam optimizer (initialised to learning rate 0.01f).
     AdamOptions adamOptions;
