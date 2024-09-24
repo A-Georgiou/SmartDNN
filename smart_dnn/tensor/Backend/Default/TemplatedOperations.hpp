@@ -71,12 +71,13 @@ Tensor scalarOp(const Tensor& a, const U& scalar, Op operation) {
 }
 
 template<typename Op, typename Finalize>
-Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDims, Op operation, Finalize finalize) {
+Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDims, 
+                 Op operation, Finalize finalize, const DataItem& initialValue) {
     const auto& input = tensor.getImpl<CPUTensor>();
     const auto& inputShape = tensor.shape();
     const size_t inputRank = inputShape.rank();
 
-    // Normalize axes (handle negative axes)
+    // Normalize axes
     std::vector<int> normalizedAxes = axes;
     for (auto& axis : normalizedAxes) {
         if (axis < 0) axis += inputRank;
@@ -85,69 +86,66 @@ Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDi
         }
     }
 
-    // Sort and remove duplicates from axes
+    // Sort and remove duplicates
     std::sort(normalizedAxes.begin(), normalizedAxes.end());
     normalizedAxes.erase(std::unique(normalizedAxes.begin(), normalizedAxes.end()), normalizedAxes.end());
 
-    // Calculate the size of the axes being reduced (for finalization)
-    size_t reductionSize = 1;
-    for (const int axis : normalizedAxes) {
-        reductionSize *= inputShape[axis];
-    }
-
-    // Create the output shape based on the reduced axes
     std::vector<int> outputShape;
-    for (int i = 0; i < inputRank; ++i) {
-        if (std::find(normalizedAxes.begin(), normalizedAxes.end(), i) == std::end(normalizedAxes)) {
+    for (size_t i = 0; i < inputRank; ++i) {
+        if (std::find(normalizedAxes.begin(), normalizedAxes.end(), i) == normalizedAxes.end()) {
             outputShape.push_back(inputShape[i]);
         } else if (keepDims) {
             outputShape.push_back(1);
         }
     }
+    if (outputShape.empty()) outputShape.push_back(1);
 
     // Create the output tensor
     auto result = std::make_unique<CPUTensor>(Shape(outputShape), tensor.type());
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        T* outputData = result->typedData<T>();
+        const size_t outputSize = result->size();
+        T typedInitialValue = dtype_cast<T>(initialValue.data, initialValue.type);
+        std::fill(outputData, outputData + outputSize, typedInitialValue);
+    });
 
-    // Perform the reduction by iterating over the input tensor
     result->applyTypedOperation([&](auto* type_ptr) {
         using T = std::remove_pointer_t<decltype(type_ptr)>;
         const T* inputData = input.typedData<T>();
         T* outputData = result->typedData<T>();
 
-        std::vector<size_t> inputCoords(inputRank, 0);
         const size_t outputSize = result->size();
         const size_t inputSize = input.size();
 
-        // Initialize output with the first value for accumulation
-        std::fill(outputData, outputData + outputSize, T(0));
+        std::vector<size_t> inputCoords(inputRank, 0);
 
         for (size_t i = 0; i < inputSize; ++i) {
             size_t outputIndex = 0;
-            size_t stride = 1;
+            size_t outputStride = 1;
 
-            // Calculate the output index based on inputCoords excluding the reduction axes
             for (int j = inputRank - 1; j >= 0; --j) {
-                if (std::find(normalizedAxes.begin(), normalizedAxes.end(), j) == std::end(normalizedAxes)) {
-                    outputIndex += inputCoords[j] * stride;
-                    stride *= inputShape[j];
+                if (std::find(normalizedAxes.begin(), normalizedAxes.end(), j) == normalizedAxes.end()) {
+                    outputIndex += inputCoords[j] * outputStride;
+                    outputStride *= outputShape[j];
+                } else if (keepDims) {
+                    outputStride *= 1; 
                 }
             }
 
-            // Apply the operation to accumulate values
             outputData[outputIndex] = operation(outputData[outputIndex], inputData[i]);
 
-            // Update inputCoords for next iteration
             for (int j = inputRank - 1; j >= 0; --j) {
-                inputCoords[j]++;
-                if (inputCoords[j] < inputShape[j]) {
-                    break;
-                }
+                if (++inputCoords[j] < inputShape[j]) break;
                 inputCoords[j] = 0;
             }
         }
-
+        
+        size_t reductionSize = 1;
+        for (int axis : normalizedAxes) reductionSize *= inputShape[axis];
         for (size_t i = 0; i < outputSize; ++i) {
-            outputData[i] = finalize(outputData[i], reductionSize);  // Use reductionSize here
+            outputData[i] = finalize(outputData[i], reductionSize);
         }
     });
 

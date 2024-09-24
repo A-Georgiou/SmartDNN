@@ -459,8 +459,6 @@ TEST_F(TensorAdditionalOperationsTest, MatrixMultiplicationBetweenTwoSlices) {
     // Expected result
     Tensor expected = createTensor({2, 2}, {112.0f, 93.0f,
                                             160.0f, 133.0f});
-
-    std::cout << "Expected: " << expected.toString() << std::endl;
     
     for (size_t i = 0; i < result.shape().size(); ++i) {
         EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
@@ -511,6 +509,134 @@ TEST_F(TensorAdditionalOperationsTest, NoMemoryOverlapBetweenSlices) {
 
     for (size_t i = 0; i < slice2.shape().size(); ++i) {
         EXPECT_NEAR(slice2.at<float>(i), expected_slice2.at<float>(i), 1e-5);
+    }
+}
+
+/*
+
+    TEST MAX FUNCTION
+
+*/
+
+TEST_F(TensorAdditionalOperationsTest, MaxFunctionNoAxis) {
+    Tensor a = createTensor({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor result = max(a);
+
+    EXPECT_EQ(result.shape(), Shape({1}));
+    EXPECT_NEAR(result.at<float>(0), 6.0f, 1e-5);
+}
+
+TEST_F(TensorAdditionalOperationsTest, MaxFunctionAxis0) {
+    Tensor a = createTensor({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor result = max(a, {0});
+
+    Tensor expected = createTensor({3}, {4.0f, 5.0f, 6.0f});
+    EXPECT_EQ(result.shape(), Shape({3}));
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+TEST_F(TensorAdditionalOperationsTest, MaxFunctionAxis1) {
+    Tensor a = createTensor({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor result = max(a, {1});
+
+    Tensor expected = createTensor({2, 1}, {3.0f, 6.0f});
+    EXPECT_EQ(result.shape(), Shape({2}));
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+TEST_F(TensorAdditionalOperationsTest, MaxFunction3D) {
+    Tensor a = createTensor({2, 2, 2}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f});
+    Tensor result = max(a, {1, 2});
+
+    Tensor expected = createTensor({2}, {4.0f, 8.0f});
+    EXPECT_EQ(result.shape(), Shape({2}));
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+/*
+
+    TEST MIN FUNCTION
+
+*/
+
+TEST_F(TensorAdditionalOperationsTest, MinFunctionNoAxis) {
+    Tensor a = createTensor({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor result = min(a);
+
+    EXPECT_EQ(result.shape(), Shape({1}));
+    EXPECT_NEAR(result.at<float>(0), 1.0f, 1e-5);
+}
+
+TEST_F(TensorAdditionalOperationsTest, MinFunctionAxis0) {
+    Tensor a = createTensor({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor result = min(a, {0});
+
+    Tensor expected = createTensor({3}, {1.0f, 2.0f, 3.0f});
+    EXPECT_EQ(result.shape(), Shape({3}));
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+TEST_F(TensorAdditionalOperationsTest, MinFunctionAxis1) {
+    Tensor a = createTensor({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor result = min(a, {1});
+
+    Tensor expected = createTensor({2, 1}, {1.0f, 4.0f});
+    EXPECT_EQ(result.shape(), Shape({2}));
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+TEST_F(TensorAdditionalOperationsTest, MinFunction3D) {
+    Tensor a = createTensor({2, 2, 2}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f});
+    Tensor result = min(a, {1, 2});
+
+    Tensor expected = createTensor({2}, {1.0f, 5.0f});
+    EXPECT_EQ(result.shape(), Shape({2}));
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+/*
+
+    TEST MAX AND MIN TOGETHER
+
+*/
+
+TEST_F(TensorAdditionalOperationsTest, MaxMinFunctionComparison) {
+    Tensor a = createTensor({2, 3}, {-1.0f, 0.0f, 1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor max_result = max(a);
+    Tensor min_result = min(a);
+
+    EXPECT_EQ(max_result.shape(), Shape({1}));
+    EXPECT_EQ(min_result.shape(), Shape({1}));
+    EXPECT_NEAR(max_result.at<float>(0), 4.0f, 1e-5);
+    EXPECT_NEAR(min_result.at<float>(0), -1.0f, 1e-5);
+}
+
+TEST_F(TensorAdditionalOperationsTest, MaxMinFunctionWithKeepDims) {
+    Tensor a = createTensor({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor max_result = max(a, {1}, true);
+    Tensor min_result = min(a, {1}, true);
+
+    EXPECT_EQ(max_result.shape(), Shape({2, 1}));
+    EXPECT_EQ(min_result.shape(), Shape({2, 1}));
+    
+    Tensor max_expected = createTensor({2, 1}, {3.0f, 6.0f});
+    Tensor min_expected = createTensor({2, 1}, {1.0f, 4.0f});
+    
+    for (size_t i = 0; i < max_result.shape().size(); ++i) {
+        EXPECT_NEAR(max_result.at<float>(i), max_expected.at<float>(i), 1e-5);
+        EXPECT_NEAR(min_result.at<float>(i), min_expected.at<float>(i), 1e-5);
     }
 }
 

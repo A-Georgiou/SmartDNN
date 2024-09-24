@@ -128,28 +128,36 @@ TEST(TanhTest, BackwardPass) {
 
 TEST(SoftmaxTest, ForwardPass) {
     Softmax softmax;
-    Tensor input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
+    Tensor input({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
     Tensor output = softmax.forward(input);
 
     ASSERT_EQ(output.shape(), input.shape());
-    for (size_t i = 0; i < input.shape().size(); ++i) {
-        EXPECT_TRUE(approxEqual(output.at<float>(i), std::exp(input.at<float>(i)) / std::exp(input.at<float>(i))));
-    }
+    float sum1 = std::exp(1.0f) + std::exp(2.0f) + std::exp(3.0f);
+    float sum2 = std::exp(4.0f) + std::exp(5.0f) + std::exp(6.0f);
+    EXPECT_TRUE(approxEqual(output.at<float>(0), std::exp(1.0f) / sum1));
+    EXPECT_TRUE(approxEqual(output.at<float>(1), std::exp(2.0f) / sum1));
+    EXPECT_TRUE(approxEqual(output.at<float>(2), std::exp(3.0f) / sum1));
+    EXPECT_TRUE(approxEqual(output.at<float>(3), std::exp(4.0f) / sum2));
+    EXPECT_TRUE(approxEqual(output.at<float>(4), std::exp(5.0f) / sum2));
+    EXPECT_TRUE(approxEqual(output.at<float>(5), std::exp(6.0f) / sum2));
 }
 
 TEST(SoftmaxTest, BackwardPass) {
-    Softmax softmax;
-    Tensor input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
-    Tensor output = softmax.forward(input);
-    Tensor gradOutput({2, 3}, {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f});
+    Softmax  softmax;
+    Tensor input({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor gradOutput({2, 3}, {0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f});
     Tensor gradInput = softmax.backward(input, gradOutput);
 
     ASSERT_EQ(gradInput.shape(), input.shape());
-    for (size_t i = 0; i < input.shape().size(); ++i) {
-        float s = std::exp(input.at<float>(i));
-        float out = s * (1 - s);
-        EXPECT_TRUE(approxEqual(gradInput.at<float>(i), out));
+    float sum1 = 0.0f, sum2 = 0.0f;
+    for (int i = 0; i < 3; ++i) {
+        EXPECT_NE(gradInput.at<float>(i), 0.0f);
+        sum1 += gradInput.at<float>(i);
+        EXPECT_NE(gradInput.at<float>(i+3), 0.0f);
+        sum2 += gradInput.at<float>(i+3);
     }
+    EXPECT_TRUE(approxEqual(sum1, 0.0f));
+    EXPECT_TRUE(approxEqual(sum2, 0.0f));
 }
 
 } // namespace sdnn

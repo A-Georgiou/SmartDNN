@@ -110,8 +110,10 @@ TEST_F(TemplatedFunctionTests, ScalarOpDivisionTest) {
 TEST_F(TemplatedFunctionTests, ReductionSumTest) {
     Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
 
+    float defaultValue = 0.0f;
+
     // Perform sum reduction over axis 0
-    Tensor result = reduction(a, {0}, false, [](float a, float b) { return a + b; }, [](float sum, size_t) { return sum; });
+    Tensor result = reduction(a, {0}, false, [](float a, float b) { return a + b; }, [](float sum, size_t) { return sum; }, DataItem{&defaultValue, dtype::f32});
     std::vector<float> expected = {4.0f, 6.0f};  // Sum across axis 0
     for (size_t i = 0; i < result.shape().size(); ++i) {
         EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
@@ -121,8 +123,10 @@ TEST_F(TemplatedFunctionTests, ReductionSumTest) {
 TEST_F(TemplatedFunctionTests, ReductionMeanTest) {
     Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
 
+    float defaultValue = 0.0f;
+
     // Perform mean reduction over axis 0
-    Tensor result = reduction(a, {0}, false, [](float a, float b) { return a + b; }, [](float sum, size_t count) { return sum / count; });
+    Tensor result = reduction(a, {0}, false, [](float a, float b) { return a + b; }, [](float sum, size_t count) { return sum / count; }, DataItem{&defaultValue, dtype::f32});
     std::vector<float> expected = {2.0f, 3.0f};  // Mean across axis 0
     for (size_t i = 0; i < result.shape().size(); ++i) {
         EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
@@ -132,8 +136,10 @@ TEST_F(TemplatedFunctionTests, ReductionMeanTest) {
 TEST_F(TemplatedFunctionTests, ReductionWithKeepDimsTest) {
     Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
 
+    float defaultValue = 0.0f;
+
     // Perform sum reduction over axis 0, keeping dimensions
-    Tensor result = reduction(a, {0}, true, [](float a, float b) { return a + b; }, [](float sum, size_t) { return sum; });
+    Tensor result = reduction(a, {0}, true, [](float a, float b) { return a + b; }, [](float sum, size_t) { return sum; }, DataItem{&defaultValue, dtype::f32});
 
     EXPECT_EQ(result.shape(), Shape({1, 2}));  // Keep dimensions
 
@@ -146,8 +152,10 @@ TEST_F(TemplatedFunctionTests, ReductionWithKeepDimsTest) {
 TEST_F(TemplatedFunctionTests, InvalidReductionAxisTest) {
     Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
 
+    float defaultValue = 0.0f;
+
     // Expect an exception due to invalid axis
-    ASSERT_THROW(reduction(a, {2}, false, [](float a, float b) { return a + b; }, [](float sum, size_t) { return sum; }), std::invalid_argument);
+    ASSERT_THROW(reduction(a, {2}, false, [](float a, float b) { return a + b; }, [](float sum, size_t) { return sum; }, DataItem{&defaultValue, dtype::f32}), std::invalid_argument);
 }
 
 

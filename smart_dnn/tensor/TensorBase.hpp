@@ -73,6 +73,11 @@ public:
     bool operator==(const Tensor& other) const;
     bool operator!=(const Tensor& other) const;
 
+    bool operator<(const Tensor& other) const;
+    bool operator>(const Tensor& other) const;
+    bool operator<=(const Tensor& other) const;
+    bool operator>=(const Tensor& other) const;
+
     template <typename T>
     void set(size_t index, T data);
 
@@ -162,6 +167,8 @@ Tensor log(const Tensor& tensor);
 // Reduction operations
 Tensor sum(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims = false);
 Tensor mean(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims = false);
+Tensor max(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims = false);
+Tensor min(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims = false);
 
 // Creation functions
 Tensor zeros(const Shape& shape, dtype type = dtype::f32);

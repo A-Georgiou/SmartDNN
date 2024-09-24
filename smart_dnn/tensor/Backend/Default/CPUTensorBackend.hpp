@@ -42,10 +42,10 @@ public:
     Tensor scalarSub(const double& scalar, const Tensor& tensor) const override;
     Tensor scalarDiv(const double& scalar, const Tensor& tensor) const override;
 
-    Tensor sumNoAxes(const Tensor& tensor) const;
     Tensor sum(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
-    Tensor meanNoAxes(const Tensor& tensor) const;
     Tensor mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
+    Tensor max(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
+    Tensor min(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
 
     Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const override;
 
@@ -83,6 +83,11 @@ public:
 
     // Utility functions
     void print(const Tensor& tensor) override;
+private:
+    Tensor meanNoAxes(const Tensor& tensor) const;
+    Tensor minNoAxes(const Tensor& tensor) const;
+    Tensor maxNoAxes(const Tensor& tensor) const;
+    Tensor sumNoAxes(const Tensor& tensor) const;
 };
 
 }; // namespace sdnn

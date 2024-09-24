@@ -109,6 +109,23 @@ bool Tensor::operator!=(const Tensor& other) const{
     return !(tensorImpl_->equal(other));
 }
 
+bool Tensor::operator<(const Tensor& other) const{
+    return tensorImpl_->lessThan(other);
+}
+
+bool Tensor::operator>(const Tensor& other) const{
+    return tensorImpl_->greaterThan(other);
+}
+
+bool Tensor::operator<=(const Tensor& other) const{
+    return tensorImpl_->lessThan(other) || tensorImpl_->equal(other);
+}
+
+bool Tensor::operator>=(const Tensor& other) const{
+    return tensorImpl_->greaterThan(other) || tensorImpl_->equal(other);
+}
+
+
 Tensor Tensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) const {
     return tensorImpl_->slice(ranges);
 }
@@ -258,6 +275,14 @@ Tensor sum(const Tensor& input, const std::vector<int>& axes, bool keepDims){
 
 Tensor mean(const Tensor& input, const std::vector<int>& axes, bool keepDims){
     return input.backend().mean(input, axes, keepDims);
+}
+
+Tensor max(const Tensor& input, const std::vector<int>& axes, bool keepDims){
+    return input.backend().max(input, axes, keepDims);
+}   
+
+Tensor min(const Tensor& input, const std::vector<int>& axes, bool keepDims){
+    return input.backend().min(input, axes, keepDims);
 }
 
 Tensor exp(const Tensor& tensor) {

@@ -73,9 +73,13 @@ namespace sdnn {
             return sumNoAxes(tensor);
         }
 
+        float defaultValue = 0.0f;
+        DataItem initialValue{&defaultValue, dtype::f32};
+
         return reduction(tensor, axes, keepDims, 
                             [](auto a, auto b) { return a + b; },
-                            [](auto sum, size_t) { return sum; });
+                            [](auto sum, size_t) { return sum; },
+                            initialValue);
     }
 
     Tensor CPUTensorBackend::meanNoAxes(const Tensor& tensor) const {
@@ -88,9 +92,57 @@ namespace sdnn {
             return meanNoAxes(tensor);
         }
 
+        float defaultValue = 0.0f;
+        DataItem initialValue{&defaultValue, dtype::f32};
+
         return reduction(tensor, axes, keepDims, 
                             [](auto a, auto b) { return a + b; },
-                            [](auto sum, size_t count) { return sum / static_cast<decltype(sum)>(count); });
+                            [](auto sum, size_t count) { return sum / static_cast<decltype(sum)>(count);},
+                            initialValue);
+    }
+
+    Tensor CPUTensorBackend::max(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
+        if (axes.empty()) {
+            return maxNoAxes(tensor);
+        }
+
+        float lowestValue = std::numeric_limits<float>::lowest();
+        DataItem initialValue{&lowestValue, dtype::f32};
+
+        return reduction(tensor, axes, keepDims, 
+                        [](auto a, auto b) { return std::max(a, b); },
+                        [](auto max, size_t) { return max; },
+                        initialValue);
+    }
+
+    Tensor CPUTensorBackend::min(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
+        if (axes.empty()) {
+            return minNoAxes(tensor);
+        }
+
+        float maxValue = std::numeric_limits<float>::max();
+        DataItem initialValue{&maxValue, dtype::f32};
+
+        return reduction(tensor, axes, keepDims, 
+                        [](auto a, auto b) { return std::min(a, b); },
+                        [](auto min, size_t) { return min; },
+                        initialValue);
+    }
+
+    Tensor CPUTensorBackend::maxNoAxes(const Tensor& tensor) const {
+        float maxVal = std::numeric_limits<float>::lowest();
+        tensor.tensorImpl_->apply([&maxVal](auto a) { 
+            maxVal = std::max(maxVal, static_cast<float>(a)); 
+        });
+        return Tensor({1}, maxVal);
+    }
+
+    Tensor CPUTensorBackend::minNoAxes(const Tensor& tensor) const {
+        float minVal = std::numeric_limits<float>::max();
+        tensor.tensorImpl_->apply([&minVal](auto a) { 
+            minVal = std::min(minVal, static_cast<float>(a)); 
+        });
+        return Tensor({1}, minVal);
     }
 
     Tensor CPUTensorBackend::apply(const Tensor& tensor, const std::function<void(double&)>& func) const {

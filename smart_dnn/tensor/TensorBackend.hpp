@@ -34,6 +34,8 @@ public:
     // Reduction operations
     virtual Tensor sum(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const = 0;
     virtual Tensor mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const = 0;
+    virtual Tensor max(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const = 0;
+    virtual Tensor min(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const = 0;
 
     // Element-wise apply operations
     virtual Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const = 0;

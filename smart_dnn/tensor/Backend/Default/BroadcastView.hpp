@@ -16,20 +16,30 @@ private:
     const Tensor& original_;
     Shape broadcasted_shape_;
     std::vector<size_t> original_strides_;
-    std::vector<bool> broadcast_dims_;
+    std::vector<size_t> broadcast_strides_;
 
     void calculateBroadcastFactors() {
         const auto& orig_shape = original_.shape();
-        broadcast_dims_.resize(broadcasted_shape_.rank(), false);
-        original_strides_.resize(broadcasted_shape_.rank(), 0);
+        original_strides_.resize(broadcasted_shape_.rank(), 1);
+        broadcast_strides_.resize(broadcasted_shape_.rank(), 0);
         
         size_t orig_dim = orig_shape.rank() - 1;
+        size_t broadcast_stride = 1;
         for (int i = broadcasted_shape_.rank() - 1; i >= 0; --i) {
-            if (orig_dim < 0 || orig_shape[orig_dim] != broadcasted_shape_[i]) {
-                broadcast_dims_[i] = true;
-            } else {
+            if (orig_dim >= 0 && orig_shape[orig_dim] == broadcasted_shape_[i]) {
                 original_strides_[i] = original_.shape().getStride()[orig_dim];
+                broadcast_strides_[i] = broadcast_stride;
+                broadcast_stride *= broadcasted_shape_[i];
                 --orig_dim;
+            } else if (orig_dim >= 0 && orig_shape[orig_dim] == 1) {
+                original_strides_[i] = 0;
+                broadcast_strides_[i] = broadcast_stride;
+                broadcast_stride *= broadcasted_shape_[i];
+                --orig_dim;
+            } else {
+                original_strides_[i] = 0; 
+                broadcast_strides_[i] = broadcast_stride;
+                broadcast_stride *= broadcasted_shape_[i];
             }
         }
     }
@@ -44,20 +54,12 @@ public:
     }
 
     T operator[](size_t index) const {
-        std::vector<size_t> indices(broadcasted_shape_.rank());
-        for (int i = broadcasted_shape_.rank() - 1; i >= 0; --i) {
-            indices[i] = index % broadcasted_shape_[i];
-            index /= broadcasted_shape_[i];
-        }
-
-        size_t flatIndex = 0;
+        size_t originalIndex = 0;
         for (size_t i = 0; i < broadcasted_shape_.rank(); ++i) {
-            if (!broadcast_dims_[i]) {
-                flatIndex += indices[i] * original_strides_[i];
-            }
+            size_t dim_index = (index / broadcast_strides_[i]) % broadcasted_shape_[i];
+            originalIndex += dim_index * original_strides_[i];
         }
-
-        return original_.template at<T>(flatIndex);
+        return original_.template at<T>(originalIndex);
     }
 
     const Shape& shape() const { return broadcasted_shape_; }
