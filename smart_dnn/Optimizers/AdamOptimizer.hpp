@@ -76,7 +76,7 @@ private:
 
         float beta1Power = std::max(static_cast<float>(std::pow(beta1, iterations)), std::numeric_limits<float>::min());
         float beta2Power = std::max(static_cast<float>(std::pow(beta2, iterations)), std::numeric_limits<float>::min());
-        float out = (learningRate * std::sqrt(1 - beta2Power) / (1 - beta1Power));
+        float out = learningRate * std::sqrt(1.0f - beta2Power) / (1.0f - beta1Power);
         Tensor alphaT = Tensor(Shape{1}, out, weight.type());
 
         size_t size = weight.shape().size();
