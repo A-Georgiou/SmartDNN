@@ -98,6 +98,8 @@ namespace sdnn {
         const CPUTensor& otherCPU = dynamic_cast<const CPUTensor&>(*other.tensorImpl_);
         
         bool result = true;
+
+        #pragma omp parallel for
         for (size_t i = 0; i < shape_.size(); ++i) {
             applyTypedOperationHelper(type_, [&](auto dummy) {
                 using T = decltype(dummy);

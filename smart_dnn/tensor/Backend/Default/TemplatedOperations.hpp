@@ -18,7 +18,7 @@ Tensor applyOperation(const Tensor& a, Op operation) {
         T* result_data = result->typedData<T>();
         const size_t size = a.shape().size();
 
-        #pragma omp parallel for
+        #pragma omp simd
         for (size_t i = 0; i < size; ++i) {
             result_data[i] = operation(a_data[i]);
         }
@@ -40,7 +40,7 @@ Tensor elementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
         T* result_data = result->typedData<T>();
         const size_t size = broadcastShape.size();
 
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(dynamic)
         for (size_t i = 0; i < size; ++i) {
             result_data[i] = operation(viewA[i], viewB[i]);
         }
@@ -49,8 +49,8 @@ Tensor elementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
     return Tensor(std::move(result));
 }
 
-template<typename Op>
-Tensor scalarOp(const Tensor& a, const double& scalar, Op operation) {
+template<typename U, typename Op>
+Tensor scalarOp(const Tensor& a, const U& scalar, Op operation) {
     auto result = std::make_unique<CPUTensor>(a.shape(), a.type());
     const auto& a_cpu = a.getImpl<CPUTensor>();
 
@@ -61,7 +61,7 @@ Tensor scalarOp(const Tensor& a, const double& scalar, Op operation) {
         const T scalar_t = static_cast<T>(scalar);
         const size_t size = a.shape().size();
 
-        #pragma omp parallel for
+        #pragma omp simd
         for (size_t i = 0; i < size; ++i) {
             result_data[i] = operation(a_data[i], scalar_t);
         }
@@ -146,7 +146,6 @@ Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDi
             }
         }
 
-        // Use reductionSize in finalization to compute the mean
         for (size_t i = 0; i < outputSize; ++i) {
             outputData[i] = finalize(outputData[i], reductionSize);  // Use reductionSize here
         }
