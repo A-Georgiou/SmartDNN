@@ -116,26 +116,33 @@ TEST(Conv2DLayerTest, BackwardPassHardcodedConv2D) {
     // Check bias gradients
     Tensor biasGradients = convLayer.getBiasGradients();
     ASSERT_EQ(biasGradients.shape(), Shape({1, 1}));
-    ASSERT_NEAR(biasGradients.at<float>(0), 9.0f, 1e-5);  // Sum of all elements in gradOutput
+    ASSERT_NEAR(biasGradients.at<float>(0), 9.0f, 1e-5);
 }
 
 TEST(Conv2DLayerTest, DifferentInputShapes) {
-    Conv2DLayer convLayer(3, 2, 3);  // 3 input channels, 2 output channels, 3x3 kernel
+    Conv2DLayer convLayer(3, 2, 3);
 
-    // Test with single sample (4D input with batch size 1)
-    Tensor input1({1, 3, 32, 32}, 0.0f);
+    Tensor input1({1, 3, 8, 8}, 1.0f); 
     Tensor output1 = convLayer.forward(input1);
-    ASSERT_EQ(output1.shape(), Shape({1, 2, 30, 30}));
+    ASSERT_EQ(output1.shape(), Shape({1, 2, 6, 6})); 
 
-    // Test with multiple samples (4D input with batch size > 1)
-    Tensor input2({5, 3, 32, 32}, 0.0f);
+    Tensor input2({2, 3, 8, 8}, 1.0f); 
     Tensor output2 = convLayer.forward(input2);
-    ASSERT_EQ(output2.shape(), Shape({5, 2, 30, 30}));
+    ASSERT_EQ(output2.shape(), Shape({2, 2, 6, 6}));
 
-    // Perform backward pass with multiple samples
-    Tensor gradOutput({5, 2, 30, 30}, 0.0f);
+    Tensor gradOutput({2, 2, 6, 6}, 1.0f);
     Tensor gradInput = convLayer.backward(gradOutput);
-    ASSERT_EQ(gradInput.shape(), Shape({5, 3, 32, 32}));
+    ASSERT_EQ(gradInput.shape(), Shape({2, 3, 8, 8}));
+
+    ASSERT_GT(std::abs(gradInput.at<float>(0)), 0.0f);
+    
+    Tensor weightGradients = convLayer.getWeightGradients();
+    ASSERT_EQ(weightGradients.shape(), Shape({2, 3, 3, 3}));
+    ASSERT_GT(std::abs(weightGradients.at<float>(0)), 0.0f);
+
+    Tensor biasGradients = convLayer.getBiasGradients();
+    ASSERT_EQ(biasGradients.shape(), Shape({2, 1}));
+    ASSERT_GT(std::abs(biasGradients.at<float>(0)), 0.0f);
 }
 
 TEST(Conv2DLayerTest, WeightUpdateWithOptimizer) {

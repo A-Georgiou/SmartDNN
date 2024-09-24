@@ -114,7 +114,7 @@ namespace sdnn {
         const auto& type = tensor.type();
         
         if (axes.size() != shape.rank()) {
-            throw std::invalid_argument("Number of axes must match tensor dimensions");
+            throw std::invalid_argument("Transpose Error -Number of axes must match tensor dimensions, mismatch: " + std::to_string(axes.size()) + " != " + std::to_string(shape.rank()));
         }
         
         std::vector<int> newDims(shape.rank());

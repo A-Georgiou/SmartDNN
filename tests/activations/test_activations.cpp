@@ -7,6 +7,7 @@
 #include "smart_dnn/activations/LeakyReLU.hpp"
 #include "smart_dnn/activations/Sigmoid.hpp"
 #include "smart_dnn/activations/Tanh.hpp"
+#include "smart_dnn/activations/Softmax.hpp"
 #include <cmath>
 
 namespace sdnn {
@@ -122,6 +123,32 @@ TEST(TanhTest, BackwardPass) {
     for (size_t i = 0; i < input.shape().size(); ++i) {
         float t = std::tanh(input.at<float>(i));
         EXPECT_TRUE(approxEqual(gradInput.at<float>(i), 1.0f - t * t));
+    }
+}
+
+TEST(SoftmaxTest, ForwardPass) {
+    Softmax softmax;
+    Tensor input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
+    Tensor output = softmax.forward(input);
+
+    ASSERT_EQ(output.shape(), input.shape());
+    for (size_t i = 0; i < input.shape().size(); ++i) {
+        EXPECT_TRUE(approxEqual(output.at<float>(i), std::exp(input.at<float>(i)) / std::exp(input.at<float>(i))));
+    }
+}
+
+TEST(SoftmaxTest, BackwardPass) {
+    Softmax softmax;
+    Tensor input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
+    Tensor output = softmax.forward(input);
+    Tensor gradOutput({2, 3}, {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f});
+    Tensor gradInput = softmax.backward(input, gradOutput);
+
+    ASSERT_EQ(gradInput.shape(), input.shape());
+    for (size_t i = 0; i < input.shape().size(); ++i) {
+        float s = std::exp(input.at<float>(i));
+        float out = s * (1 - s);
+        EXPECT_TRUE(approxEqual(gradInput.at<float>(i), out));
     }
 }
 
