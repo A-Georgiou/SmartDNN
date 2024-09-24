@@ -203,7 +203,7 @@ namespace sdnn {
     Tensor CPUTensorBackend::rand(const Shape& shape, dtype type) const {
         std::vector<float> data(shape.size());
         for (size_t i = 0; i < shape.size(); ++i) {
-            data[i] = static_cast<float>(RandomEngine::getHeInit(shape.size()));
+            data[i] = static_cast<float>(RandomEngine::getXavierInit(shape.size()));
         }
         return Tensor(createTensorAdapter(shape, data, type));
     }
