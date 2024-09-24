@@ -1,15 +1,12 @@
 #ifndef FLATTEN_LAYER_HPP
 #define FLATTEN_LAYER_HPP
 
-#include "../Layer.hpp"
-#include "../Tensor/Tensor.hpp"
-#include "../Tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Layer.hpp"
+#include "smart_dnn/Tensor/TensorBase.hpp"
 
 namespace sdnn {
 
-template <typename T=float>
-class FlattenLayer : public Layer<T> {
-    using TensorType = Tensor<T>;
+class FlattenLayer : public Layer {
 public:
     FlattenLayer() = default;
 
@@ -22,20 +19,20 @@ public:
     Output: 2D tensor, shape (batch_size, flattened_size)
 
     */
-    TensorType forward(const TensorType& input) override {
-        if (input.getShape().rank() < 2) {
+    Tensor forward(const Tensor& input) override {
+        if (input.shape().rank() < 2) {
             throw std::invalid_argument("Input tensor must have at least 2 dimensions");
         }
 
-        if (input.getShape().rank() == 2) {
+        if (input.shape().rank() == 2) {
             return input;
         }
 
-        this->originalShape = input.getShape();
+        this->originalShape = input.shape();
         int batchSize = (*originalShape)[0];
         int flattenedSize = (*originalShape).size() / batchSize;
         
-        return AdvancedTensorOperations<T>::reshape(input, Shape({batchSize, flattenedSize}));
+        return reshape(input, Shape({batchSize, flattenedSize}));
     }
 
     /*
@@ -47,8 +44,8 @@ public:
     Output: Gradient tensor, shape (batch_size, ...)
     
     */
-    TensorType backward(const TensorType& gradOutput) override {
-        return AdvancedTensorOperations<T>::reshape(gradOutput, (*originalShape));
+    Tensor backward(const Tensor& gradOutput) override {
+        return reshape(gradOutput, (*originalShape));
     }
 
 private:

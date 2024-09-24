@@ -76,30 +76,56 @@ void CPUTensor::set(size_t index, const DataItem& value) {
 }
 
 Tensor CPUTensor::at(const std::vector<size_t>& indices) const {
-    if (indices.size() != shape_.rank()) {
-        throw std::invalid_argument("Number of indices doesn't match tensor dimensions");
+        if (indices.size() != shape_.rank()) {
+            throw std::invalid_argument("Number of indices doesn't match tensor dimensions");
+        }
+        size_t flatIndex = index_ ? index_->flattenIndex(indices) : computeFlatIndex(shape_, indices);
+        return at(flatIndex);
     }
-    size_t flatIndex = index_ ? index_->flattenIndex(indices) : computeFlatIndex(shape_, indices);
-    return at(flatIndex);
-}
 
 Tensor CPUTensor::at(size_t index) const {
-    if (index >= shape_.size()) {
-        throw std::out_of_range("Index out of range");
+        if (index >= shape_.size()) {
+            throw std::out_of_range("Index out of range");
+        }
+
+        size_t flatIndex = getFlatIndex(index);
+        Shape scalarShape({1});
+        
+        // Create a new CPUTensor that shares the same data and has scalar shape
+        auto scalarTensor = std::make_unique<CPUTensor>(
+            scalarShape,
+            data_,
+            type_,
+            TensorIndex(scalarShape, {1}, flatIndex)
+        );
+        
+        return Tensor(std::move(scalarTensor));
     }
 
-    Shape subShape({1});
-    TensorIndex newIndex = index_ ? index_->subIndex(index) : TensorIndex(subShape, subShape.getStride(), index);
+Tensor CPUTensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) const {
+    // Ensure the number of ranges matches the rank of the tensor
+    if (ranges.size() != shape_.rank()) {
+        throw std::invalid_argument("Number of ranges must match the tensor's rank.");
+    }
 
-    // Create a new CPUTensor that shares the same data and has scalar shape
-    auto subTensor = std::make_unique<CPUTensor>(
-        subShape,
-        data_,
-        type_,
-        newIndex
-    );
-    
-    return Tensor(std::move(subTensor));
+    // Create a new sub TensorIndex for the sliced view
+    TensorIndex newIndex = index_ ? index_->slice(ranges) : TensorIndex(shape_).slice(ranges);
+
+    // Compute the new shape for the sliced view
+    std::vector<int> newShape;
+    for (const auto& range : ranges) {
+        newShape.push_back(range.second - range.first);  // Calculate the size of the new dimensions
+    }
+
+    // Return a new CPUTensor that shares the same data and has the new TensorIndex and shape
+    return Tensor(std::make_unique<CPUTensor>(Shape(newShape), data_, type_, newIndex));
+}
+
+TensorIndex CPUTensor::getIndex() const {
+    if (!index_) {
+        return *index_;
+    }
+    return TensorIndex(shape_);
 }
 
 void CPUTensor::addInPlace(const Tensor& other) {
@@ -255,15 +281,33 @@ void CPUTensor::setValueFromDouble(size_t index, double value) {
 }
 
 void CPUTensor::getValueAsType(size_t index, const DataItem& data) const {
-    size_t flatIndex = index_ ? index_->flattenIndex({index}) : index;
+    size_t flatIndex = getFlatIndex(index);
     size_t getPosition = flatIndex * dtype_size(type_);
     convert_dtype(data.data, data_.get() + getPosition, data.type, type_);
 }
 
 void CPUTensor::setValueFromType(size_t index, const DataItem& data) {
-    size_t flatIndex = index_ ? index_->flattenIndex({index}) : index;
+    size_t flatIndex = getFlatIndex(index);
     size_t setPosition = flatIndex * dtype_size(type_);
     convert_dtype(data_.get() + setPosition, data.data, type_, data.type);
+}
+
+
+size_t CPUTensor::getFlatIndex(size_t index) const {
+        if (index_) {
+            std::vector<size_t> indices = unflattenIndex(index, shape_);
+            return index_->flattenIndex(indices);
+        }
+        return index;
+    }
+
+std::vector<size_t> CPUTensor::unflattenIndex(size_t flatIndex, const Shape& shape) {
+    std::vector<size_t> indices(shape.rank());
+    for (int i = shape.rank() - 1; i >= 0; --i) {
+        indices[i] = flatIndex % shape[i];
+        flatIndex /= shape[i];
+    }
+    return indices;
 }
 
 

@@ -40,7 +40,7 @@ Tensor elementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
         T* result_data = result->typedData<T>();
         const size_t size = broadcastShape.size();
 
-        #pragma omp parallel for schedule(dynamic)
+        #pragma omp simd
         for (size_t i = 0; i < size; ++i) {
             result_data[i] = operation(viewA[i], viewB[i]);
         }

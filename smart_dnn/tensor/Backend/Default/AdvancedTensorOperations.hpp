@@ -259,7 +259,7 @@ private:
         const auto& shapeB = b.shape();
 
         if (shapeA[1] != shapeB[0]) {
-            throw std::invalid_argument("Matrix and vector dimensions must match for multiplication. Mismatch in shapes: " + shapeA.toString() + " and " + shapeB.toString());
+            throw std::invalid_argument("Matrix dimensions must match for multiplication. Mismatch in shapes: " + shapeA.toString() + " and " + shapeB.toString());
         }
 
         Shape resultShape({shapeA[0], shapeB[1]});
@@ -269,8 +269,7 @@ private:
             for (size_t j = 0; j < shapeB[1]; ++j) {
                 double sum = 0;
                 for (size_t k = 0; k < shapeA[1]; ++k) {
-                    sum += a.tensorImpl_->getValueAsDouble(i * shapeA[1] + k) * 
-                           b.tensorImpl_->getValueAsDouble(k * shapeB[1] + j);
+                    sum += a.at<double>({i, k}) * b.at<double>({k, j});
                 }
                 result->setValueFromDouble(i * shapeB[1] + j, sum);
             }

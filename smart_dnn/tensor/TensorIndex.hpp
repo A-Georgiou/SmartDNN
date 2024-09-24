@@ -1,3 +1,6 @@
+#ifndef TENSOR_INDEX_HPP
+#define TENSOR_INDEX_HPP
+
 #include <vector>
 #include "smart_dnn/shape/Shape.hpp"
 
@@ -14,14 +17,15 @@ public:
         : shape_(shape), strides_(std::move(strides)), offset_(offset) {}
 
     size_t flattenIndex(const std::vector<size_t>& indices) const {
-        if (indices.size() != shape_.rank()) {
-            throw std::invalid_argument("Invalid number of indices");
+        if (indices.size() > shape_.rank()) {
+            throw std::invalid_argument("Too many indices for the tensor's rank. Expected at most " +
+                                        std::to_string(shape_.rank()) + " indices, but got " + std::to_string(indices.size()));
         }
-        
+
         size_t flatIndex = offset_;
         for (size_t i = 0; i < indices.size(); ++i) {
             if (indices[i] >= shape_[i]) {
-                throw std::out_of_range("Index out of range");
+                throw std::out_of_range("Index out of range at dimension " + std::to_string(i));
             }
             flatIndex += indices[i] * strides_[i];
         }
@@ -51,31 +55,6 @@ public:
         return TensorIndex(Shape(newShape), newStrides, newOffset);
     }
 
-    TensorIndex subIndex(size_t index) const {
-        if (index >= shape_[0]) {
-            throw std::out_of_range("Index out of range");
-        }
-
-        // If this is a scalar sub-view, return a new index with shape {1}
-        std::vector<int> newShape = shape_.getDimensions();
-        if (newShape.size() > 1) {
-            newShape.erase(newShape.begin());  // Remove the first dimension
-        } else {
-            newShape = {1};  // Scalar shape
-        }
-
-        std::vector<size_t> newStrides = strides_;
-        if (newStrides.size() > 1) {
-            newStrides.erase(newStrides.begin());
-        } else {
-            newStrides = {1};  // Single-element stride
-        }
-
-        size_t newOffset = offset_ + index * strides_[0];
-
-        return TensorIndex(Shape(newShape), newStrides, newOffset);
-    }
-
     const Shape& shape() const { return shape_; }
     const std::vector<size_t>& strides() const { return strides_; }
     size_t offset() const { return offset_; }
@@ -97,3 +76,5 @@ private:
 };
 
 }
+
+#endif // TENSOR_INDEX_HPP

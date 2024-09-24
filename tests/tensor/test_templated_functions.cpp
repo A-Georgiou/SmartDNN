@@ -123,7 +123,6 @@ TEST_F(TemplatedFunctionTests, ReductionMeanTest) {
 
     // Perform mean reduction over axis 0
     Tensor result = reduction(a, {0}, false, [](float a, float b) { return a + b; }, [](float sum, size_t count) { return sum / count; });
-    std::cout << result.toString() << std::endl;
     std::vector<float> expected = {2.0f, 3.0f};  // Mean across axis 0
     for (size_t i = 0; i < result.shape().size(); ++i) {
         EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);

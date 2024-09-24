@@ -93,12 +93,28 @@ const Tensor Tensor::operator[](size_t index) const {
     return tensorImpl_->at(index);
 }
 
+Tensor Tensor::at(const std::vector<size_t>& indices) const {
+    return tensorImpl_->at(indices);
+}
+
+Tensor Tensor::at(size_t index) const {
+    return tensorImpl_->at(index);
+}
+
 bool Tensor::operator==(const Tensor& other) const{
     return tensorImpl_->equal(other);
 }
 
 bool Tensor::operator!=(const Tensor& other) const{
     return !(tensorImpl_->equal(other));
+}
+
+Tensor Tensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) const {
+    return tensorImpl_->slice(ranges);
+}
+
+TensorIndex Tensor::getIndex() const {
+    return tensorImpl_->getIndex();
 }
 
 Tensor Tensor::clone() const {

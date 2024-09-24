@@ -7,6 +7,7 @@
 #include "smart_dnn/shape/ShapeOperations.hpp"
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/tensor/TensorBackendUtil.hpp"
+#include "smart_dnn/tensor/TensorIndex.hpp"
 
 // Forward declare TensorAdapter and TensorBackend
 namespace sdnn {
@@ -63,6 +64,10 @@ public:
     Tensor operator[](const std::initializer_list<size_t>& indices);
     Tensor operator[](const std::vector<size_t>& indices);
     Tensor operator[](size_t index);
+
+    Tensor at(const std::vector<size_t>& indices) const;
+    Tensor at(size_t index) const;
+
     const Tensor operator[](size_t index) const;
 
     bool operator==(const Tensor& other) const;
@@ -74,7 +79,11 @@ public:
     template <typename T>
     void set(const std::vector<size_t>& indices, T data);
 
+    Tensor slice(const std::vector<std::pair<size_t, size_t>>& ranges) const;
+
     Tensor clone() const;
+
+    TensorIndex getIndex() const;
 
     const Shape& shape() const noexcept;
     dtype type() const noexcept;

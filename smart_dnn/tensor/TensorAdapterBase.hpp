@@ -4,6 +4,7 @@
 #include <vector>
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/tensor/TensorIndex.hpp"
 
 namespace sdnn {
 
@@ -55,6 +56,10 @@ public:
     
     virtual void set(size_t index, const DataItem& value) = 0;
     virtual void set(const std::vector<size_t>& indices, const DataItem& value) = 0;
+
+    virtual Tensor slice(const std::vector<std::pair<size_t, size_t>>& ranges) const = 0;
+
+    virtual TensorIndex getIndex() const = 0;
 
     // Shape operations.
     virtual void reshape(const Shape& newShape) = 0;

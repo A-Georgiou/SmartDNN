@@ -404,5 +404,114 @@ TEST_F(TensorAdditionalOperationsTest, OnesFunction) {
     }
 }
 
+/*
+
+    TEST SLICE FUNCTION
+
+*/
+
+TEST_F(TensorAdditionalOperationsTest, SliceFunction) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor result = a.slice({{0, 1}, {0, 1}});
+
+    Tensor expected = createTensor({1, 1}, {1.0f});
+    EXPECT_NEAR(result.at<float>(0), expected.at<float>(0), 1e-5);
+}
+
+TEST_F(TensorAdditionalOperationsTest, SliceFunctionOutOfBounds) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+    ASSERT_THROW(a.slice({{0, 3}, {0, 3}}), std::out_of_range);
+}
+
+TEST_F(TensorAdditionalOperationsTest, SliceFunctionInvalidRange) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+    ASSERT_THROW(a.slice({{0, 1}, {0, 3}}), std::out_of_range);
+}
+
+TEST_F(TensorAdditionalOperationsTest, ChangingSliceAffectsOriginalTensor) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor slice = a.slice({{0, 1}, {0, 1}});
+    slice.set({0, 0}, 10.0f);
+
+    Tensor expected = createTensor({2, 2}, {10.0f, 2.0f, 3.0f, 4.0f});
+    for (size_t i = 0; i < a.shape().size(); ++i) {
+        EXPECT_NEAR(a.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+TEST_F(TensorAdditionalOperationsTest, MatrixMultiplicationBetweenTwoSlices) {
+    Tensor a = createTensor({4, 4}, {1.0f, 2.0f, 3.0f, 4.0f,
+                                     5.0f, 6.0f, 7.0f, 8.0f,
+                                     9.0f, 10.0f, 11.0f, 12.0f,
+                                     13.0f, 14.0f, 15.0f, 16.0f});
+
+    Tensor b = createTensor({4, 4}, {16.0f, 15.0f, 14.0f, 13.0f,
+                                     12.0f, 11.0f, 10.0f, 9.0f,
+                                     8.0f, 7.0f, 6.0f, 5.0f,
+                                     4.0f, 3.0f, 2.0f, 1.0f});
+
+    // Slicing a 2x2 matrix from both tensors
+    Tensor a_slice = a.slice({{2, 4}, {0, 2}});
+    Tensor b_slice = b.slice({{2, 4}, {0, 2}});
+    // Perform matrix multiplication between the slices
+    Tensor result = matmul(a_slice, b_slice);
+    
+    // Expected result
+    Tensor expected = createTensor({2, 2}, {112.0f, 93.0f,
+                                            160.0f, 133.0f});
+
+    std::cout << "Expected: " << expected.toString() << std::endl;
+    
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+TEST_F(TensorAdditionalOperationsTest, ElementWiseAdditionBetweenSlices) {
+    Tensor a = createTensor({3, 3}, {1.0f, 2.0f, 3.0f,
+                                     4.0f, 5.0f, 6.0f,
+                                     7.0f, 8.0f, 9.0f});
+
+    Tensor b = createTensor({3, 3}, {9.0f, 8.0f, 7.0f,
+                                     6.0f, 5.0f, 4.0f,
+                                     3.0f, 2.0f, 1.0f});
+
+    // Slicing a 2x2 submatrix
+    Tensor a_slice = a.slice({{1, 3}, {1, 3}});
+    Tensor b_slice = b.slice({{1, 3}, {1, 3}});
+
+    // Element-wise addition of slices
+    Tensor result = a_slice + b_slice;
+
+    // Expected result
+    Tensor expected = createTensor({2, 2}, {10.0f, 10.0f,
+                                            10.0f, 10.0f});
+
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+TEST_F(TensorAdditionalOperationsTest, NoMemoryOverlapBetweenSlices) {
+    Tensor a = createTensor({4, 4}, {1.0f, 2.0f, 3.0f, 4.0f,
+                                     5.0f, 6.0f, 7.0f, 8.0f,
+                                     9.0f, 10.0f, 11.0f, 12.0f,
+                                     13.0f, 14.0f, 15.0f, 16.0f});
+
+    // Slicing different submatrices
+    Tensor slice1 = a.slice({{0, 2}, {0, 2}});
+    Tensor slice2 = a.slice({{2, 4}, {2, 4}});
+
+    // Modifying the first slice
+    slice1.set({0, 0}, 100.0f);
+
+    // Check that modifying slice1 doesn't affect slice2
+    Tensor expected_slice2 = createTensor({2, 2}, {11.0f, 12.0f,
+                                                   15.0f, 16.0f});
+
+    for (size_t i = 0; i < slice2.shape().size(); ++i) {
+        EXPECT_NEAR(slice2.at<float>(i), expected_slice2.at<float>(i), 1e-5);
+    }
+}
 
 }  // namespace sdnn

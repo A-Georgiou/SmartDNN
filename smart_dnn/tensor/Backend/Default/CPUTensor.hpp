@@ -11,7 +11,7 @@
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
-#include "smart_dnn/tensor/Backend/Default/TensorIndex.hpp"
+#include "smart_dnn/tensor/TensorIndex.hpp"
 
 namespace sdnn {
 
@@ -67,6 +67,8 @@ public:
     Tensor at(size_t index) const override;
     void set(const std::vector<size_t>& indices, const DataItem& value) override;
     void set(size_t index, const DataItem& value) override;
+    Tensor slice(const std::vector<std::pair<size_t, size_t>>& ranges) const override;
+    TensorIndex getIndex() const override;
 
     // Operations
     void addInPlace(const Tensor& other) override;
@@ -131,6 +133,9 @@ private:
     dtype type_;
     std::shared_ptr<char[]> data_;
     std::optional<TensorIndex> index_;
+
+    size_t getFlatIndex(size_t index) const;
+    static std::vector<size_t> unflattenIndex(size_t flatIndex, const Shape& shape);
 
     void allocateMemory();
 

@@ -118,11 +118,11 @@ namespace sdnn {
     template<typename Op>
     void CPUTensor::elementWiseOperation(const Tensor& other, Op op) {
         if (shape_ != other.shape() || type_ != other.type()) {
-            throw std::invalid_argument("Tensor shapes or types do not match");
+            throw std::invalid_argument("Tensor shapes or types do not match, shape_: " + shape_.toString() + " other.shape(): " + other.shape().toString() + " type_: " + dtypeToString(type_) + " other.type(): " + dtypeToString(other.type()));
         }
 
         if (other.shape().size() != shape_.size()) {
-            throw std::invalid_argument("Tensor shapes or types do not match");
+            throw std::invalid_argument("Tensor shapes or types do not match, shape_: " + shape_.toString() + " other.shape(): " + other.shape().toString() + " type_: " + dtypeToString(type_) + " other.type(): " + dtypeToString(other.type()));
         }
 
         // Ensure we have the correct other tensor to work with
