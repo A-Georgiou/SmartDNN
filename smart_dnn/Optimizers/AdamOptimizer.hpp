@@ -70,28 +70,19 @@ private:
         }
     }
 
-    void updateTensor(Tensor& weight, const Tensor& gradient) {
+   void updateTensor(Tensor& weight, const Tensor& gradient) {
         size_t key = reinterpret_cast<size_t>(&weight);
         initializeMomentEstimates(key, weight.shape());
 
         float beta1Power = std::max(static_cast<float>(std::pow(beta1, iterations)), std::numeric_limits<float>::min());
         float beta2Power = std::max(static_cast<float>(std::pow(beta2, iterations)), std::numeric_limits<float>::min());
-        float out = learningRate * std::sqrt(1.0f - beta2Power) / (1.0f - beta1Power);
-        Tensor alphaT = Tensor(Shape{1}, out, weight.type());
+        float alpha = learningRate * std::sqrt(1.0f - beta2Power) / (1.0f - beta1Power);
+        Tensor alphaT = Tensor(Shape{1}, alpha, weight.type());
 
-        size_t size = weight.shape().size();
-        Tensor mData = m.at(key);
-        Tensor vData = v.at(key);
+        Tensor& mData = m.at(key);
+        Tensor& vData = v.at(key);
 
-        #pragma omp parallel for if(size > 1000)
-        for (size_t j = 0; j < size; ++j) {
-            Tensor weightElement = weight[j];
-            Tensor gradientElement = gradient[j];
-            Tensor mElement = mData[j];
-            Tensor vElement = vData[j];
-            
-            updateParameter(weightElement, gradientElement, mElement, vElement, alphaT);
-        }
+        updateParameter(weight, gradient, mData, vData, alphaT);
     }
 
     void initializeMomentEstimates(size_t key, const Shape& shape) {
@@ -104,26 +95,23 @@ private:
     void updateParameter(Tensor& weight, const Tensor& gradient, Tensor& mValue, Tensor& vValue, const Tensor& alphaT) {
         Tensor averagedGradient = gradient / batchSize;
 
-        // Update biased first moment estimate
         mValue = beta1 * mValue + (1.0f - beta1) * averagedGradient;
-
-        // Update biased second moment estimate
         vValue = beta2 * vValue + (1.0f - beta2) * averagedGradient * averagedGradient;
-        // Compute update
+
         Tensor mHat = mValue / (1 - std::pow(beta1, iterations));
         Tensor vHat = vValue / (1 - std::pow(beta2, iterations));
+
         Tensor update = alphaT * mHat / (sqrt(vHat) + epsilon);
 
-        // Apply L1 and L2 regularization
         if (l1Strength > 0) {
-            Tensor l1Grad = apply(weight, [this](double& x) { x = (x > 0 ? 1 : (x < 0 ? -1 : 0)); });
+            Tensor l1Grad = apply(weight, [](auto& x) { return (x > 0 ? 1.0f : (x < 0 ? -1.0f : 0.0f)); });
             update += learningRate * l1Strength * l1Grad;
         }
+
         if (l2Strength > 0) {
             update += learningRate * l2Strength * weight;
         }
 
-        // Apply the update
         weight -= update;
     }
 };
