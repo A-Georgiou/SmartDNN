@@ -20,7 +20,7 @@ public:
         }
 
         Tensor diff = prediction - reshapedTarget;
-        return sum((diff * diff)) / diff.shape().size();
+        return mean((diff * diff));
     }
 
     Tensor gradient(const Tensor& prediction, const Tensor& target) override {

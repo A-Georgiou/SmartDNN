@@ -206,12 +206,7 @@ private:
             throw std::invalid_argument("Vector dimensions must match for dot product.");
         }
 
-        double result = 0;
-        for (size_t i = 0; i < a.shape()[0]; ++i) {
-            result += a.tensorImpl_->getValueAsDouble(i) * b.tensorImpl_->getValueAsDouble(i);
-        }
-
-        return Tensor(createTensorAdapter(Shape({1}), &result, a.type()));
+        return sum(a * b);
     }
 
     /*

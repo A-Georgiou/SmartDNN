@@ -42,7 +42,7 @@ TEST_F(AdditionalTensorOperationsTest, BroadcastingVectorAlongAxis) {
 TEST_F(AdditionalTensorOperationsTest, SumOverAllAxes) {
     Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
 
-    Tensor result = sum(a, {}, false);
+    Tensor result = sum(a);
 
     std::vector<float> expected = {10.0f}; 
     EXPECT_NEAR(result.at<float>(0), expected[0], 1e-5);
@@ -52,7 +52,7 @@ TEST_F(AdditionalTensorOperationsTest, SumOverAllAxes) {
 TEST_F(AdditionalTensorOperationsTest, MeanOverAllAxes) {
     Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
 
-    Tensor result = mean(a, {}, false); 
+    Tensor result = mean(a); 
 
     std::vector<float> expected = {2.5f}; 
     EXPECT_NEAR(result.at<float>(0), expected[0], 1e-5);

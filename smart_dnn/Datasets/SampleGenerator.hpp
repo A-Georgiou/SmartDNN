@@ -16,15 +16,15 @@ std::pair<std::vector<Tensor>, std::vector<Tensor>> generateLinearDataset(int nu
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> input_dist(0, 100.0);
-    std::normal_distribution<> noise_dist(0, noise); 
+    std::uniform_real_distribution<float> input_dist(0.0f, 100.0f);
+    std::normal_distribution<float> noise_dist(0, noise); 
 
     for (int i = 0; i < num_samples; ++i) {
         float x = input_dist(gen);
         float y = 2.0f * x + 3.0f + noise_dist(gen);
 
-        Tensor input = Tensor(Shape{1}, x, dtype::f32); 
-        Tensor target = Tensor(Shape{1}, y, dtype::f32);
+        Tensor input = Tensor(Shape{1}, x); 
+        Tensor target = Tensor(Shape{1}, y);
         inputs.push_back(input);
         targets.push_back(target);
     }
@@ -38,8 +38,8 @@ std::pair<std::vector<Tensor>, std::vector<Tensor>> generateBatchedLinearDataset
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> input_dist(0, 100.0);
-    std::normal_distribution<> noise_dist(0, noise);
+    std::uniform_real_distribution<float> input_dist(0, 100.0);
+    std::normal_distribution<float> noise_dist(0, noise);
 
     int num_batches = (num_samples + batch_size - 1) / batch_size;  // Ceiling division
 

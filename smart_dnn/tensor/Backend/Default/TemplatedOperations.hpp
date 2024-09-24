@@ -89,10 +89,16 @@ Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDi
     std::sort(normalizedAxes.begin(), normalizedAxes.end());
     normalizedAxes.erase(std::unique(normalizedAxes.begin(), normalizedAxes.end()), normalizedAxes.end());
 
+    // Calculate the size of the axes being reduced (for finalization)
+    size_t reductionSize = 1;
+    for (const int axis : normalizedAxes) {
+        reductionSize *= inputShape[axis];
+    }
+
     // Create the output shape based on the reduced axes
     std::vector<int> outputShape;
     for (int i = 0; i < inputRank; ++i) {
-        if (std::find(normalizedAxes.begin(), normalizedAxes.end(), i) == normalizedAxes.end()) {
+        if (std::find(normalizedAxes.begin(), normalizedAxes.end(), i) == std::end(normalizedAxes)) {
             outputShape.push_back(inputShape[i]);
         } else if (keepDims) {
             outputShape.push_back(1);
@@ -102,72 +108,47 @@ Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDi
     // Create the output tensor
     auto result = std::make_unique<CPUTensor>(Shape(outputShape), tensor.type());
 
-    // Compute input strides
-    std::vector<size_t> inputStrides(inputRank, 1);
-    for (int i = inputRank - 2; i >= 0; --i) {
-        inputStrides[i] = inputStrides[i + 1] * inputShape[i + 1];
-    }
-
-    // Compute the total size of the output tensor
-    const size_t outputSize = result->size();
-
-    // Perform the reduction
+    // Perform the reduction by iterating over the input tensor
     result->applyTypedOperation([&](auto* type_ptr) {
         using T = std::remove_pointer_t<decltype(type_ptr)>;
         const T* inputData = input.typedData<T>();
         T* outputData = result->typedData<T>();
 
-        // Iterate over the output tensor and accumulate values along the reduction axes
-        #pragma omp parallel for
-        for (size_t outputIndex = 0; outputIndex < outputSize; ++outputIndex) {
-            T accumulator = 0; // Accumulator for reduction
+        std::vector<size_t> inputCoords(inputRank, 0);
+        const size_t outputSize = result->size();
+        const size_t inputSize = input.size();
 
-            // Use index-mapping to calculate the corresponding indices in the input tensor
-            std::vector<size_t> outputCoords(inputRank, 0);
-            size_t currentOutputIndex = outputIndex;
+        // Initialize output with the first value for accumulation
+        std::fill(outputData, outputData + outputSize, T(0));
 
-            for (int i = outputShape.size() - 1; i >= 0; --i) {
-                if (outputShape[i] > 1) {
-                    outputCoords[i] = currentOutputIndex % outputShape[i];
-                    currentOutputIndex /= outputShape[i];
+        for (size_t i = 0; i < inputSize; ++i) {
+            size_t outputIndex = 0;
+            size_t stride = 1;
+
+            // Calculate the output index based on inputCoords excluding the reduction axes
+            for (int j = inputRank - 1; j >= 0; --j) {
+                if (std::find(normalizedAxes.begin(), normalizedAxes.end(), j) == std::end(normalizedAxes)) {
+                    outputIndex += inputCoords[j] * stride;
+                    stride *= inputShape[j];
                 }
             }
 
-            // Perform reduction over the axes
-            size_t count = 0;
-            std::vector<size_t> reduceCoords = outputCoords;
-            size_t numReduceElements = 1;
-            for (int axis : normalizedAxes) {
-                numReduceElements *= inputShape[axis];
+            // Apply the operation to accumulate values
+            outputData[outputIndex] = operation(outputData[outputIndex], inputData[i]);
+
+            // Update inputCoords for next iteration
+            for (int j = inputRank - 1; j >= 0; --j) {
+                inputCoords[j]++;
+                if (inputCoords[j] < inputShape[j]) {
+                    break;
+                }
+                inputCoords[j] = 0;
             }
+        }
 
-            for (size_t r = 0; r < numReduceElements; ++r) {
-                size_t inputIndex = 0;
-                size_t reduceIndex = r;
-
-                // Calculate the actual input index by modifying reduceCoords
-                for (int axis : normalizedAxes) {
-                    size_t reduceDimSize = inputShape[axis];
-                    reduceCoords[axis] = reduceIndex % reduceDimSize;
-                    reduceIndex /= reduceDimSize;
-                }
-
-                // Compute the flattened input index based on reduceCoords
-                for (size_t i = 0; i < inputRank; ++i) {
-                    inputIndex += reduceCoords[i] * inputStrides[i];
-                }
-
-                // Apply the operation (e.g., sum, max, etc.)
-                if (count == 0) {
-                    accumulator = inputData[inputIndex];
-                } else {
-                    accumulator = operation(accumulator, inputData[inputIndex]);
-                }
-                ++count;
-            }
-
-            // Finalize the value and store it in the output tensor
-            outputData[outputIndex] = finalize(accumulator, count);
+        // Use reductionSize in finalization to compute the mean
+        for (size_t i = 0; i < outputSize; ++i) {
+            outputData[i] = finalize(outputData[i], reductionSize);  // Use reductionSize here
         }
     });
 

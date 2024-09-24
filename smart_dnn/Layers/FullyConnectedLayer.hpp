@@ -39,6 +39,7 @@ public:
         if (input.shape().rank() == 1) {
             output = reshape(output, {output.shape()[1]});
         }
+
         return output;
     }
 
@@ -89,8 +90,18 @@ public:
             throw std::runtime_error("Weights or gradients are not initialized!");
         }
 
+        Tensor oldWeights = (*weights).clone();
+        Tensor oldBiases = (*biases).clone();
+        Tensor oldWeightGradients = (*weightGradients).clone();
+        Tensor oldBiasGradients = (*biasGradients).clone();
+
         optimizer.optimize({std::ref(*weights), std::ref(*biases)},
                            {std::ref(*weightGradients), std::ref(*biasGradients)});
+
+        std::cout << "Updated weights: " << ((*weights) - oldWeights).toString() << std::endl;
+        std::cout << "Updated biases: " << ((*biases) - oldBiases).toString() << std::endl;
+        std::cout << "weight gradients: " << oldWeightGradients.toString() << std::endl;
+        std::cout << "bias gradients: " << oldBiasGradients.toString() << std::endl;
     }
 
     /*

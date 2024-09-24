@@ -203,15 +203,15 @@ namespace sdnn {
     Tensor CPUTensorBackend::rand(const Shape& shape, dtype type) const {
         std::vector<float> data(shape.size());
         for (size_t i = 0; i < shape.size(); ++i) {
-            data[i] = static_cast<float>(RandomEngine::getXavierInit(shape.size()));
+            data[i] = static_cast<float>(RandomEngine::getHeInit(shape.size()));
         }
         return Tensor(createTensorAdapter(shape, data, type));
     }
 
-    Tensor CPUTensorBackend::randn(const Shape& shape, dtype type, double min, double max) const {
-        std::vector<double> data(shape.size());
+    Tensor CPUTensorBackend::randn(const Shape& shape, dtype type, float min, float max) const {
+        std::vector<float> data(shape.size());
         for (size_t i = 0; i < shape.size(); ++i) {
-            data[i] = static_cast<double>(RandomEngine::getHeRandRange(shape.size(), min, max)) / RAND_MAX;
+            data[i] = static_cast<float>(RandomEngine::getHeRandRange(shape.size(), min, max));  // Removed RAND_MAX division
         }
         return Tensor(createTensorAdapter(shape, data, type));
     }

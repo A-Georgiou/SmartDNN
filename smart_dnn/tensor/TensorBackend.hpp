@@ -62,7 +62,7 @@ public:
 
     // Random number generation
     virtual Tensor rand(const Shape& shape, dtype type) const = 0;
-    virtual Tensor randn(const Shape& shape, dtype type, double min, double max) const = 0;
+    virtual Tensor randn(const Shape& shape, dtype type, float min, float max) const = 0;
 
     // Tensor generation with Shape values
     virtual Tensor zeros(const Shape& shape, dtype type) const = 0;

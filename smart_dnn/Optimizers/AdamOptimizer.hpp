@@ -105,10 +105,10 @@ private:
         Tensor averagedGradient = gradient / batchSize;
 
         // Update biased first moment estimate
-        mValue = beta1 * mValue + (1 - beta1) * averagedGradient;
+        mValue = beta1 * mValue + (1.0f - beta1) * averagedGradient;
 
         // Update biased second moment estimate
-        vValue = beta2 * vValue + (1 - beta2) * averagedGradient * averagedGradient;
+        vValue = beta2 * vValue + (1.0f - beta2) * averagedGradient * averagedGradient;
         // Compute update
         Tensor mHat = mValue / (1 - std::pow(beta1, iterations));
         Tensor vHat = vValue / (1 - std::pow(beta2, iterations));
