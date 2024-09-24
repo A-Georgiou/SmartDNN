@@ -145,6 +145,18 @@ namespace sdnn {
         return Tensor({1}, minVal);
     }
 
+     Tensor CPUTensorBackend::clip(const Tensor& tensor, const double& min, const double& max) const {
+        return applyOperation(tensor, [min, max](auto a) {
+            using T = decltype(a);
+            const T typedMin = static_cast<T>(min);
+            const T typedMax = static_cast<T>(max);
+            
+            if (a < typedMin) return typedMin;
+            if (a > typedMax) return typedMax;
+            return a;
+        });
+        }
+
     Tensor CPUTensorBackend::apply(const Tensor& tensor, const std::function<void(double&)>& func) const {
         auto output = tensor.tensorImpl_->clone();
         output->apply(func);

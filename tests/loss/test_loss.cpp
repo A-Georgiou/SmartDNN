@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 #include "smart_dnn/loss/MSELoss.hpp"
+#include "smart_dnn/loss/CategoricalCrossEntropyLoss.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
 
 namespace sdnn {
@@ -98,6 +99,87 @@ TEST(MSELossTest, MismatchedShapesThrowsException) {
     EXPECT_THROW(mseLoss.compute(prediction, target), std::invalid_argument)
         << "Mismatched shapes should throw an exception.";
 }
+
+TEST(CategoricalCrossEntropyLossTest, ComputeLossMatchesExpectedValue) {
+    CategoricalCrossEntropyLoss cceLoss;
+
+    // Prediction and target tensors
+    Tensor prediction({2, 2}, {0.1f, 0.9f, 0.8f, 0.2f});
+    Tensor target({2, 2}, {0.0f, 1.0f, 1.0f, 0.0f});
+
+    // Compute loss
+    Tensor loss = cceLoss.compute(prediction, target);
+
+    // Manually compute the expected loss
+    float expectedLoss = -std::log(0.9f) - std::log(0.8f);
+    
+    EXPECT_NEAR(loss.at<float>(0), expectedLoss, 1e-6)
+        << "The computed CCE loss is not correct.";
+}
+
+TEST(CategoricalCrossEntropyLossTest, ComputeGradientMatchesExpectedValue) {
+    CategoricalCrossEntropyLoss cceLoss;
+
+    // Prediction and target tensors
+    Tensor prediction({2, 2}, {0.1f, 0.9f, 0.8f, 0.2f});
+    Tensor target({2}, {0.0f, 1.0f});
+
+    // Compute gradient
+    Tensor grad = cceLoss.gradient(prediction, target);
+
+    // Correct expected gradient
+    std::vector<float> expectedGradient = {1.0f, 1.0f, -0.25f, -4.0f};
+
+    // Check if the computed gradient matches the expected values
+    for (size_t i = 0; i < grad.shape().size(); ++i) {
+        EXPECT_NEAR(grad.at<float>(i), expectedGradient[i], 1e-6)
+            << "The computed gradient at index " << i << " is not correct.";
+    }
+
+    // Additional checks for understanding
+    std::cout << "Prediction: " << prediction.toString() << std::endl;
+    std::cout << "Target: " << target.toString() << std::endl;
+    std::cout << "Gradient: " << grad.toString() << std::endl;
+}
+
+
+TEST(CategoricalCrossEntropyLossTest, ComputeLossWithBroadcastTarget) {
+    CategoricalCrossEntropyLoss cceLoss;
+
+    // Prediction is a 2x2 tensor
+    Tensor prediction({2, 2}, {0.1f, 0.9f, 0.8f, 0.2f});
+
+    // Target is a 1D tensor with values broadcasted across the rows of prediction
+    Tensor target({2}, {0.0f, 1.0f});
+
+    // Compute loss
+    Tensor loss = cceLoss.compute(prediction, target);
+
+    // Manually compute the expected loss with broadcasting
+    float expectedLoss = -std::log(0.9f) - std::log(0.2f);
+
+    // Check if the computed loss matches the expected value
+    EXPECT_NEAR(loss.at<float>(0), expectedLoss, 1e-6)
+        << "The computed CCE loss with broadcasting is not correct.";
+}
+
+TEST(CategoricalCrossEntropyLossTest, GradientWithBroadcastTarget) {
+    CategoricalCrossEntropyLoss cceLoss;
+
+    Tensor prediction({2, 2}, {0.1f, 0.9f, 0.8f, 0.2f});
+    Tensor target({2}, {0.0f, 1.0f});
+
+    Tensor grad = cceLoss.gradient(prediction, target);
+
+    std::vector<float> expectedGradient = {1.0f, 1.0f, -0.25f, -4.0f};
+
+    for (size_t i = 0; i < grad.shape().size(); ++i) {
+        EXPECT_NEAR(grad.at<float>(i), expectedGradient[i], 1e-6)
+            << "The computed gradient at index " << i << " with broadcasting is not correct.";
+    }
+}
+
+
 
 } // namespace sdnn
 

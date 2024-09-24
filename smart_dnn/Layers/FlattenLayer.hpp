@@ -2,7 +2,7 @@
 #define FLATTEN_LAYER_HPP
 
 #include "smart_dnn/Layer.hpp"
-#include "smart_dnn/Tensor/TensorBase.hpp"
+#include "smart_dnn/tensor/TensorBase.hpp"
 
 namespace sdnn {
 

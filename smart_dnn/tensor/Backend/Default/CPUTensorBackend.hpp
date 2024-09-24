@@ -46,6 +46,7 @@ public:
     Tensor mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
     Tensor max(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
     Tensor min(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const override;
+    Tensor clip(const Tensor& tensor, const double& min, const double& max) const override;
 
     Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const override;
 

@@ -169,6 +169,7 @@ Tensor sum(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims
 Tensor mean(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims = false);
 Tensor max(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims = false);
 Tensor min(const Tensor& input, const std::vector<int>& axes = {}, bool keepDims = false);
+Tensor clip(const Tensor& input, const double& min, const double& max);
 
 // Creation functions
 Tensor zeros(const Shape& shape, dtype type = dtype::f32);

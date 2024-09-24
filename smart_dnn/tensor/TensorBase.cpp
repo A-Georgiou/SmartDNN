@@ -285,6 +285,10 @@ Tensor min(const Tensor& input, const std::vector<int>& axes, bool keepDims){
     return input.backend().min(input, axes, keepDims);
 }
 
+Tensor clip(const Tensor& input, const double& min, const double& max) {
+    return input.backend().clip(input, min, max);
+}
+
 Tensor exp(const Tensor& tensor) {
     return tensor.backend().exp(tensor);
 }

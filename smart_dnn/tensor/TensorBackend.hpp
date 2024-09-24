@@ -36,6 +36,7 @@ public:
     virtual Tensor mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const = 0;
     virtual Tensor max(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const = 0;
     virtual Tensor min(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const = 0;
+    virtual Tensor clip(const Tensor& tensor, const double& min, const double& max) const = 0;
 
     // Element-wise apply operations
     virtual Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const = 0;

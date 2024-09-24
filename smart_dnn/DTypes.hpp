@@ -88,6 +88,11 @@ namespace sdnn {
         }
     }
 
+    template<typename T1, typename T2>
+    struct promoted_type {
+        using type = decltype(std::declval<T1>() + std::declval<T2>());
+    };
+
    template<dtype DType>
     struct cpp_type;
 

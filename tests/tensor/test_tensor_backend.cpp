@@ -174,6 +174,28 @@ TEST_F(TensorOperationsTest, ScalarOperations) {
     }
 }
 
+TEST_F(TensorOperationsTest, ClipTensor) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+
+    Tensor result = clip(a, 2.0, 3.0);
+
+    std::vector<float> expected = {2.0f, 2.0f, 3.0f, 3.0f};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+
+TEST_F(TensorOperationsTest, ClipTensorWithNegativeValues) {
+    Tensor a = createTensor({2, 2}, {-1.0f, -2.0f, -3.0f, 4.0f});
+
+    Tensor result = clip(a, -1.5, 2.5);
+
+    std::vector<float> expected = {-1.0f, -1.5f, -1.5f, 2.5f};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
 
 
 } // namespace sdnn
