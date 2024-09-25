@@ -30,20 +30,34 @@ Tensor applyOperation(const Tensor& a, Op operation) {
 template<typename Op>
 Tensor elementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
     Shape broadcastShape = ShapeOperations::broadcastShapes(a.shape(), b.shape());
-    auto result = std::make_unique<CPUTensor>(broadcastShape, a.type());
+    
+    dtype promotedType = promotionOfTypes(a.type(), b.type());
+    auto result = std::make_unique<CPUTensor>(broadcastShape, promotedType);
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using PromotedT = std::remove_pointer_t<decltype(type_ptr)>;
         
-        BroadcastView<T> viewA(a, broadcastShape);
-        BroadcastView<T> viewB(b, broadcastShape);
-        T* result_data = result->typedData<T>();
         const size_t size = broadcastShape.size();
+        PromotedT* result_data = result->typedData<PromotedT>();
 
-        #pragma omp simd
-        for (size_t i = 0; i < size; ++i) {
-            result_data[i] = operation(viewA[i], viewB[i]);
-        }
+        auto processElement = [&](size_t i, auto viewA, auto viewB) {
+            result_data[i] = operation(static_cast<PromotedT>(viewA[i]), static_cast<PromotedT>(viewB[i]));
+        };
+
+        applyTypedOperationHelper(a.type(), [&](auto dummy_a) {
+            using TypeA = decltype(dummy_a);
+            BroadcastView<TypeA> viewA(a, broadcastShape);
+
+            applyTypedOperationHelper(b.type(), [&](auto dummy_b) {
+                using TypeB = decltype(dummy_b);
+                BroadcastView<TypeB> viewB(b, broadcastShape);
+
+                #pragma omp simd
+                for (size_t i = 0; i < size; ++i) {
+                    processElement(i, viewA, viewB);
+                }
+            });
+        });
     });
 
     return Tensor(std::move(result));

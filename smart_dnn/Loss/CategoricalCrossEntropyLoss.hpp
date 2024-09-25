@@ -20,8 +20,7 @@ public:
         }
 
         Tensor clippedPred = clip(prediction, epsilon, 1.0f - epsilon);
-        Tensor logPred = log(clippedPred);
-        Tensor loss = sum(target * logPred) * -1;
+        Tensor loss = sum(target * log(clippedPred)) * -1;
         
         return loss;
     }

@@ -10,15 +10,14 @@ namespace sdnn {
         f16 = 0, // 16-bit float (not standard C++ type)
         f32 = 1, // 32-bit float
         f64 = 2, // 64-bit float
-        b8 = 3,  // 8-bit boolean
-        s8 = 4,  // 8-bit signed integer
-        s16 = 5, // 16-bit signed integer
-        s32 = 6, // 32-bit signed integer
-        s64 = 7, // 64-bit signed integer
-        u8 = 8,  // 8-bit unsigned integer
-        u16 = 9, // 16-bit unsigned integer
-        u32 = 10, // 32-bit unsigned integer
-        u64 = 11  // 64-bit unsigned integer
+        s8 = 3,  // 8-bit signed integer
+        s16 = 4, // 16-bit signed integer
+        s32 = 5, // 32-bit signed integer
+        s64 = 6, // 64-bit signed integer
+        u8 = 7,  // 8-bit unsigned integer
+        u16 = 8, // 16-bit unsigned integer
+        u32 = 9, // 32-bit unsigned integer
+        u64 = 10  // 64-bit unsigned integer
     };
     
     struct DataItem {
@@ -38,7 +37,6 @@ namespace sdnn {
     // Primary type definitions
     template<> struct dtype_trait<float> { static constexpr dtype value = dtype::f32; };
     template<> struct dtype_trait<double> { static constexpr dtype value = dtype::f64; };
-    template<> struct dtype_trait<bool> { static constexpr dtype value = dtype::b8; };
     template<> struct dtype_trait<int8_t> { static constexpr dtype value = dtype::s8; };
     template<> struct dtype_trait<int16_t> { static constexpr dtype value = dtype::s16; };
     template<> struct dtype_trait<int32_t> { static constexpr dtype value = dtype::s32; };
@@ -76,7 +74,6 @@ namespace sdnn {
         switch (type) {
             case dtype::f32: op(float{}); break;
             case dtype::f64: op(double{}); break;
-            case dtype::b8: op(bool{}); break;
             case dtype::s16: op(int16_t{}); break;
             case dtype::s32: op(int32_t{}); break;
             case dtype::s64: op(int64_t{}); break;
@@ -98,7 +95,6 @@ namespace sdnn {
 
     template<> struct cpp_type<dtype::f32> { using type = float; };
     template<> struct cpp_type<dtype::f64> { using type = double; };
-    template<> struct cpp_type<dtype::b8> { using type = bool; };
     template<> struct cpp_type<dtype::s8> { using type = int8_t; };
     template<> struct cpp_type<dtype::s16> { using type = int16_t; };
     template<> struct cpp_type<dtype::s32> { using type = int32_t; };
@@ -113,7 +109,6 @@ namespace sdnn {
         switch (dtype) {
             case dtype::f32: return static_cast<T>(*static_cast<const float*>(data));
             case dtype::f64: return static_cast<T>(*static_cast<const double*>(data));
-            case dtype::b8:  return static_cast<T>(*static_cast<const bool*>(data));
             case dtype::s8:  return static_cast<T>(*static_cast<const int8_t*>(data));
             case dtype::s16: return static_cast<T>(*static_cast<const int16_t*>(data));
             case dtype::s32: return static_cast<T>(*static_cast<const int32_t*>(data));
@@ -130,7 +125,6 @@ namespace sdnn {
         switch(to_type) {
             case dtype::f32: *static_cast<float*>(dest) = dtype_cast<float>(src, from_type); break;
             case dtype::f64: *static_cast<double*>(dest) = dtype_cast<double>(src, from_type); break;
-            case dtype::b8:  *static_cast<bool*>(dest) = dtype_cast<bool>(src, from_type); break;
             case dtype::s8:  *static_cast<int8_t*>(dest) = dtype_cast<int8_t>(src, from_type); break;
             case dtype::s16: *static_cast<int16_t*>(dest) = dtype_cast<int16_t>(src, from_type); break;
             case dtype::s32: *static_cast<int32_t*>(dest) = dtype_cast<int32_t>(src, from_type); break;
@@ -148,7 +142,6 @@ namespace sdnn {
         switch (dt) {
             case dtype::f32: return sizeof(float);
             case dtype::f64: return sizeof(double);
-            case dtype::b8: return sizeof(bool);
             case dtype::s8: return sizeof(int8_t);
             case dtype::s16: return sizeof(int16_t);
             case dtype::s32: return sizeof(int32_t);
@@ -165,7 +158,6 @@ namespace sdnn {
         switch (dt) {
             case dtype::f32: return "f32";
             case dtype::f64: return "f64";
-            case dtype::b8: return "b8";
             case dtype::s8: return "s8";
             case dtype::s16: return "s16";
             case dtype::s32: return "s32";
@@ -175,6 +167,48 @@ namespace sdnn {
             case dtype::u32: return "u32";
             case dtype::u64: return "u64";
             default: throw std::runtime_error("Unknown DataType");
+        }
+    }
+
+    constexpr bool is_floating_point(dtype dt) {
+        return dt == dtype::f16 || dt == dtype::f32 || dt == dtype::f64;
+    }
+
+    constexpr bool is_signed(dtype dt) {
+        return dt == dtype::s8 || dt == dtype::s16 || dt == dtype::s32 || dt == dtype::s64 ||
+            is_floating_point(dt);
+    }
+
+    constexpr inline int type_rank(dtype dt) {
+        switch (dt) {
+            case dtype::s16: case dtype::u16: return 2;
+            case dtype::s32: case dtype::u32: return 3;
+            case dtype::s64: case dtype::u64: return 4;
+            case dtype::f16: return 5;
+            case dtype::f32: return 6;
+            case dtype::f64: return 7;
+            default: throw std::runtime_error("Unknown dtype in type_rank");
+        }
+    }
+
+    constexpr inline dtype promotionOfTypes(dtype a, dtype b) {
+        if (is_floating_point(a) || is_floating_point(b)) {
+            return std::max({a, b, dtype::f32}, [](dtype x, dtype y) {
+                return type_rank(x) < type_rank(y);
+            });
+        }
+
+        if (is_signed(a) == is_signed(b)) {
+            return type_rank(a) >= type_rank(b) ? a : b;
+        }
+
+        dtype unsigned_type = is_signed(a) ? b : a;
+        dtype signed_type = is_signed(a) ? a : b;
+
+        if (type_rank(unsigned_type) >= type_rank(signed_type)) {
+            return unsigned_type;
+        } else {
+            return signed_type;
         }
     }
 }

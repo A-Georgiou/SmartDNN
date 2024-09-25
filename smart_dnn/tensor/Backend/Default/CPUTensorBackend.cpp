@@ -63,7 +63,7 @@ namespace sdnn {
     }
 
     Tensor CPUTensorBackend::sumNoAxes(const Tensor& tensor) const {
-        Tensor sum = zeros({1}, tensor.type());
+        Tensor sum = zeros(1, tensor.type());
         tensor.tensorImpl_->apply([&sum](auto& a) { sum += a; });
         return sum;
     }
@@ -178,21 +178,17 @@ namespace sdnn {
         const auto& type = tensor.type();
         
         if (axes.size() != shape.rank()) {
-            throw std::invalid_argument("Transpose Error -Number of axes must match tensor dimensions, mismatch: " + std::to_string(axes.size()) + " != " + std::to_string(shape.rank()));
+            throw std::invalid_argument("Transpose Error - Number of axes must match tensor dimensions, mismatch: " + 
+                                        std::to_string(axes.size()) + " != " + std::to_string(shape.rank()));
         }
         
         std::vector<int> newDims(shape.rank());
-        std::vector<size_t> oldToNew(shape.rank());
         for (size_t i = 0; i < shape.rank(); ++i) {
-            if (axes[i] < 0 || axes[i] >= shape.rank()) {
-                throw std::invalid_argument("Invalid axis");
-            }
             newDims[i] = shape[axes[i]];
-            oldToNew[axes[i]] = i;
         }
-
+        
         Shape newShape(newDims);
-        auto output = createTensorAdapter(newShape, type);
+        Tensor output = zeros(newShape, type);
         
         const size_t totalSize = shape.size();
         const auto& oldStrides = shape.getStride();
@@ -200,17 +196,20 @@ namespace sdnn {
 
         #pragma omp parallel for
         for (size_t i = 0; i < totalSize; ++i) {
-            std::vector<size_t> oldIndices = unflattenIndex(i, shape);
+            size_t oldIndex = i;
             size_t newIndex = 0;
+
             for (size_t d = 0; d < shape.rank(); ++d) {
-                newIndex += oldIndices[axes[d]] * newStrides[d];
+                size_t oldStride = oldIndex / oldStrides[d];
+                oldIndex = oldIndex % oldStrides[d];
+                newIndex += oldStride * newStrides[axes[d]];
             }
             
-            double value = tensor.tensorImpl_->getValueAsDouble(i);
-            output->setValueFromDouble(newIndex, value);
+            double value = tensor.at<double>(i);
+            output.set(newIndex, value);
         }
         
-        return Tensor(std::move(output));
+        return output;
     }
 
     Tensor CPUTensorBackend::exp(const Tensor& tensor) const {

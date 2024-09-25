@@ -10,7 +10,6 @@ namespace sdnn {
             {dtype::f16, std::type_index(typeid(float))},  // Temporarily assuming f16 -> float
             {dtype::f32, std::type_index(typeid(float))},
             {dtype::f64, std::type_index(typeid(double))},
-            {dtype::b8, std::type_index(typeid(bool))},
             {dtype::s16, std::type_index(typeid(short))},
             {dtype::s32, std::type_index(typeid(int))},
             {dtype::s64, std::type_index(typeid(long))},

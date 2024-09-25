@@ -3,7 +3,7 @@
 
 #include "gtest/gtest.h"
 #include "smart_dnn/layers/FlattenLayer.hpp"
-#include "smart_dnn/Tensor/TensorBase.hpp"
+#include "smart_dnn/tensor/TensorBase.hpp"
 
 namespace sdnn {
 

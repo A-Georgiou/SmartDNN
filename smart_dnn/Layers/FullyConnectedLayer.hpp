@@ -69,15 +69,12 @@ public:
             reshapedGradOutput = reshape(gradOutput, {1, gradOutput.shape()[0]});
         }
 
-        // Calculate weight gradients
         Tensor inputTransposed = transpose(inputTensor, {1, 0}); // Shape: (input_size, batch_size)
 
         weightGradients.emplace(matmul(inputTransposed, reshapedGradOutput)); // Shape: (input_size, output_size)
 
-        // Calculate bias gradients
         biasGradients.emplace(reshape(sum(reshapedGradOutput, {0}), {1, biases->shape()[1]}));
 
-        // Calculate input gradients
         Tensor weightsTransposed = transpose(*weights, {1, 0}); // Shape: (output_size, input_size)
 
         Tensor gradInput = matmul(reshapedGradOutput, weightsTransposed); // Shape: (batch_size, input_size)

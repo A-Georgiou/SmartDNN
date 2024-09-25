@@ -57,7 +57,7 @@ int main() {
 
     // Load your MNIST dataset here
     MNISTLoader dataLoader = MNISTLoader(imagesPath, labelsPath, BATCH_SIZE, SAMPLE_COUNT);
-    std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> dataset = dataLoader.loadData(); // Implement this method
+    std::pair<std::vector<Tensor>, std::vector<Tensor>> dataset = dataLoader.loadData(); // Implement this method
 
     // Train the model on the MNIST dataset
     model.train(dataset.first, dataset.second, EPOCHS);
@@ -66,11 +66,11 @@ int main() {
 
     // Load your MNIST dataset here
     MNISTLoader dataLoaderTest = MNISTLoader(imagesPath, labelsPath, BATCH_SIZE);
-    std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> testDataset = dataLoaderTest.loadData(); // Implement this method
+    std::pair<std::vector<Tensor>, std::vector<Tensor>> testDataset = dataLoaderTest.loadData(); // Implement this method
 
     for (int i = testDataset.first.size()-1; i > testDataset.first.size()-5; i--){
-        Tensor<float> input = testDataset.first[i];
-        Tensor<float> output = testDataset.second[i];
+        Tensor input = testDataset.first[i];
+        Tensor output = testDataset.second[i];
 
         Tensor prediction = model.predict(input);
         std::cout << "Input: " << dataLoader.toAsciiArt(input) << std::endl;

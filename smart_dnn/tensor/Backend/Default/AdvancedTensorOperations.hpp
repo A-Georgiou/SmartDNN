@@ -229,17 +229,18 @@ private:
         }
 
         Shape resultShape({shapeA[0]});
-        auto result = createTensorAdapter(resultShape, a.type());
+        Tensor result = zeros(resultShape, a.type());
 
+        #pragma omp parallel for collapse(2)
         for (size_t i = 0; i < shapeA[0]; ++i) {
-            double sum = 0;
+            float sum = 0;
             for (size_t j = 0; j < shapeA[1]; ++j) {
-                sum += a.tensorImpl_->getValueAsDouble(i * shapeA[1] + j) * b.tensorImpl_->getValueAsDouble(j);
+                sum += a.at<float>(i * shapeA[1] + j) * b.at<float>(j);
             }
-            result->setValueFromDouble(i, sum);
+            result.set(i, sum);
         }
 
-        return Tensor(std::move(result));
+        return result;
     }
 
 
@@ -263,19 +264,20 @@ private:
         }
 
         Shape resultShape({shapeA[0], shapeB[1]});
-        auto result = createTensorAdapter(resultShape, a.type());
+        Tensor result = zeros(resultShape, a.type());
 
+        #pragma omp parallel for collapse(2)
         for (size_t i = 0; i < shapeA[0]; ++i) {
             for (size_t j = 0; j < shapeB[1]; ++j) {
                 double sum = 0;
                 for (size_t k = 0; k < shapeA[1]; ++k) {
                     sum += a.at<double>({i, k}) * b.at<double>({k, j});
                 }
-                result->setValueFromDouble(i * shapeB[1] + j, sum);
+                result.set(i * shapeB[1] + j, sum);
             }
         }
 
-        return Tensor(std::move(result));
+        return result;
     }
 
    /*
@@ -332,7 +334,7 @@ private:
         // Iterate over all batch dimensions
         std::vector<size_t> batchIndices(rank - 2, 0);
         do {
-            // Perform matrix multiplication for this batch
+            #pragma omp parallel for collapse(2)
             for (int i = 0; i < shapeA[rank - 2]; ++i) {
                 for (int j = 0; j < shapeB[rank - 1]; ++j) {
                     double sum = 0;
@@ -378,6 +380,7 @@ private:
 
         auto result = createTensorAdapter(Shape({batchSize, outFeatures, sequenceLength}), a.type());
 
+        #pragma omp parallel for collapse(3)
         for (int n = 0; n < batchSize; ++n) {
             for (int i = 0; i < outFeatures; ++i) {
                 for (int j = 0; j < sequenceLength; ++j) {
@@ -408,23 +411,24 @@ private:
         int n = shapeA[2];
         int p = shapeB[1];
 
-        auto result = createTensorAdapter(Shape({batchSize, m, p}), a.type());
+        Tensor result = zeros(Shape({batchSize, m, p}), a.type());
 
+        #pragma omp parallel for collapse(3)
         for (int batch = 0; batch < batchSize; ++batch) {
             for (int i = 0; i < m; ++i) {
                 for (int j = 0; j < p; ++j) {
                     double sum = 0;
                     for (int k = 0; k < n; ++k) {
-                        double aVal = a.tensorImpl_->getValueAsDouble((batch * m * n) + (i * n) + k);
-                        double bVal = b.tensorImpl_->getValueAsDouble(k * p + j);
+                        double aVal = a.at<double>((batch * m * n) + (i * n) + k);
+                        double bVal = b.at<double>(k * p + j);
                         sum += aVal * bVal;
                     }
-                    result->setValueFromDouble((batch * m * p) + (i * p) + j, sum);
+                    result.set((batch * m * p) + (i * p) + j, sum);
                 }
             }
         }
 
-        return Tensor(std::move(result));
+        return result;
     }
 
     template<typename ShapeType>

@@ -487,6 +487,32 @@ TEST(TensorSubViewTest, ExpectSubViewModificationUsingInitializerList) {
     ValidateTensorData(a, std::vector<float>{1.0f, 2.0f, 3.0f, 14.0f});
 }
 
+/*
+
+TEST OPERATIONS WITH PROMOTION (+, -, *, /)
+
+*/
+
+TEST(TensorBroadcastingTest, ExpectValidAdditionWithPromotion) {
+    std::vector<int> dataInt = {1, 2, 3, 4, 5, 6};
+    Tensor a({2, 3}, dataInt);
+    std::vector<float> dataFloat = {1.5f, 2.5f, 3.5f};
+    Tensor b({3}, dataFloat);
+
+    std::cout << dtypeToString(a.type()) << " - int" << std::endl;
+    std::cout << dtypeToString(b.type()) << " - float" << std::endl;
+
+    Tensor c = b + a;
+
+    std::cout << c.toString() << std::endl;
+
+    ValidateTensorShape(c, 2, 6, {2, 3});
+    ValidateTensorData(c, std::vector<float>{2.5f, 4.5f, 6.5f, 5.5f, 7.5f, 9.5f});
+    std::cout << dtypeToString(c.type()) << std::endl;
+    std::cout << dtypeToString(dtype::f32) << std::endl;
+    EXPECT_EQ(c.type(), dtype::f64);
+}
+
 } // namespace sdnn
 
 #endif // TEST_TENSOR_CPP
