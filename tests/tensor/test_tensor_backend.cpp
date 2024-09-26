@@ -91,6 +91,7 @@ TEST_F(TensorOperationsTest, MeanOverAxes) {
     for (size_t i = 0; i < result.shape().size(); ++i) {
         EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
     }
+    EXPECT_EQ(result.type(), dtype::f32);
 }
 
 TEST_F(TensorOperationsTest, ReshapeTensor) {

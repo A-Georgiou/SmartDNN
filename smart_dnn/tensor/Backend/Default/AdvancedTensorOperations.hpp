@@ -16,7 +16,7 @@ class AdvancedTensorOperations {
     // Reciprocal function: calculates the reciprocal of each element in the tensor
     // Reciprocol is defined as: f(x) = 1 / x if abs(x) > epsilon, else 1 / epsilon
     static Tensor reciprocal(const Tensor& tensor, double epsilon = 1e-12) {
-        return apply(tensor, [epsilon](double x) { return (std::abs(x) > epsilon) ? (1 / x) : (1 / epsilon); });
+        return apply(tensor, [epsilon](auto& x) { x = (std::abs(x) > epsilon) ? (1 / x) : (1 / epsilon); });
     }
 
     static Tensor mean(const Tensor& tensor, const std::vector<size_t>& axes) {
@@ -329,12 +329,12 @@ private:
         resultShape.push_back(shapeA[rank - 2]);
         resultShape.push_back(shapeB[rank - 1]);
         
-        auto result = createTensorAdapter(Shape(resultShape), a.type());
+        Tensor result = zeros(Shape(resultShape), a.type());
 
         // Iterate over all batch dimensions
         std::vector<size_t> batchIndices(rank - 2, 0);
         do {
-            #pragma omp parallel for collapse(2)
+            #pragma omp parallel for collapse(3)
             for (int i = 0; i < shapeA[rank - 2]; ++i) {
                 for (int j = 0; j < shapeB[rank - 1]; ++j) {
                     double sum = 0;
@@ -355,7 +355,7 @@ private:
                     std::vector<size_t> resultIndices = batchIndices;
                     resultIndices.push_back(i);
                     resultIndices.push_back(j);
-                    result->setValueFromDouble(computeFlatIndex(Shape(resultShape), resultIndices), sum);
+                    result.set(computeFlatIndex(Shape(resultShape), resultIndices), sum);
                 }
             }
         } while (incrementIndices(batchIndices, resultShape));

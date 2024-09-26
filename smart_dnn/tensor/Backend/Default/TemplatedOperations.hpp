@@ -40,36 +40,22 @@ Tensor elementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
         const size_t size = broadcastShape.size();
         PromotedT* result_data = result->typedData<PromotedT>();
 
-        auto processElement = [&](size_t i, auto& viewA, auto& viewB) {
-            try {
-                auto valA = static_cast<PromotedT>(viewA[i]);
-                auto valB = static_cast<PromotedT>(viewB[i]);
-                result_data[i] = operation(valA, valB);
-            } catch (const std::exception& e) {
-                std::cerr << "Exception in processElement: " << e.what() << std::endl;
-                throw;
-            }
-        };
+        applyTypedOperationHelper(a.type(), [&](auto dummy_a) {
+            using TypeA = decltype(dummy_a);
+            BroadcastView<TypeA> viewA(a, broadcastShape);
 
-        try {
-            applyTypedOperationHelper(a.type(), [&](auto dummy_a) {
-                using TypeA = decltype(dummy_a);
-                BroadcastView<TypeA> viewA(a, broadcastShape);
+            applyTypedOperationHelper(b.type(), [&](auto dummy_b) {
+                using TypeB = decltype(dummy_b);
+                BroadcastView<TypeB> viewB(b, broadcastShape);
 
-                applyTypedOperationHelper(b.type(), [&](auto dummy_b) {
-                    using TypeB = decltype(dummy_b);
-                    BroadcastView<TypeB> viewB(b, broadcastShape);
-
-                    #pragma omp parallel for
-                    for (size_t i = 0; i < size; ++i) {
-                        processElement(i, viewA, viewB);
-                    }
-                });
+                #pragma omp parallel for
+                for (size_t i = 0; i < size; ++i) {
+                    auto valA = static_cast<PromotedT>(viewA[i]);
+                    auto valB = static_cast<PromotedT>(viewB[i]);
+                    result_data[i] = operation(valA, valB);
+                }
             });
-        } catch (const std::exception& e) {
-            std::cerr << "Exception in elementWiseOp: " << e.what() << std::endl;
-            throw;
-        }
+        });
     });
 
     return Tensor(std::move(result));
@@ -87,7 +73,7 @@ Tensor scalarOp(const Tensor& a, const U& scalar, Op operation) {
         const T scalar_t = static_cast<T>(scalar);
         const size_t size = a.shape().size();
 
-        #pragma omp simd
+        #pragma omp parallel for
         for (size_t i = 0; i < size; ++i) {
             result_data[i] = operation(a_data[i], scalar_t);
         }
@@ -131,39 +117,42 @@ Tensor reduction(const Tensor& tensor, const std::vector<size_t>& axes, bool kee
         const size_t outputSize = result->size();
         const size_t inputSize = input.size();
 
-        // Initialize output with initial value
         T typedInitialValue = dtype_cast<T>(initialValue.data, initialValue.type);
         std::fill(outputData, outputData + outputSize, typedInitialValue);
 
         std::vector<size_t> inputCoords(inputRank, 0);
         std::vector<size_t> outputCoords(outputShape.size(), 0);
 
-        #pragma omp parallel for
-        for (size_t i = 0; i < inputSize; ++i) {
-            size_t outputIndex = 0;
-            size_t outputDim = 0;
-            for (size_t j = 0; j < inputRank; ++j) {
-                if (std::find(axes.begin(), axes.end(), j) == axes.end()) {
-                    outputCoords[outputDim] = inputCoords[j];
-                    outputIndex = outputIndex * outputShape[outputDim] + outputCoords[outputDim];
-                    outputDim++;
+        #pragma omp parallel
+        {
+            std::vector<size_t> localInputCoords(inputRank, 0);
+            std::vector<size_t> localOutputCoords(outputShape.size(), 0);
+            
+            #pragma omp for
+            for (size_t i = 0; i < inputSize; ++i) {
+                size_t outputIndex = 0;
+                size_t outputDim = 0;
+                for (size_t j = 0; j < inputRank; ++j) {
+                    if (std::find(axes.begin(), axes.end(), j) == axes.end()) {
+                        localOutputCoords[outputDim] = localInputCoords[j];
+                        outputIndex = outputIndex * outputShape[outputDim] + localOutputCoords[outputDim];
+                        outputDim++;
+                    }
                 }
-            }
 
-            if (outputIndex >= outputSize) {
-                throw std::runtime_error("Output index out of bounds in reduction");
-            }
+                #pragma omp atomic
+                outputData[outputIndex] = operation(outputData[outputIndex], inputData[i]);
 
-            outputData[outputIndex] = operation(outputData[outputIndex], inputData[i]);
-
-            for (int j = static_cast<int>(inputRank) - 1; j >= 0; --j) {
-                if (++inputCoords[j] < static_cast<size_t>(inputShape[j])) break;
-                inputCoords[j] = 0;
+                for (int j = static_cast<int>(inputRank) - 1; j >= 0; --j) {
+                    if (++localInputCoords[j] < static_cast<size_t>(inputShape[j])) break;
+                    localInputCoords[j] = 0;
+                }
             }
         }
 
         size_t reductionSize = 1;
         for (size_t axis : axes) reductionSize *= inputShape[axis];
+        
         #pragma omp parallel for
         for (size_t i = 0; i < outputSize; ++i) {
             outputData[i] = finalize(outputData[i], reductionSize);

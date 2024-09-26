@@ -23,29 +23,33 @@ private:
 
     void calculateBroadcastFactors() {
         const auto& orig_shape = original_.shape();
-        original_strides_.resize(broadcasted_shape_.rank(), 1);
-        broadcast_strides_.resize(broadcasted_shape_.rank(), 0);
+        size_t broadcast_rank = broadcasted_shape_.rank();
+        size_t orig_rank = orig_shape.rank();
+
+        original_strides_.resize(broadcast_rank, 0);
+        broadcast_strides_.resize(broadcast_rank, 0);
         
-        size_t orig_dim = orig_shape.rank() - 1;
         size_t broadcast_stride = 1;
-        for (int i = broadcasted_shape_.rank() - 1; i >= 0; --i) {
-            if (orig_dim < orig_shape.rank() && orig_shape[orig_dim] == broadcasted_shape_[i]) {
-                original_strides_[i] = original_.shape().getStride()[orig_dim];
-                broadcast_strides_[i] = broadcast_stride;
-                broadcast_stride *= broadcasted_shape_[i];
-                if (orig_dim > 0) --orig_dim;
-            } else if (orig_dim < orig_shape.rank() && orig_shape[orig_dim] == 1) {
-                original_strides_[i] = 0;
-                broadcast_strides_[i] = broadcast_stride;
-                broadcast_stride *= broadcasted_shape_[i];
-                if (orig_dim > 0) --orig_dim;
+
+        for (int i = broadcast_rank - 1; i >= 0; --i) {
+            int orig_dim = i + orig_rank - broadcast_rank;
+            if (orig_dim >= 0) {
+                if (orig_shape[orig_dim] == broadcasted_shape_[i]) {
+                    original_strides_[i] = original_.shape().getStride()[orig_dim];
+                } else if (orig_shape[orig_dim] == 1) {
+                    original_strides_[i] = 0;
+                } else {
+                    throw std::runtime_error("Shapes are not broadcastable!");
+                }
             } else {
-                original_strides_[i] = 0; 
-                broadcast_strides_[i] = broadcast_stride;
-                broadcast_stride *= broadcasted_shape_[i];
+                // The original tensor doesn't have this dimension; treat it as 1
+                original_strides_[i] = 0;
             }
+            broadcast_strides_[i] = broadcast_stride;
+            broadcast_stride *= broadcasted_shape_[i];
         }
     }
+
 
 public:
     BroadcastView(const Tensor& tensor, const Shape& target_shape)
