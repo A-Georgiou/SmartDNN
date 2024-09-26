@@ -26,7 +26,7 @@ public:
             throw std::invalid_argument("Input must have at least 2 dimensions (batch_size, features)");
         }
 
-        std::vector<int> featureDims(input.shape().rank() - 1);
+        std::vector<size_t> featureDims(input.shape().rank() - 1);
         std::iota(featureDims.begin(), featureDims.end(), 1);  // [1, 2, ..., rank-1]
 
         Tensor maxValues = max(input, featureDims, true);
@@ -45,7 +45,7 @@ public:
 
         Tensor softmaxOutput = forward(input);
         
-        std::vector<int> featureDims(input.shape().rank() - 1);
+        std::vector<size_t> featureDims(input.shape().rank() - 1);
         std::iota(featureDims.begin(), featureDims.end(), 1);  // [1, 2, ..., rank-1]
 
         Tensor sumGradOutput = sum(gradOutput * softmaxOutput, featureDims, true);

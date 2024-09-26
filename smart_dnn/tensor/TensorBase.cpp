@@ -269,19 +269,19 @@ Tensor sqrt(const Tensor& tensor) {
     return tensor.backend().sqrt(tensor);
 }
 
-Tensor sum(const Tensor& input, const std::vector<int>& axes, bool keepDims){
+Tensor sum(const Tensor& input, const std::vector<size_t>& axes, bool keepDims){
     return input.backend().sum(input, axes, keepDims);
 }
 
-Tensor mean(const Tensor& input, const std::vector<int>& axes, bool keepDims){
+Tensor mean(const Tensor& input, const std::vector<size_t>& axes, bool keepDims){
     return input.backend().mean(input, axes, keepDims);
 }
 
-Tensor max(const Tensor& input, const std::vector<int>& axes, bool keepDims){
+Tensor max(const Tensor& input, const std::vector<size_t>& axes, bool keepDims){
     return input.backend().max(input, axes, keepDims);
 }   
 
-Tensor min(const Tensor& input, const std::vector<int>& axes, bool keepDims){
+Tensor min(const Tensor& input, const std::vector<size_t>& axes, bool keepDims){
     return input.backend().min(input, axes, keepDims);
 }
 

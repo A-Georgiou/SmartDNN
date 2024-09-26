@@ -106,6 +106,9 @@ namespace sdnn {
 
     template <typename T>
     constexpr T dtype_cast(const void* data, dtype dtype) {
+        if (data == nullptr) {
+        throw std::runtime_error("Null pointer encountered in dtype_cast");
+        }
         switch (dtype) {
             case dtype::f32: return static_cast<T>(*static_cast<const float*>(data));
             case dtype::f64: return static_cast<T>(*static_cast<const double*>(data));
@@ -122,6 +125,9 @@ namespace sdnn {
     }
 
     constexpr inline void* convert_dtype(void* dest, const void* src, dtype to_type, dtype from_type) {
+        if (dest == nullptr || src == nullptr) {
+            throw std::runtime_error("Null pointer encountered in convert_dtype");
+        }
         switch(to_type) {
             case dtype::f32: *static_cast<float*>(dest) = dtype_cast<float>(src, from_type); break;
             case dtype::f64: *static_cast<double*>(dest) = dtype_cast<double>(src, from_type); break;

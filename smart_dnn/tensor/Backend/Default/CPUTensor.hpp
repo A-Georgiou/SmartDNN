@@ -135,7 +135,6 @@ private:
     std::optional<TensorIndex> index_;
 
     size_t getFlatIndex(size_t index) const;
-    static std::vector<size_t> unflattenIndex(size_t flatIndex, const Shape& shape);
 
     void allocateMemory();
 

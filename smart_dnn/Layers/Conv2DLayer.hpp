@@ -13,12 +13,12 @@ namespace sdnn {
 
 class Conv2DLayer : public Layer {
 public:
-    Conv2DLayer(int inputChannels, int outputChannels, int squareKernalSize, int stride = 1, int padding = 0, int dilation = 1) 
-        : Conv2DLayer(inputChannels, outputChannels, squareKernalSize, squareKernalSize, stride, padding, dilation) {}
+    Conv2DLayer(int inputChannels, int outputChannels, int squareKernalSize, int stride = 1, int padding = 0) 
+        : Conv2DLayer(inputChannels, outputChannels, squareKernalSize, squareKernalSize, stride, padding) {}
 
-    Conv2DLayer(int inputChannels, int outputChannels, int kernelHeight, int kernelWidth, int stride = 1, int padding = 0, int dilation = 1) 
+    Conv2DLayer(int inputChannels, int outputChannels, int kernelHeight, int kernelWidth, int stride = 1, int padding = 0) 
         : inputChannels(inputChannels), outputChannels(outputChannels), kernelHeight(kernelHeight), kernelWidth(kernelWidth), 
-          stride(stride), padding(padding), dilation(dilation) {
+          stride(stride), padding(padding){
         
         initializeWeights();
     }
@@ -58,9 +58,6 @@ public:
 
         const Tensor& inputTensor = input.value();
         int batchSize = inputTensor.shape()[0];
-        int inputHeight = inputTensor.shape()[2];
-        int inputWidth = inputTensor.shape()[3];
-
         int outputHeight = gradOutput.shape()[2];
         int outputWidth = gradOutput.shape()[3];
 
@@ -135,7 +132,6 @@ private:
     int kernelWidth;
     int stride;
     int padding;
-    int dilation;
 
     void initializeWeights() {
         weights = rand({outputChannels, inputChannels, kernelHeight, kernelWidth}, dtype::f32);

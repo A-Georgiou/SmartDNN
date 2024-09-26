@@ -64,9 +64,7 @@ void SmartDNN::train(const std::vector<Tensor>& inputs, const std::vector<Tensor
             for (int j = layers.size() - 1; j >= 0; --j) {
                 gradOutput = layers[j]->backward(gradOutput);
                 layers[j]->updateWeights(*optimizer);
-                
             }
-
         }
         std::cout << "Epoch " << epoch << " - Loss: " << (totalLoss / (inputs.size())).toDataString() << std::endl;
     }

@@ -301,14 +301,5 @@ size_t CPUTensor::getFlatIndex(size_t index) const {
         return index;
     }
 
-std::vector<size_t> CPUTensor::unflattenIndex(size_t flatIndex, const Shape& shape) {
-    std::vector<size_t> indices(shape.rank());
-    for (int i = shape.rank() - 1; i >= 0; --i) {
-        indices[i] = flatIndex % shape[i];
-        flatIndex /= shape[i];
-    }
-    return indices;
-}
-
 
 } // namespace sdnn

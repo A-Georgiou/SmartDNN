@@ -33,8 +33,10 @@ public:
         Tensor clippedPred = clip(prediction, epsilon, 1.0f - epsilon);
         
         Tensor expandedTarget = zeros(prediction.shape(), prediction.type());
-        for (size_t i = 0; i < prediction.shape()[0]; ++i) {
-            for (size_t j = 0; j < prediction.shape()[1]; ++j) {
+        size_t y_axis = prediction.shape()[0];
+        size_t x_axis = prediction.shape()[1];
+        for (size_t i = 0; i < y_axis; ++i) {
+            for (size_t j = 0; j < x_axis; ++j) {
                 expandedTarget.set({i, j}, target.at<float>(i));
             }
         }

@@ -9,7 +9,7 @@ class ShapeOperations {
 public:
     ShapeOperations() = delete; // Prevent instantiation
 
-    static Shape broadcastShapes(const Shape& shape1, const Shape& shape2) {
+    static inline Shape broadcastShapes(const Shape& shape1, const Shape& shape2) {
         std::vector<int> result;
         int size1 = shape1.rank();
         int size2 = shape2.rank();
@@ -34,7 +34,7 @@ public:
         return Shape(result);
     }
 
-    static bool areBroadcastable(const Shape& A, const Shape& B) {
+    static inline bool areBroadcastable(const Shape& A, const Shape& B) {
         int lenA = A.rank();
         int lenB = B.rank();
         int maxLen = std::max(lenA, lenB);
@@ -51,14 +51,14 @@ public:
         return true;
     }
 
-    static Shape concat(const Shape& shape1, const Shape& shape2) {
+    static inline Shape concat(const Shape& shape1, const Shape& shape2) {
         std::vector<int> newDimensions = shape1.getDimensions();
         newDimensions.insert(newDimensions.end(), shape2.getDimensions().begin(), shape2.getDimensions().end());
         return Shape(newDimensions);
     }
     };
 
-    static size_t computeFlatIndex(const Shape& shape, const std::vector<size_t>& indices) {
+    static inline size_t computeFlatIndex(const Shape& shape, const std::vector<size_t>& indices) {
         if (indices.size() != shape.rank()) {
             throw std::invalid_argument("Number of indices must match the rank of the shape.");
         }
@@ -67,7 +67,7 @@ public:
         size_t flatIndex = 0;
 
         for (size_t i = 0; i < indices.size(); ++i) {
-            if (indices[i] < 0 || indices[i] >= static_cast<int>(shape[i])) {
+            if (indices[i] < 0 || indices[i] >= static_cast<size_t>(shape[i])) {
                 throw std::out_of_range("Index out of bounds for dimension " + std::to_string(i));
             }
             flatIndex += static_cast<size_t>(indices[i]) * strides[i];
@@ -76,7 +76,7 @@ public:
         return flatIndex;
     }
 
-    static std::vector<size_t> unflattenIndex(size_t flatIndex, const Shape& shape) {
+    static inline std::vector<size_t> unflattenIndex(size_t flatIndex, const Shape& shape) {
         std::vector<size_t> indices(shape.rank());
         const std::vector<size_t>& strides = shape.getStride();
 
@@ -84,7 +84,7 @@ public:
             throw std::out_of_range("Flat index out of bounds");
         }
 
-        for (int i = 0; i < shape.rank(); ++i) {
+        for (size_t i = 0; i < shape.rank(); ++i) {
             indices[i] = flatIndex / strides[i];
             flatIndex %= strides[i];
         }

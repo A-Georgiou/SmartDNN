@@ -3,6 +3,9 @@
 
 #include <vector>
 #include <stdexcept>
+#include <memory>
+#include <algorithm>
+#include <execution>
 #include "smart_dnn/shape/ShapeOperations.hpp"
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
@@ -26,16 +29,16 @@ private:
         size_t orig_dim = orig_shape.rank() - 1;
         size_t broadcast_stride = 1;
         for (int i = broadcasted_shape_.rank() - 1; i >= 0; --i) {
-            if (orig_dim >= 0 && orig_shape[orig_dim] == broadcasted_shape_[i]) {
+            if (orig_dim < orig_shape.rank() && orig_shape[orig_dim] == broadcasted_shape_[i]) {
                 original_strides_[i] = original_.shape().getStride()[orig_dim];
                 broadcast_strides_[i] = broadcast_stride;
                 broadcast_stride *= broadcasted_shape_[i];
-                --orig_dim;
-            } else if (orig_dim >= 0 && orig_shape[orig_dim] == 1) {
+                if (orig_dim > 0) --orig_dim;
+            } else if (orig_dim < orig_shape.rank() && orig_shape[orig_dim] == 1) {
                 original_strides_[i] = 0;
                 broadcast_strides_[i] = broadcast_stride;
                 broadcast_stride *= broadcasted_shape_[i];
-                --orig_dim;
+                if (orig_dim > 0) --orig_dim;
             } else {
                 original_strides_[i] = 0; 
                 broadcast_strides_[i] = broadcast_stride;

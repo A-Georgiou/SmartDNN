@@ -24,7 +24,7 @@ public:
 
         size_t flatIndex = offset_;
         for (size_t i = 0; i < indices.size(); ++i) {
-            if (indices[i] >= shape_[i]) {
+            if (indices[i] >= static_cast<size_t>(shape_[i])) {
                 throw std::out_of_range("Index out of range at dimension " + std::to_string(i));
             }
             flatIndex += indices[i] * strides_[i];
@@ -44,7 +44,7 @@ public:
         for (size_t i = 0; i < ranges.size(); ++i) {
             size_t start = ranges[i].first;
             size_t end = ranges[i].second;
-            if (start >= shape_[i] || end > shape_[i] || start >= end) {
+            if (start >= static_cast<size_t>(shape_[i]) || end > static_cast<size_t>(shape_[i]) || start >= end) {
                 throw std::out_of_range("Invalid slice range");
             }
             

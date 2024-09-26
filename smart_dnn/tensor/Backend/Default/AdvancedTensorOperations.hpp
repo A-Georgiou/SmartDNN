@@ -19,7 +19,7 @@ class AdvancedTensorOperations {
         return apply(tensor, [epsilon](double x) { return (std::abs(x) > epsilon) ? (1 / x) : (1 / epsilon); });
     }
 
-    static Tensor mean(const Tensor& tensor, const std::vector<int>& axes) {
+    static Tensor mean(const Tensor& tensor, const std::vector<size_t>& axes) {
         if (axes.empty() || axes.size() == tensor.shape().rank()) {
             return mean(tensor);
         }
@@ -38,10 +38,10 @@ class AdvancedTensorOperations {
         }
 
         // Sort axes in descending order
-        std::vector<int> sortedAxes = axes;
+        std::vector<size_t> sortedAxes = axes;
         std::sort(sortedAxes.begin(), sortedAxes.end(), std::greater<int>());
 
-        for (int axis : sortedAxes) {
+        for (size_t axis : sortedAxes) {
             if (axis >= result.shape().rank() || axis < 0) {
                 throw std::invalid_argument("Invalid axis for mean calculation");
             }
@@ -232,9 +232,9 @@ private:
         Tensor result = zeros(resultShape, a.type());
 
         #pragma omp parallel for collapse(2)
-        for (size_t i = 0; i < shapeA[0]; ++i) {
+        for (int i = 0; i < shapeA[0]; ++i) {
             float sum = 0;
-            for (size_t j = 0; j < shapeA[1]; ++j) {
+            for (int j = 0; j < shapeA[1]; ++j) {
                 sum += a.at<float>(i * shapeA[1] + j) * b.at<float>(j);
             }
             result.set(i, sum);
@@ -267,11 +267,11 @@ private:
         Tensor result = zeros(resultShape, a.type());
 
         #pragma omp parallel for collapse(2)
-        for (size_t i = 0; i < shapeA[0]; ++i) {
-            for (size_t j = 0; j < shapeB[1]; ++j) {
+        for (int i = 0; i < shapeA[0]; ++i) {
+            for (int j = 0; j < shapeB[1]; ++j) {
                 double sum = 0;
-                for (size_t k = 0; k < shapeA[1]; ++k) {
-                    sum += a.at<double>({i, k}) * b.at<double>({k, j});
+                for (int k = 0; k < shapeA[1]; ++k) {
+                    sum += a.at<double>({static_cast<size_t>(i), static_cast<size_t>(k)}) * b.at<double>({static_cast<size_t>(k), static_cast<size_t>(j)});
                 }
                 result.set(i * shapeB[1] + j, sum);
             }
@@ -438,7 +438,7 @@ private:
                                  std::vector<int>* resultIndices = nullptr) {
         for (int i = static_cast<int>(indices.size()) - 1; i >= 0; --i) {
             ++indices[i];
-            if (indices[i] < getShapeElement(shape, i)) {
+            if (indices[i] < static_cast<size_t>(getShapeElement(shape, i))) {
                 if (axesToSum && resultIndices && !(*axesToSum)[i]) {
                     ++(*resultIndices)[i];
                 }

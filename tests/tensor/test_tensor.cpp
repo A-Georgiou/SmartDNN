@@ -498,21 +498,111 @@ TEST(TensorBroadcastingTest, ExpectValidAdditionWithPromotion) {
     Tensor a({2, 3}, dataInt);
     std::vector<float> dataFloat = {1.5f, 2.5f, 3.5f};
     Tensor b({3}, dataFloat);
+    std::vector<int16_t> dataInt8 = {1, 2, 3};
+    Tensor c({3}, dataInt8);
 
-    std::cout << dtypeToString(a.type()) << " - int" << std::endl;
-    std::cout << dtypeToString(b.type()) << " - float" << std::endl;
+    Tensor d = b + a;
+    Tensor e = c + a;
 
-    Tensor c = b + a;
+    ValidateTensorShape(d, 2, 6, {2, 3});
+    ValidateTensorData(d, std::vector<float>{2.5f, 4.5f, 6.5f, 5.5f, 7.5f, 9.5f});
+    EXPECT_EQ(d.type(), dtype::f32);
 
-    std::cout << c.toString() << std::endl;
-
-    ValidateTensorShape(c, 2, 6, {2, 3});
-    ValidateTensorData(c, std::vector<float>{2.5f, 4.5f, 6.5f, 5.5f, 7.5f, 9.5f});
-    std::cout << dtypeToString(c.type()) << std::endl;
-    std::cout << dtypeToString(dtype::f32) << std::endl;
-    EXPECT_EQ(c.type(), dtype::f64);
+    ValidateTensorShape(e, 2, 6, {2, 3});
+    ValidateTensorData(e, std::vector<int>{2, 4, 6, 5, 7, 9});
+    EXPECT_EQ(e.type(), dtype::s32);
 }
 
+TEST(TensorBroadcastingTest, ExpectValidSubtractionWithPromotion) {
+    std::vector<int> dataInt = {1, 2, 3, 4, 5, 6};
+    Tensor a({2, 3}, dataInt);
+    std::vector<float> dataFloat = {1.5f, 2.5f, 3.5f};
+    Tensor b({3}, dataFloat);
+
+    Tensor c = a - b;
+
+    ValidateTensorShape(c, 2, 6, {2, 3});
+    ValidateTensorData(c, std::vector<float>{-0.5f, -0.5f, -0.5f, 2.5f, 2.5f, 2.5f});
+    EXPECT_EQ(c.type(), dtype::f32);
+}
+
+TEST(TensorBroadcastingTest, ExpectValidMultiplicationWithPromotion) {
+    std::vector<int> dataInt = {1, 2, 3, 4, 5, 6};
+    Tensor a({2, 3}, dataInt);
+    std::vector<float> dataFloat = {1.5f, 2.5f, 3.5f};
+    Tensor b({3}, dataFloat);
+
+    Tensor c = a * b;
+
+    ValidateTensorShape(c, 2, 6, {2, 3});
+    ValidateTensorData(c, std::vector<float>{1.5f, 5.0f, 10.5f, 6.0f, 12.5f, 21.0f});
+    EXPECT_EQ(c.type(), dtype::f32);
+}
+
+TEST(TensorBroadcastingTest, ExpectValidDivisionWithPromotion) {
+    std::vector<int> dataInt = {1, 2, 3, 4, 5, 6};
+    Tensor a({2, 3}, dataInt);
+    std::vector<float> dataFloat = {1.0f, 2.0f, 3.0f};
+    Tensor b({3}, dataFloat);
+
+    Tensor c = a / b;
+
+    ValidateTensorShape(c, 2, 6, {2, 3});
+    ValidateTensorData(c, std::vector<float>{1.0f, 1.0f, 1.0f, 4.0f, 2.5f, 2.0f});
+    EXPECT_EQ(c.type(), dtype::f32);
+}
+
+TEST(TensorBroadcastingTest, ExpectValidMatmulWithPromotion) {
+    Tensor a({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor b({3, 2}, {1, 2, 3, 4, 5, 6});
+
+    Tensor c = matmul(a, b);
+
+    ValidateTensorShape(c, 2, 4, {2, 2});
+    ValidateTensorData(c, std::vector<float>{22.0f, 28.0f, 49.0f, 64.0f});
+    EXPECT_EQ(c.type(), dtype::f32);
+}
+
+TEST(TensorBroadcastingTest, ExpectScalarAdditionIsPromoted) {
+    Tensor a({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+
+    Tensor b = a + 1;
+
+    ValidateTensorShape(b, 2, 6, {2, 3});
+    ValidateTensorData(b, std::vector<float>{2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f});
+    EXPECT_EQ(b.type(), dtype::f32);
+}
+
+TEST(TensorBroadcastingTest, ExpectScalarSubtractionIsPromoted) {
+    Tensor a({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+
+    Tensor b = a - 1;
+
+    ValidateTensorShape(b, 2, 6, {2, 3});
+    ValidateTensorData(b, std::vector<float>{0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f});
+    EXPECT_EQ(b.type(), dtype::f32);
+}
+
+TEST(TensorBroadcastingTest, ExpectScalarMultiplicationIsPromoted) {
+    Tensor a({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+
+    Tensor b = a * 2;
+
+    ValidateTensorShape(b, 2, 6, {2, 3});
+    ValidateTensorData(b, std::vector<float>{2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 12.0f});
+    EXPECT_EQ(b.type(), dtype::f32);
+}
+
+TEST(TensorBroadcastingTest, ExpectScalarDivisionIsPromoted) {
+    Tensor a({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+
+    Tensor b = a / 2;
+
+    ValidateTensorShape(b, 2, 6, {2, 3});
+    ValidateTensorData(b, std::vector<float>{0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f});
+    EXPECT_EQ(b.type(), dtype::f32);
+}
+    
 } // namespace sdnn
 
 #endif // TEST_TENSOR_CPP

@@ -60,10 +60,10 @@ private:
             throw std::runtime_error("Failed to open file: " + imagesPath);
         }
 
-        int magicNumber = readInt(file);
-        int numImages = readInt(file);
-        int numRows = readInt(file);
-        int numCols = readInt(file);
+        int32_t magicNumber = readInt(file);
+        int32_t numImages = readInt(file);
+        int32_t numRows = readInt(file);
+        int32_t numCols = readInt(file);
 
         if (numSamples != -1) {
             numImages = numSamples;
@@ -75,17 +75,19 @@ private:
         
         std::vector<Tensor> images;
         for (int i = 0; i < numImages; i += batchSize) {
-            int currentBatchSize = std::min(batchSize, numImages - i); // Handle last batch size
+            int currentBatchSize = std::min(batchSize, numImages - i);
 
             Tensor image({currentBatchSize, 1, numRows, numCols}, 0.0f); 
-            for (int j = 0; j < currentBatchSize; ++j) { 
-                size_t j_ = j;
-                for (size_t k = 0; k < numRows; ++k) {
-                    for (size_t l = 0; l < numCols; ++l) {
+            for (int j = 0; j < currentBatchSize; ++j) {
+                for (int k = 0; k < numRows; ++k) {
+                    for (int l = 0; l < numCols; ++l) {
                         unsigned char pixel = file.get();
-                        image.set({j_, 0, k, l}, pixel / 255.0f);  // Avoid casting in the loop itself
+                        image.set({static_cast<size_t>(j), 0UL, 
+                                   static_cast<size_t>(k), static_cast<size_t>(l)}, 
+                                  pixel / 255.0f);
 
-                        float pixelValue = image.at<float>({j_, 0, k, l});
+                        float pixelValue = image.at<float>({static_cast<size_t>(j), 0UL, 
+                                                            static_cast<size_t>(k), static_cast<size_t>(l)});
                         if (pixelValue < 0 || pixelValue > 1) {
                             throw std::runtime_error("Pixel value out of range: " + std::to_string(pixelValue));
                         }
@@ -103,8 +105,8 @@ private:
             throw std::runtime_error("Failed to open file: " + labelsPath);
         }
 
-        int magicNumber = readInt(file);
-        int numLabels = readInt(file);
+        int32_t magicNumber = readInt(file);
+        int32_t numLabels = readInt(file);
 
         if (numSamples != -1) {
             numLabels = numSamples;
@@ -116,12 +118,12 @@ private:
 
         std::vector<Tensor> labels;
         for (int i = 0; i < numLabels; i += batchSize) {
-            int currentBatchSize = std::min(batchSize, numLabels - i); // Handle last batch size
+            int currentBatchSize = std::min(batchSize, numLabels - i);
 
             Tensor label(Shape({currentBatchSize, 10}), 0); 
-            for (size_t j = 0; j < currentBatchSize; ++j) { 
-                size_t digit = file.get();
-                label.set({j, digit}, 1);
+            for (int j = 0; j < currentBatchSize; ++j) {
+                int digit = file.get();
+                label.set({static_cast<size_t>(j), static_cast<size_t>(digit)}, 1);
             }
             labels.push_back(label);
         }
@@ -129,13 +131,12 @@ private:
         return labels;
     }
 
-    int readInt(std::ifstream& file) {
+    int32_t readInt(std::ifstream& file) {
         unsigned char buffer[4];
         file.read(reinterpret_cast<char*>(buffer), 4);
         return (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
     }
 };
-
 } // namespace sdnn
 
 #endif // MNIST_LOADER_HPP

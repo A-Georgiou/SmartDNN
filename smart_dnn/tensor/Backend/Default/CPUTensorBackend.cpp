@@ -68,18 +68,31 @@ namespace sdnn {
         return sum;
     }
 
-    Tensor CPUTensorBackend::sum(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
+    Tensor CPUTensorBackend::sum(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
         if (axes.empty()) {
             return sumNoAxes(tensor);
         }
 
+        // Normalize axes
+        std::vector<size_t> normalizedAxes;
+        for (size_t axis : axes) {
+            if (axis < 0) axis += tensor.shape().rank();
+            if (axis < 0 || axis >= tensor.shape().rank()) {
+                throw std::invalid_argument("Invalid axis in sum: " + std::to_string(axis));
+            }
+            normalizedAxes.push_back(axis);
+        }
+
+
         float defaultValue = 0.0f;
         DataItem initialValue{&defaultValue, dtype::f32};
 
-        return reduction(tensor, axes, keepDims, 
-                            [](auto a, auto b) { return a + b; },
-                            [](auto sum, size_t) { return sum; },
-                            initialValue);
+        auto result = reduction(tensor, normalizedAxes, keepDims, 
+                                [](auto a, auto b) { return a + b; },
+                                [](auto sum, size_t) { return sum; },
+                                initialValue);
+
+        return result;
     }
 
     Tensor CPUTensorBackend::meanNoAxes(const Tensor& tensor) const {
@@ -87,7 +100,7 @@ namespace sdnn {
         return sum / tensor.shape().size();
     }
 
-    Tensor CPUTensorBackend::mean(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
+    Tensor CPUTensorBackend::mean(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
         if (axes.empty()) {
             return meanNoAxes(tensor);
         }
@@ -101,7 +114,7 @@ namespace sdnn {
                             initialValue);
     }
 
-    Tensor CPUTensorBackend::max(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
+    Tensor CPUTensorBackend::max(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
         if (axes.empty()) {
             return maxNoAxes(tensor);
         }
@@ -115,7 +128,7 @@ namespace sdnn {
                         initialValue);
     }
 
-    Tensor CPUTensorBackend::min(const Tensor& tensor, const std::vector<int>& axes, bool keepDims) const {
+    Tensor CPUTensorBackend::min(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
         if (axes.empty()) {
             return minNoAxes(tensor);
         }
@@ -296,7 +309,7 @@ namespace sdnn {
     }
 
     Tensor CPUTensorBackend::identity(int size, dtype type) const {
-        return Tensor(createTensorAdapter(Shape({size, size})));
+        return Tensor(createTensorAdapter(Shape({size, size}), type));
     }
 
     std::string CPUTensorBackend::backendName() const {

@@ -18,7 +18,7 @@ Tensor applyOperation(const Tensor& a, Op operation) {
         T* result_data = result->typedData<T>();
         const size_t size = a.shape().size();
 
-        #pragma omp simd
+        #pragma omp parallel for
         for (size_t i = 0; i < size; ++i) {
             result_data[i] = operation(a_data[i]);
         }
@@ -30,8 +30,8 @@ Tensor applyOperation(const Tensor& a, Op operation) {
 template<typename Op>
 Tensor elementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
     Shape broadcastShape = ShapeOperations::broadcastShapes(a.shape(), b.shape());
-    
     dtype promotedType = promotionOfTypes(a.type(), b.type());
+
     auto result = std::make_unique<CPUTensor>(broadcastShape, promotedType);
     
     result->applyTypedOperation([&](auto* type_ptr) {
@@ -40,24 +40,36 @@ Tensor elementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
         const size_t size = broadcastShape.size();
         PromotedT* result_data = result->typedData<PromotedT>();
 
-        auto processElement = [&](size_t i, auto viewA, auto viewB) {
-            result_data[i] = operation(static_cast<PromotedT>(viewA[i]), static_cast<PromotedT>(viewB[i]));
+        auto processElement = [&](size_t i, auto& viewA, auto& viewB) {
+            try {
+                auto valA = static_cast<PromotedT>(viewA[i]);
+                auto valB = static_cast<PromotedT>(viewB[i]);
+                result_data[i] = operation(valA, valB);
+            } catch (const std::exception& e) {
+                std::cerr << "Exception in processElement: " << e.what() << std::endl;
+                throw;
+            }
         };
 
-        applyTypedOperationHelper(a.type(), [&](auto dummy_a) {
-            using TypeA = decltype(dummy_a);
-            BroadcastView<TypeA> viewA(a, broadcastShape);
+        try {
+            applyTypedOperationHelper(a.type(), [&](auto dummy_a) {
+                using TypeA = decltype(dummy_a);
+                BroadcastView<TypeA> viewA(a, broadcastShape);
 
-            applyTypedOperationHelper(b.type(), [&](auto dummy_b) {
-                using TypeB = decltype(dummy_b);
-                BroadcastView<TypeB> viewB(b, broadcastShape);
+                applyTypedOperationHelper(b.type(), [&](auto dummy_b) {
+                    using TypeB = decltype(dummy_b);
+                    BroadcastView<TypeB> viewB(b, broadcastShape);
 
-                #pragma omp simd
-                for (size_t i = 0; i < size; ++i) {
-                    processElement(i, viewA, viewB);
-                }
+                    #pragma omp parallel for
+                    for (size_t i = 0; i < size; ++i) {
+                        processElement(i, viewA, viewB);
+                    }
+                });
             });
-        });
+        } catch (const std::exception& e) {
+            std::cerr << "Exception in elementWiseOp: " << e.what() << std::endl;
+            throw;
+        }
     });
 
     return Tensor(std::move(result));
@@ -85,28 +97,22 @@ Tensor scalarOp(const Tensor& a, const U& scalar, Op operation) {
 }
 
 template<typename Op, typename Finalize>
-Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDims, 
+Tensor reduction(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims, 
                  Op operation, Finalize finalize, const DataItem& initialValue) {
     const auto& input = tensor.getImpl<CPUTensor>();
-    const auto& inputShape = tensor.shape();
+    const Shape& inputShape = tensor.shape();
     const size_t inputRank = inputShape.rank();
 
-    // Normalize axes
-    std::vector<int> normalizedAxes = axes;
-    for (auto& axis : normalizedAxes) {
-        if (axis < 0) axis += inputRank;
+    // Validate axes
+    for (size_t axis : axes) {
         if (axis < 0 || axis >= inputRank) {
-            throw std::invalid_argument("Invalid axis for reduction");
+            throw std::invalid_argument("Invalid axis for reduction: " + std::to_string(axis));
         }
     }
 
-    // Sort and remove duplicates
-    std::sort(normalizedAxes.begin(), normalizedAxes.end());
-    normalizedAxes.erase(std::unique(normalizedAxes.begin(), normalizedAxes.end()), normalizedAxes.end());
-
     std::vector<int> outputShape;
     for (size_t i = 0; i < inputRank; ++i) {
-        if (std::find(normalizedAxes.begin(), normalizedAxes.end(), i) == normalizedAxes.end()) {
+        if (std::find(axes.begin(), axes.end(), i) == axes.end()) {
             outputShape.push_back(inputShape[i]);
         } else if (keepDims) {
             outputShape.push_back(1);
@@ -119,45 +125,46 @@ Tensor reduction(const Tensor& tensor, const std::vector<int>& axes, bool keepDi
     
     result->applyTypedOperation([&](auto* type_ptr) {
         using T = std::remove_pointer_t<decltype(type_ptr)>;
-        T* outputData = result->typedData<T>();
-        const size_t outputSize = result->size();
-        T typedInitialValue = dtype_cast<T>(initialValue.data, initialValue.type);
-        std::fill(outputData, outputData + outputSize, typedInitialValue);
-    });
-
-    result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
         const T* inputData = input.typedData<T>();
         T* outputData = result->typedData<T>();
 
         const size_t outputSize = result->size();
         const size_t inputSize = input.size();
 
-        std::vector<size_t> inputCoords(inputRank, 0);
+        // Initialize output with initial value
+        T typedInitialValue = dtype_cast<T>(initialValue.data, initialValue.type);
+        std::fill(outputData, outputData + outputSize, typedInitialValue);
 
+        std::vector<size_t> inputCoords(inputRank, 0);
+        std::vector<size_t> outputCoords(outputShape.size(), 0);
+
+        #pragma omp parallel for
         for (size_t i = 0; i < inputSize; ++i) {
             size_t outputIndex = 0;
-            size_t outputStride = 1;
-
-            for (int j = inputRank - 1; j >= 0; --j) {
-                if (std::find(normalizedAxes.begin(), normalizedAxes.end(), j) == normalizedAxes.end()) {
-                    outputIndex += inputCoords[j] * outputStride;
-                    outputStride *= outputShape[j];
-                } else if (keepDims) {
-                    outputStride *= 1; 
+            size_t outputDim = 0;
+            for (size_t j = 0; j < inputRank; ++j) {
+                if (std::find(axes.begin(), axes.end(), j) == axes.end()) {
+                    outputCoords[outputDim] = inputCoords[j];
+                    outputIndex = outputIndex * outputShape[outputDim] + outputCoords[outputDim];
+                    outputDim++;
                 }
+            }
+
+            if (outputIndex >= outputSize) {
+                throw std::runtime_error("Output index out of bounds in reduction");
             }
 
             outputData[outputIndex] = operation(outputData[outputIndex], inputData[i]);
 
-            for (int j = inputRank - 1; j >= 0; --j) {
-                if (++inputCoords[j] < inputShape[j]) break;
+            for (int j = static_cast<int>(inputRank) - 1; j >= 0; --j) {
+                if (++inputCoords[j] < static_cast<size_t>(inputShape[j])) break;
                 inputCoords[j] = 0;
             }
         }
-        
+
         size_t reductionSize = 1;
-        for (int axis : normalizedAxes) reductionSize *= inputShape[axis];
+        for (size_t axis : axes) reductionSize *= inputShape[axis];
+        #pragma omp parallel for
         for (size_t i = 0; i < outputSize; ++i) {
             outputData[i] = finalize(outputData[i], reductionSize);
         }
