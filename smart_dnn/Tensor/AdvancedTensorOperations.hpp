@@ -476,7 +476,7 @@ private:
         }
 
         if (shapeA.rank() != shapeB.rank()) {
-            throw std::invalid_argument("Tensors must have the same rank for batched matmul");
+            throw std::invalid_argument("Tensors must have the same rank for batched matmul, mismatch: " + shapeA.toString() + " and " + shapeB.toString());
         }
 
         int rank = shapeA.rank();
