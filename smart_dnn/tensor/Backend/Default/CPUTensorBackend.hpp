@@ -53,7 +53,8 @@ public:
     Tensor matmul(const Tensor& a, const Tensor& b) const override;
 
     Tensor reshape(const Tensor& tensor, const Shape& newShape) const override;
-    Tensor transpose(const Tensor& tensor, const std::vector<int>& axes) const override;
+    Tensor transpose(const Tensor& tensor, const std::vector<size_t>& axes) const override;
+    Tensor reciprocal(const Tensor& tensor, double epsilon) const override;
 
     Tensor exp(const Tensor& tensor) const override;
     Tensor log(const Tensor& tensor) const override;
@@ -61,6 +62,7 @@ public:
     Tensor sqrt(const Tensor& tensor) const override;
     Tensor abs(const Tensor& tensor) const override;
     Tensor negative(const Tensor& tensor) const override;
+    Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) const override;
 
     bool equal(const Tensor& a, const Tensor& b) const override;
     bool greaterThan(const Tensor& a, const Tensor& b) const override;

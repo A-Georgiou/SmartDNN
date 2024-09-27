@@ -46,7 +46,7 @@ public:
 
     // Shape operations
     virtual Tensor reshape(const Tensor& tensor, const Shape& newShape) const = 0;
-    virtual Tensor transpose(const Tensor& tensor, const std::vector<int>& axes) const = 0;
+    virtual Tensor transpose(const Tensor& tensor, const std::vector<size_t>& axes) const = 0;
 
     // Element-wise operations
     virtual Tensor exp(const Tensor& tensor) const = 0;
@@ -55,6 +55,8 @@ public:
     virtual Tensor sqrt(const Tensor& tensor) const = 0;
     virtual Tensor abs(const Tensor& tensor) const = 0;
     virtual Tensor negative(const Tensor& tensor) const = 0;
+    virtual Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) const = 0;
+    virtual Tensor reciprocal(const Tensor& tensor, double epsilon) const = 0;
 
     // Comparison operations
     virtual bool equal(const Tensor& a, const Tensor& b) const = 0;

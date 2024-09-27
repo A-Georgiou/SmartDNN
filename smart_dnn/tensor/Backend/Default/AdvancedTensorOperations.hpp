@@ -19,153 +19,46 @@ class AdvancedTensorOperations {
         return apply(tensor, [epsilon](auto& x) { x = (std::abs(x) > epsilon) ? (1 / x) : (1 / epsilon); });
     }
 
-    static Tensor mean(const Tensor& tensor, const std::vector<size_t>& axes) {
-        if (axes.empty() || axes.size() == tensor.shape().rank()) {
-            return mean(tensor);
-        }
-
-        const auto& shape = tensor.shape();
-        Tensor result = tensor;
-        int totalElements = 1;
-
-        std::vector<int> newShape(shape.rank(), 1);
-        for (size_t i = 0; i < shape.rank(); ++i) {
-            if (std::find(axes.begin(), axes.end(), i) == axes.end()) {
-                newShape[i] = shape[i];
-            } else {
-                totalElements *= shape[i];
-            }
-        }
-
-        // Sort axes in descending order
-        std::vector<size_t> sortedAxes = axes;
-        std::sort(sortedAxes.begin(), sortedAxes.end(), std::greater<int>());
-
-        for (size_t axis : sortedAxes) {
-            if (axis >= result.shape().rank() || axis < 0) {
-                throw std::invalid_argument("Invalid axis for mean calculation");
-            }
-            result = sum(result, {axis});
-        }
-
-        // Divide the sum by the total number of elements to get the mean
-        result = result * (1 / totalElements);
-        result = reshape(result, Shape(newShape));
-
-        return result;
-    }
-
-
-    // Mean function: calculates the mean for the entire tensor (all elements)
-    static Tensor mean(const Tensor& tensor) {
-        return sum(tensor) * (1 / tensor.shape().size());
-    }
-
-    /*
-
-    // Variance function: calculates the variance between tensors (all elements) along the specified axes
+    // Variance function: calculates the variance between tensors along the specified axes
     static Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) {
-        const auto& shape = tensor.shape();
-        const auto& meanShape = meanTensor.shape();
-
-        int totalElements = 1;
-        for (size_t axis : axes) {
-            if (axis < 0 || axis >= shape.rank()) {
-                throw std::runtime_error("Invalid axis for variance calculation: " + std::to_string(axis));
-            }
-            totalElements *= shape[axis];
-        }
-        // Create a BroadcastView of the mean tensor
-        BroadcastView broadcastedMean(meanTensor.getData(), shape);
-
-        // Compute the difference and square it
-        Tensor squaredDiff(shape);
-        auto tensorIt = tensor.getData().begin();
-        auto broadcastIt = broadcastedMean.begin();
-        auto squaredDiffIt = squaredDiff.getData().begin();
-
-        while (tensorIt != tensor.getData().end()) {
-            *squaredDiffIt = (*tensorIt - *broadcastIt) * (*tensorIt - *broadcastIt);
-            ++tensorIt;
-            ++broadcastIt;
-            ++squaredDiffIt;
-        }
-
+        Tensor diff = tensor - meanTensor;
+        Tensor squaredDiff = diff * diff;
         Tensor summedSquaredDiff = sum(squaredDiff, axes);
 
-        // Ensure the result has the same shape as the mean tensor
-        Tensor result(meanShape);
-        for (size_t i = 0; i < result.getData().size(); ++i) {
-            result.getData()[i] = summedSquaredDiff.getData()[i] / T(totalElements);
+        // Ensure floating-point division
+        float totalElements = 1.0f;
+        for (size_t axis : axes) {
+            totalElements *= static_cast<float>(tensor.shape()[axis]);
         }
 
-        return result;
+        return summedSquaredDiff / totalElements;
     }
 
     // Variance function: calculates the variance for the entire tensor (all elements)
-    // The variance is the mean of the squared differences from the mean
     static Tensor variance(const Tensor& tensor, const Tensor& meanTensor) {
-        Tensor diff = tensor - meanTensor;
-        return sum(diff * diff) * (T(1) / T(tensor.getShape().size()));
+        Tensor diff = tensor - meanTensor; // Broadcasting is handled automatically
+        Tensor squaredDiff = diff * diff;
+        size_t totalElements = tensor.shape().size();
+        return sum(squaredDiff) / static_cast<double>(totalElements);
     }
 
-    static Tensor reshape(const Tensor& tensor, const Shape& newShape) {
-        Tensor result = tensor;
-        result.reshape(newShape);
-        return result;
-    }
-
+    // Transpose function: swaps two dimensions of the tensor
     static Tensor transpose(const Tensor& tensor, size_t dim0, size_t dim1) {
-        auto shape = tensor.getShape();
+        auto shape = tensor.shape();
         auto rank = shape.rank();
 
         if (dim0 >= rank || dim1 >= rank) {
             throw std::invalid_argument("Invalid dimensions for transpose.");
         }
 
-        std::vector<int> newDimensions = shape.getDimensions();
-        std::swap(newDimensions[dim0], newDimensions[dim1]);
-        Shape newShape(newDimensions);
+        // Create permutation vector for axes
+        std::vector<size_t> perm(rank);
+        std::iota(perm.begin(), perm.end(), 0);
+        std::swap(perm[dim0], perm[dim1]);
 
-        Tensor result(newShape);
-        
-        // Create a mapping from old indices to new indices
-        std::vector<size_t> oldToNew(rank);
-        for (size_t i = 0; i < rank; ++i) {
-            oldToNew[i] = i;
-        }
-        std::swap(oldToNew[dim0], oldToNew[dim1]);
-
-        // Iterate through all elements and place them in their new positions
-        std::vector<int> oldIndices(rank, 0);
-        std::vector<int> newIndices(rank, 0);
-        size_t totalSize = shape.size();
-
-        #pragma omp parallel for
-        for (size_t i = 0; i < totalSize; ++i) {
-            // Calculate old indices
-            size_t temp = i;
-            for (int d = static_cast<int>(rank) - 1; d >= 0; --d) {
-                if (shape[d] == 0) {
-                    throw std::runtime_error("Invalid shape: dimension size is zero");
-                }
-                oldIndices[d] = static_cast<int>(temp % static_cast<size_t>(shape[d]));
-                temp /= static_cast<size_t>(shape[d]);
-            }
-
-            // Map to new indices
-            for (size_t d = 0; d < rank; ++d) {
-                newIndices[d] = oldIndices[oldToNew[d]];
-            }
-
-            // Set the value in the new tensor
-            result.at(newIndices) = tensor.at(oldIndices);
-        }
-
-        return result;
+        // Transpose the tensor using the permutation
+        return sdnn::transpose(tensor, perm);
     }
-
-    */
 
     static Tensor matmul(const Tensor& a, const Tensor& b) {
         const auto& shapeA = a.shape();

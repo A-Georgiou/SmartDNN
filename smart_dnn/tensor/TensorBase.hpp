@@ -158,11 +158,13 @@ Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func);
 
 // Other operations
 Tensor matmul(const Tensor& lhs, const Tensor& rhs);
-Tensor transpose(const Tensor& tensor, const std::vector<int>& axes = {});
+Tensor transpose(const Tensor& tensor, const std::vector<size_t>& axes = {});
 Tensor reshape(const Tensor& tensor, const Shape& newShape);
 Tensor sqrt(const Tensor& tensor);
 Tensor exp(const Tensor& tensor);
 Tensor log(const Tensor& tensor);
+Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes = {});
+Tensor reciprocal(const Tensor& tensor, double epsilon = 1e-12);
 
 // Reduction operations
 Tensor sum(const Tensor& input, const std::vector<size_t>& axes = {}, bool keepDims = false);

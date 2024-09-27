@@ -105,7 +105,7 @@ namespace sdnn {
             return meanNoAxes(tensor);
         }
 
-        float defaultValue = 0.0f;
+        float defaultValue = 0;
         DataItem initialValue{&defaultValue, dtype::f32};
 
         return reduction(tensor, axes, keepDims, 
@@ -186,7 +186,7 @@ namespace sdnn {
         return Tensor(std::move(output));
     }
 
-    Tensor CPUTensorBackend::transpose(const Tensor& tensor, const std::vector<int>& axes) const {
+    Tensor CPUTensorBackend::transpose(const Tensor& tensor, const std::vector<size_t>& axes) const {
         const auto& shape = tensor.shape();
         const auto& type = tensor.type();
         
@@ -254,6 +254,14 @@ namespace sdnn {
 
     Tensor CPUTensorBackend::negative(const Tensor& tensor) const {
         return applyOperation(tensor, [](auto a) { return -a; });
+    }
+
+    Tensor CPUTensorBackend::variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) const {
+        return AdvancedTensorOperations::variance(tensor, meanTensor, axes);
+    }
+
+    Tensor CPUTensorBackend::reciprocal(const Tensor& tensor, double epsilon) const {
+        return AdvancedTensorOperations::reciprocal(tensor, epsilon);
     }
 
     bool CPUTensorBackend::equal(const Tensor& a, const Tensor& b) const {

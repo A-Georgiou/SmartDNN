@@ -261,7 +261,7 @@ Tensor reshape(const Tensor& tensor, const Shape& newShape) {
     return tensor.backend().reshape(tensor, newShape);
 }
 
-Tensor transpose(const Tensor& tensor, const std::vector<int>& axes) {
+Tensor transpose(const Tensor& tensor, const std::vector<size_t>& axes) {
     return tensor.backend().transpose(tensor, axes);
 }
 
@@ -295,6 +295,14 @@ Tensor exp(const Tensor& tensor) {
 
 Tensor log(const Tensor& tensor) {
     return tensor.backend().log(tensor);
+}
+
+Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) {
+    return tensor.backend().variance(tensor, meanTensor, axes);
+}
+
+Tensor reciprocal(const Tensor& tensor, double epsilon) {
+    return tensor.backend().reciprocal(tensor, epsilon);
 }
 
 Tensor zeros(const Shape& shape, dtype type) {

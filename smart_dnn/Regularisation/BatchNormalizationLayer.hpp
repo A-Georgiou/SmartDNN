@@ -3,6 +3,7 @@
 
 #include "smart_dnn/tensor/TensorBase.hpp"
 #include "smart_dnn/Layer.hpp"
+#include "smart_dnn/tensor/Backend/Default/AdvancedTensorOperations.hpp"
 #include <cmath>
 #include <optional>
 #include <iostream>
@@ -11,12 +12,13 @@ namespace sdnn {
 
 class BatchNormalizationLayer : public Layer {
 public:
-    BatchNormalizationLayer(int numFeatures, float epsilon = 1e-5f, float momentum = 0.9)
+    BatchNormalizationLayer(int numFeatures, float epsilon = 1e-5f, float momentum = 0.9f)
         : numFeatures(numFeatures), epsilon(epsilon), momentum(momentum), 
-          gamma(Tensor({1, numFeatures}, 1)), beta(Tensor({1, numFeatures}, 0)),
-          runningMean(Tensor({1, numFeatures}, 0)), runningVariance(Tensor({1, numFeatures}, 1)) {}
+          gamma(Tensor({1, numFeatures}, 1.0f)), beta(Tensor({1, numFeatures}, 0.0f)),
+          runningMean(Tensor({1, numFeatures}, 0.0f)), runningVariance(Tensor({1, numFeatures}, 1.0f)) {}
 
     Tensor forward(const Tensor& input) override {
+        std::cout << "Forward Pass, input: " << input.toString() << std::endl;
         const auto& shape = input.shape();
 
         if (shape.rank() != 2 && shape.rank() != 4) {
@@ -27,9 +29,9 @@ public:
 
         if (this->trainingMode) {
             batchMean = mean(input, reductionAxes);
+            Tensor broadcastedMean = reshapeForBroadcast(*batchMean, shape);
+            batchVariance = variance(input, broadcastedMean, reductionAxes);
             
-            batchVariance = variance(input, *batchMean, reductionAxes);
-
             Tensor reshapedMean = reshapeForBroadcast(*batchMean, shape);
             Tensor reshapedVariance = reshapeForBroadcast(*batchVariance, shape);
             Tensor reshapedGamma = reshapeForBroadcast(gamma, shape);
@@ -38,9 +40,8 @@ public:
             normalizedInput = (input - reshapedMean) / sqrt(reshapedVariance + epsilon);
             Tensor output = (*normalizedInput * reshapedGamma) + reshapedBeta;
 
-            runningMean = (momentum * runningMean) + ((1 - momentum) * (*batchMean));
-            runningVariance = (momentum * runningVariance) + ((1 - momentum) * (*batchVariance));
-
+            runningMean = (momentum * runningMean) + ((1 - momentum) * reshape(*batchMean, runningMean.shape()));
+            runningVariance = (momentum * runningVariance) + ((1 - momentum) * reshape(*batchVariance, runningVariance.shape()));
             return output;
         } else {
             Tensor reshapedMean = reshapeForBroadcast(runningMean, shape);
@@ -65,8 +66,8 @@ public:
 
         Tensor reshapedGamma = reshapeForBroadcast(gamma, inputShape);
 
-        Tensor dGamma = sum(gradOutput * (*normalizedInput), reductionAxes);
-        Tensor dBeta = sum(gradOutput, reductionAxes);
+        gammaGrad = sum(gradOutput * (*normalizedInput), reductionAxes);
+        betaGrad = sum(gradOutput, reductionAxes);
 
         Tensor dNormalized = gradOutput * reshapedGamma;
         
@@ -76,19 +77,15 @@ public:
         
         Tensor dVariance = sum(dNormalized * (*normalizedInput), reductionAxes);
         dVariance = reshapeForBroadcast(dVariance, invStdDev.shape());
-        dVariance = dVariance * -0.5 * invStdDev * invStdDev * invStdDev;
+        dVariance = dVariance * -0.5f * invStdDev * invStdDev * invStdDev;
         dVariance = reshapeForBroadcast(dVariance, inputShape);
         
-        Tensor dMean = sum(dNormalized * invStdDev * -1, reductionAxes);
+        Tensor dMean = sum(dNormalized * invStdDev * -1.0f, reductionAxes);
         dMean = reshapeForBroadcast(dMean, inputShape);
 
-        
-        TensorType dInput = dNormalized * invStdDev +
-                            dVariance * 2 * (*normalizedInput) / batchSize +
-                            dMean / batchSize;
-
-        gammaGrad = dGamma;
-        betaGrad = dBeta;
+        Tensor dInput = dNormalized * invStdDev +
+                        dVariance * 2.0f * (*normalizedInput) / static_cast<float>(batchSize) +
+                        dMean / static_cast<float>(batchSize);
 
         return dInput;
     }
@@ -98,14 +95,23 @@ public:
             throw std::runtime_error("BatchNormalizationLayer: gradients are not initialized");
         }
 
+        // Ensure gamma and beta have the same shape as their gradients
+        if (gamma.shape() != gammaGrad->shape()) {
+            gamma = reshape(gamma, gammaGrad->shape());
+        }
+        if (beta.shape() != betaGrad->shape()) {
+            beta = reshape(beta, betaGrad->shape());
+        }
+
         optimizer.optimize({std::ref(gamma), std::ref(beta)},
-                           {std::ref(*gammaGrad), std::ref(*betaGrad)});
+                        {std::ref(*gammaGrad), std::ref(*betaGrad)});
     }
 
 private:
     int numFeatures;
     float epsilon;
     float momentum;
+    bool trainingMode = true;
 
     Tensor gamma;
     Tensor beta;
@@ -120,19 +126,20 @@ private:
     std::optional<Tensor> betaGrad;
 
     Tensor reshapeForBroadcast(const Tensor& tensor, const Shape& targetShape) {
-        std::vector<int> newShape(targetShape.rank(), 1);
-        newShape[1] = tensor.shape()[1];  // Preserve the channel dimension
+        std::vector<int> newShape;
         
-        // For 2D input, we need to keep the first dimension as 1 to allow broadcasting
         if (targetShape.rank() == 2) {
-            newShape[0] = 1;
+            newShape = {1, targetShape[1]};
+        } else if (targetShape.rank() == 4) {
+            newShape = {1, targetShape[1], 1, 1};
+        } else {
+            throw std::runtime_error("Unsupported target shape for broadcasting");
         }
 
-        Tensor reshaped = reshape(tensor, Shape(newShape));
-        return reshaped;
+        return reshape(tensor, Shape(newShape));
     }
 };
 
-} // namespace sdnn
+} // namespace smart_dnn
 
 #endif // BATCH_NORMALIZATION_LAYER_HPP

@@ -135,13 +135,7 @@ TEST(CategoricalCrossEntropyLossTest, ComputeGradientMatchesExpectedValue) {
         EXPECT_NEAR(grad.at<float>(i), expectedGradient[i], 1e-6)
             << "The computed gradient at index " << i << " is not correct.";
     }
-
-    // Additional checks for understanding
-    std::cout << "Prediction: " << prediction.toString() << std::endl;
-    std::cout << "Target: " << target.toString() << std::endl;
-    std::cout << "Gradient: " << grad.toString() << std::endl;
 }
-
 
 TEST(CategoricalCrossEntropyLossTest, ComputeLossWithBroadcastTarget) {
     CategoricalCrossEntropyLoss cceLoss;
@@ -178,9 +172,6 @@ TEST(CategoricalCrossEntropyLossTest, GradientWithBroadcastTarget) {
             << "The computed gradient at index " << i << " with broadcasting is not correct.";
     }
 }
-
-
-
 } // namespace sdnn
 
 #endif // TEST_LOSS_CPP
