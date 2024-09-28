@@ -16,7 +16,7 @@ public:
 
     Tensor forward(const Tensor& input) override {
         if (this->trainingMode) {
-            mask = rand(input.shape(), input.type());
+            mask = uniformRand(input.shape(), input.type());
             (*mask).apply([this](auto& x) { x = (x > dropoutRate ? 1 / (1 - dropoutRate) : 0); });
             return input * (*mask);
         } else {

@@ -177,6 +177,7 @@ Tensor clip(const Tensor& input, const double& min, const double& max);
 Tensor zeros(const Shape& shape, dtype type = dtype::f32);
 Tensor ones(const Shape& shape, dtype type = dtype::f32);
 Tensor rand(const Shape& shape, dtype type = dtype::f32);
+Tensor uniformRand(const Shape& shape, dtype type = dtype::f32);
 
 template <typename T>
 Tensor fill(const Shape& shape, T& fillValue, dtype type = dtype::f32);

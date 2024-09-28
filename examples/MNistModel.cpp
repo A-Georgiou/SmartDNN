@@ -15,7 +15,7 @@
 
 int main() {
 
-    using namespace smart_dnn;
+    using namespace sdnn;
 
     // Define the number of epochs and learning rate
     constexpr int EPOCHS = 10;

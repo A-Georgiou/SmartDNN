@@ -235,6 +235,32 @@ TEST(AdamOptimizerTest, LongRunStability) {
     }
 }
 
+TEST(AdamOptimizerTest, OptimizerUpdates4DWeightsCorrectly) {
+    // 4D mock weight tensor simulating (batch, channels, height, width)
+    Tensor weights = ones({2, 1, 28, 28});
+    
+    // Mock gradient tensor for the same shape
+    Tensor gradients = rand({2, 1, 28, 28});
+
+    // Create an Adam optimizer with default options
+    AdamOptions adamOptions;
+    adamOptions.learningRate = 0.01f;
+    AdamOptimizer optimizer(adamOptions);
+
+    Tensor initialWeights = weights.clone();
+
+    // Apply the optimizer
+    std::vector<std::reference_wrapper<Tensor>> weightList = {weights};
+    std::vector<std::reference_wrapper<Tensor>> gradientList = {gradients};
+    optimizer.optimize(weightList, gradientList);
+
+    // Ensure that weights were updated correctly
+    for (size_t i = 0; i < weights.shape().size(); ++i) {
+        EXPECT_NE(weights.at<float>(i), initialWeights.at<float>(i))
+            << "Weight at index " << i << " was not updated!";
+    }
+}
+
 }   // namespace sdnn
 
 #endif // TEST_OPTIMIZERS_CPP

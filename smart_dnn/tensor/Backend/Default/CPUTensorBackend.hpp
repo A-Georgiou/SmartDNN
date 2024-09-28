@@ -71,6 +71,7 @@ public:
     bool lessThanEqual(const Tensor& a, const Tensor& b) const override;
 
     Tensor rand(const Shape& shape, dtype type) const override;
+    Tensor uniformRand(const Shape& shape, dtype type) const override;
     Tensor randn(const Shape& shape, dtype type, float min, float max) const override;
 
     Tensor zeros(const Shape& shape, dtype type) const override;

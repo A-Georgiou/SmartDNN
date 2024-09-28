@@ -101,6 +101,19 @@ TEST_F(TensorAdditionalOperationsTest, ApplyFunctionDoesNotModifyOriginal) {
 
 /*
 
+    TEST CLONE FUNCTION
+
+*/
+
+TEST_F(TensorAdditionalOperationsTest, CloneFunctionDoesNotModifyOriginal) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor result = a.clone();
+    a.apply([](auto& x) { x += 1; });
+    ASSERT_TRUE(result != a); 
+}
+
+/*
+
     TEST APPLY PAIR FUNCTION
 
 */
@@ -306,6 +319,17 @@ TEST_F(TensorAdditionalOperationsTest, Matmul3D3D) {
     Tensor result = matmul(a, b);
 
     Tensor expected = createTensor({2, 2, 2}, {31.0f, 34.0f, 71.0f, 78.0f, 155.0f, 166.0f, 211.0f, 226.0f});
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
+    }
+}
+
+TEST_F(TensorAdditionalOperationsTest, MatmulBatchedDataTest) {
+    Tensor a = createTensor({4, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f});
+    Tensor b = createTensor({3, 2}, {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f});
+    Tensor result = matmul(a, b);
+
+    Tensor expected = createTensor({4, 2}, {94.0f, 100.0f, 229.0f, 244.0f, 364.0f, 388.0f, 499.0f, 532.0f});
     for (size_t i = 0; i < result.shape().size(); ++i) {
         EXPECT_NEAR(result.at<float>(i), expected.at<float>(i), 1e-5);
     }

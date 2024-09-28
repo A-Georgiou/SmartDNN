@@ -37,9 +37,7 @@ public:
             for (int ic = 0; ic < inputChannels; ++ic) {  // Ensure channel is retained
                 for (int oh = 0; oh < outputHeight; ++oh) {
                     for (int ow = 0; ow < outputWidth; ++ow) {
-                        std::cout << "finding max in pool window" << std::endl;
                         auto [maxVal, maxIh, maxIw] = findMaxInPoolWindow(input, n, ic, oh, ow);
-                        std::cout << "maxVal: " << maxVal << ", maxIh: " << maxIh << ", maxIw: " << maxIw << std::endl;
                         output.set({static_cast<size_t>(n), static_cast<size_t>(ic), static_cast<size_t>(oh), static_cast<size_t>(ow)}, maxVal);
                     }
                 }

@@ -26,6 +26,7 @@ TEST(DropoutLayerTest, ForwardPassTrainingMode) {
         if (val == 0) hasZero = true;
         if (std::abs(val - input.at<float>(i) * 2) < 1e-5) hasScaled = true;
     }
+
     EXPECT_TRUE(hasZero) << "No elements were dropped out";
     EXPECT_TRUE(hasScaled) << "No elements were correctly scaled";
 }
@@ -84,21 +85,6 @@ TEST(DropoutLayerTest, BackwardPassInferenceMode) {
         EXPECT_NEAR(gradInput.at<float>(i), gradOutput.at<float>(i), 1e-5);
     }
 }
-
-TEST(DropoutLayerTest, ConsistencyAcrossForwardPasses) {
-    DropoutLayer dropoutLayer(0.5);
-    dropoutLayer.setTrainingMode(true);
-
-    Tensor input({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
-    Tensor output1 = dropoutLayer.forward(input);
-    Tensor output2 = dropoutLayer.forward(input);
-
-    // Check that two consecutive forward passes produce the same output
-    for (size_t i = 0; i < output1.shape().size(); ++i) {
-        EXPECT_NEAR(output1.at<float>(i), output2.at<float>(i), 1e-5);
-    }
-}
-
 
 }   // namespace sdnn
 

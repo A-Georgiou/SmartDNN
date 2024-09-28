@@ -160,6 +160,82 @@ TEST(SoftmaxTest, BackwardPass) {
     EXPECT_TRUE(approxEqual(sum2, 0.0f));
 }
 
+/*
+
+TEST SOFTMAX CAN HANDLE BATCHES
+
+*/
+TEST(SoftmaxTest, ForwardPassBatch) {
+    Softmax softmax;
+    // 3x2x2 tensor (3 batches, 2x2 for each batch)
+    Tensor input({3, 1, 2, 2}, {
+        1.0f, 2.0f, 3.0f, 4.0f,     // Batch 1
+        0.5f, 1.5f, 2.5f, 3.5f,     // Batch 2
+        -1.0f, 0.0f, 1.0f, 2.0f     // Batch 3
+    });
+    Tensor output = softmax.forward(input);
+
+    ASSERT_EQ(output.shape(), input.shape());
+
+    auto computeSoftmax = [](const std::vector<float>& batch) {
+        float maxVal = *std::max_element(batch.begin(), batch.end());
+        std::vector<float> expVals(batch.size());
+        float sumExp = 0.0f;
+        for (size_t i = 0; i < batch.size(); ++i) {
+            expVals[i] = std::exp(batch[i] - maxVal);
+            sumExp += expVals[i];
+        }
+        for (size_t i = 0; i < batch.size(); ++i) {
+            expVals[i] /= sumExp;
+        }
+        return expVals;
+    };
+
+    // Check each batch
+    for (int b = 0; b < 3; ++b) {
+        std::vector<float> batchInput = {
+            input.at<float>(b * 4), input.at<float>(b * 4 + 1),
+            input.at<float>(b * 4 + 2), input.at<float>(b * 4 + 3)
+        };
+        std::vector<float> expectedOutput = computeSoftmax(batchInput);
+
+        for (int i = 0; i < 4; ++i) {
+            EXPECT_TRUE(approxEqual(output.at<float>(b * 4 + i), expectedOutput[i]))
+                << "Mismatch at batch " << b << ", index " << i;
+        }
+    }
+}
+
+TEST(SoftmaxTest, BackwardPassBatch) {
+    Softmax softmax;
+    // 3x2x2 tensor (3 batches, 2x2 for each batch)
+    Tensor input({3, 1, 2, 2}, {
+        1.0f, 2.0f, 3.0f, 4.0f,     // Batch 1
+        0.5f, 1.5f, 2.5f, 3.5f,     // Batch 2
+        -1.0f, 0.0f, 1.0f, 2.0f     // Batch 3
+    });
+    Tensor gradOutput({3, 1, 2, 2}, {
+        0.1f, 0.2f, 0.3f, 0.4f,     // Batch 1
+        0.5f, 0.6f, 0.7f, 0.8f,     // Batch 2
+        0.9f, 1.0f, 1.1f, 1.2f      // Batch 3
+    });
+    Tensor gradInput = softmax.backward(input, gradOutput);
+
+    ASSERT_EQ(gradInput.shape(), input.shape());
+
+    // Check each batch
+    for (int b = 0; b < 3; ++b) {
+        float sum = 0.0f;
+        for (int i = 0; i < 4; ++i) {
+            EXPECT_NE(gradInput.at<float>(b * 4 + i), 0.0f)
+                << "Gradient should not be zero at batch " << b << ", index " << i;
+            sum += gradInput.at<float>(b * 4 + i);
+        }
+        EXPECT_TRUE(approxEqual(sum, 0.0f))
+            << "Sum of gradients for batch " << b << " should be close to zero";
+    }
+}
+
 } // namespace sdnn
 
 #endif // TEST_ACTIVATIONS_CPP

@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include "smart_dnn/tensor/TensorCreationUtil.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
-#include "smart_dnn/tensor/Backend/Default/AdvancedTensorOperations.hpp"
 
 namespace sdnn {
 
@@ -17,8 +16,8 @@ TEST_F(TensorOperationsTest, ReciprocalTest) {
     Tensor a = createTensor({2, 2}, {0.5f, 0.25f, 0.125f, 0.0625f});
     Tensor b = createTensor({2, 2}, {1.0f, 2.0f, 4.0f, 8.0f});
 
-    Tensor result = AdvancedTensorOperations::reciprocal(a);
-    Tensor result2 = AdvancedTensorOperations::reciprocal(b);
+    Tensor result = reciprocal(a);
+    Tensor result2 = reciprocal(b);
 
     std::vector<float> expected = {2.0f, 4.0f, 8.0f, 16.0f};
     std::vector<float> expected2 = {1.0f, 0.5f, 0.25f, 0.125f};
@@ -36,8 +35,8 @@ TEST_F(TensorOperationsTest, TransposeTest) {
                                         5.0f, 6.0f,
                                         7.0f, 8.0f});
 
-    Tensor result = AdvancedTensorOperations::transpose(a, 1, 0);
-    Tensor result2 = AdvancedTensorOperations::transpose(b, 1, 0);
+    Tensor result = transpose(a, {1, 0});
+    Tensor result2 = transpose(b, {1, 0, 2});
 
     std::vector<float> expected = {1.0f, 3.0f, 2.0f, 4.0f};
     std::vector<float> expected2 = {1.0f, 2.0f, 5.0f, 6.0f, 3.0f, 4.0f, 7.0f, 8.0f};
@@ -51,7 +50,7 @@ TEST_F(TensorOperationsTest, VarianceTest) {
     Tensor a = createTensor({2, 2}, {1.0f, 2.0f,
                                      3.0f, 4.0f});
     Tensor mean_out = mean(a, {0}, false); // Should be [2.0, 3.0]
-    Tensor result = AdvancedTensorOperations::variance(a, mean_out, {0});
+    Tensor result = variance(a, mean_out, {0});
     
     std::vector<float> expected = {1.0f, 1.0f};
     for (size_t i = 0; i < result.shape().size(); ++i) {
@@ -115,7 +114,7 @@ TEST_F(TensorOperationsTest, VarianceFunctionTest) {
     Tensor mean_axis0 = mean(a, {0}, false); // Shape: (3)
 
     // Compute variance over axis 0
-    Tensor var_axis0 = AdvancedTensorOperations::variance(a, mean_axis0, {0});
+    Tensor var_axis0 = variance(a, mean_axis0, {0});
     EXPECT_EQ(var_axis0.shape(), Shape({3}));
 
     std::vector<float> expected_var_axis0 = {2.25f, 2.25f, 2.25f}; // Variance calculations

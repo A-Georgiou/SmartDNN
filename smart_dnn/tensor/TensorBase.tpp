@@ -41,7 +41,7 @@ namespace sdnn {
     template <typename T>
     T Tensor::at(const std::vector<size_t>& indices) const {
         T out;
-        getValueAsType(computeFlatIndex(shape(), indices), &out);
+        getValueAsType(computeFlatIndex(this->shape(), indices), &out);
         return out;
     }
 

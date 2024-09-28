@@ -30,8 +30,8 @@ public:
             throw std::invalid_argument("Shapes of prediction and target are not broadcast-compatible.");
         }
 
-        Tensor grad = 2 * (prediction - reshapedTarget) / prediction.shape().size();
-        return grad;
+        Tensor grad = (2 * (prediction - reshapedTarget) / prediction.shape().size());
+        return grad / prediction.shape()[0];
     }
 };
 

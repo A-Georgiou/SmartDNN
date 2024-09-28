@@ -292,6 +292,14 @@ namespace sdnn {
         return Tensor(createTensorAdapter(shape, data, type));
     }
 
+    Tensor CPUTensorBackend::uniformRand(const Shape& shape, dtype type) const {
+        std::vector<float> data(shape.size());
+        for (size_t i = 0; i < shape.size(); ++i) {
+            data[i] = static_cast<float>(RandomEngine::getRandRange(0.0f, 1.0f));
+        }
+        return Tensor(createTensorAdapter(shape, data, type));
+    }
+
     Tensor CPUTensorBackend::randn(const Shape& shape, dtype type, float min, float max) const {
         std::vector<float> data(shape.size());
         for (size_t i = 0; i < shape.size(); ++i) {

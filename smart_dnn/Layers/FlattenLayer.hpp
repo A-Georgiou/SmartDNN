@@ -24,14 +24,15 @@ public:
             throw std::invalid_argument("Input tensor must have at least 2 dimensions");
         }
 
+        this->originalShape = input.shape();
+
         if (input.shape().rank() == 2) {
             return input;
         }
 
-        this->originalShape = input.shape();
         int batchSize = (*originalShape)[0];
         int flattenedSize = (*originalShape).size() / batchSize;
-        
+
         return reshape(input, Shape({batchSize, flattenedSize}));
     }
 

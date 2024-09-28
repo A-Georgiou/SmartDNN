@@ -76,7 +76,7 @@ private:
 
         float beta1Power = std::max(static_cast<float>(std::pow(beta1, iterations)), std::numeric_limits<float>::min());
         float beta2Power = std::max(static_cast<float>(std::pow(beta2, iterations)), std::numeric_limits<float>::min());
-        float alpha = learningRate * std::sqrt(1.0f - beta2Power) / (1.0f - beta1Power);
+        float alpha = (learningRate * std::sqrt(1.0f - beta2Power)) / (1.0f - beta1Power);
         Tensor alphaT = Tensor(Shape{1}, alpha, weight.type());
 
         Tensor& mData = m.at(key);
@@ -94,15 +94,14 @@ private:
 
     void updateParameter(Tensor& weight, const Tensor& gradient, Tensor& mValue, Tensor& vValue, const Tensor& alphaT) {
         if (weight.shape() != gradient.shape() || weight.shape() != mValue.shape() || weight.shape() != vValue.shape()) {
-        throw std::runtime_error("Shape mismatch in updateParameter");
+            throw std::runtime_error("Shape mismatch in updateParameter");
         }
         if (weight.type() != gradient.type() || weight.type() != mValue.type() || weight.type() != vValue.type()) {
             throw std::runtime_error("Type mismatch in updateParameter");
         }
-        Tensor averagedGradient = gradient / batchSize;
 
-        mValue = beta1 * mValue + (1.0f - beta1) * averagedGradient;
-        vValue = beta2 * vValue + (1.0f - beta2) * averagedGradient * averagedGradient;
+        mValue = beta1 * mValue + (1.0f - beta1) * gradient;
+        vValue = beta2 * vValue + (1.0f - beta2) * (gradient * gradient);
 
         Tensor mHat = mValue / (1 - std::pow(beta1, iterations));
         Tensor vHat = vValue / (1 - std::pow(beta2, iterations));
@@ -110,7 +109,7 @@ private:
         Tensor update = alphaT * mHat / (sqrt(vHat) + epsilon);
 
         if (l1Strength > 0) {
-            Tensor l1Grad = apply(weight, [](auto& x) { return (x > 0 ? 1.0f : (x < 0 ? -1.0f : 0.0f)); });
+            Tensor l1Grad = apply(weight, [](auto& x) { x = (x > 0 ? 1.0f : (x < 0 ? -1.0f : 0.0f)); });
             update += learningRate * l1Strength * l1Grad;
         }
 

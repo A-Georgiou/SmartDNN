@@ -149,20 +149,21 @@ private:
 
         Tensor cols({channels * kernelHeight * kernelWidth, batchSize * outputHeight * outputWidth}, 0.0f);
 
-        for (int c = 0; c < channels; ++c) {
-            for (int kh = 0; kh < kernelHeight; ++kh) {
-                for (int kw = 0; kw < kernelWidth; ++kw) {
-                    int rowIdx = c * kernelHeight * kernelWidth + kh * kernelWidth + kw;
-                    for (int h = 0; h < outputHeight; ++h) {
-                        for (int w = 0; w < outputWidth; ++w) {
-                            int hPad = h * stride - padding + kh;
-                            int wPad = w * stride - padding + kw;
-                            if (hPad >= 0 && hPad < height && wPad >= 0 && wPad < width) {
-                                for (int n = 0; n < batchSize; ++n) {
-                                    int colIdx = (n * outputHeight + h) * outputWidth + w;
-                                    cols.set({static_cast<size_t>(rowIdx), static_cast<size_t>(colIdx)},
-                                             input.at<float>({static_cast<size_t>(n), static_cast<size_t>(c),
-                                                              static_cast<size_t>(hPad), static_cast<size_t>(wPad)}));
+        for (int b = 0; b < batchSize; ++b) {
+            for (int c = 0; c < channels; ++c) {
+                for (int h = 0; h < outputHeight; ++h) {
+                    for (int w = 0; w < outputWidth; ++w) {
+                        for (int kh = 0; kh < kernelHeight; ++kh) {
+                            for (int kw = 0; kw < kernelWidth; ++kw) {
+                                int inputRow = h * stride + kh - padding;
+                                int inputCol = w * stride + kw - padding;
+                                if (inputRow >= 0 && inputRow < height && inputCol >= 0 && inputCol < width) {
+                                    int colIdx = (c * kernelHeight * kernelWidth + kh * kernelWidth + kw);
+                                    int rowIdx = (b * outputHeight * outputWidth + h * outputWidth + w);
+                                    float value = input.at<float>({static_cast<size_t>(b), static_cast<size_t>(c),
+                                                                static_cast<size_t>(inputRow), static_cast<size_t>(inputCol)});
+                                    cols.set({static_cast<size_t>(colIdx), static_cast<size_t>(rowIdx)}, value);
+                                    
                                 }
                             }
                         }
@@ -170,6 +171,7 @@ private:
                 }
             }
         }
+
         return cols;
     }
 

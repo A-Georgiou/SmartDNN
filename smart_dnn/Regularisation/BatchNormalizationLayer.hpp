@@ -18,7 +18,6 @@ public:
           runningMean(Tensor({1, numFeatures}, 0.0f)), runningVariance(Tensor({1, numFeatures}, 1.0f)) {}
 
     Tensor forward(const Tensor& input) override {
-        std::cout << "Forward Pass, input: " << input.toString() << std::endl;
         const auto& shape = input.shape();
 
         if (shape.rank() != 2 && shape.rank() != 4) {

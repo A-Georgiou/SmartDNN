@@ -29,6 +29,7 @@ public:
     Tensor forward(const Tensor& input) override {
         this->input = input;
         Tensor reshapedInput = input;
+
         if (input.shape().rank() == 1) {
             reshapedInput = reshape(input, {1, input.shape()[0]});
         }
@@ -60,8 +61,9 @@ public:
         Tensor inputTensor = *input;
 
         // Ensure input is 2D
-        if (inputTensor.shape().rank() == 1)
+        if (inputTensor.shape().rank() == 1){
             inputTensor = reshape(inputTensor, {1, inputTensor.shape()[0]});
+        }
 
         // Ensure gradOutput is 2D (for non-batched input case)
         Tensor reshapedGradOutput = gradOutput;
@@ -72,14 +74,10 @@ public:
         Tensor inputTransposed = transpose(inputTensor, {1, 0}); // Shape: (input_size, batch_size)
 
         weightGradients.emplace(matmul(inputTransposed, reshapedGradOutput)); // Shape: (input_size, output_size)
-
         biasGradients.emplace(reshape(sum(reshapedGradOutput, {0}), {1, biases->shape()[1]}));
 
         Tensor weightsTransposed = transpose(*weights, {1, 0}); // Shape: (output_size, input_size)
-
-        Tensor gradInput = matmul(reshapedGradOutput, weightsTransposed); // Shape: (batch_size, input_size)
-
-        return gradInput;
+        return matmul(reshapedGradOutput, weightsTransposed); // Shape: (batch_size, input_size)
     }
 
     void updateWeights(Optimizer& optimizer) override {

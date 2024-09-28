@@ -319,5 +319,9 @@ Tensor rand(const Shape& shape, dtype type) {
     return defaultTensorBackend().rand(shape, type);
 }
 
+Tensor uniformRand(const Shape& shape, dtype type) {
+    return defaultTensorBackend().uniformRand(shape, type);
+}
+
 }; // namespace sdnn
 
