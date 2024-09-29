@@ -16,7 +16,6 @@ struct AdamOptions {
     float l1Strength = 0;
     float l2Strength = 0;
     float decay = 0;
-    int batchSize = 1;
 };
 
 class AdamOptimizer : public Optimizer {
@@ -30,8 +29,7 @@ public:
           l1Strength(options.l1Strength),
           l2Strength(options.l2Strength),
           decay(options.decay),
-          iterations(0),
-          batchSize(options.batchSize) {}
+          iterations(0) {}
 
     void optimize(const std::vector<std::reference_wrapper<Tensor>>& weights,
                   const std::vector<std::reference_wrapper<Tensor>>& gradients,
@@ -57,7 +55,6 @@ private:
     float l2Strength;
     float decay;
     int iterations;
-    int batchSize;
     std::unordered_map<size_t, Tensor> m; // First moment estimate 
     std::unordered_map<size_t, Tensor> v; // Second moment estimate
 
