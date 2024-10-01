@@ -35,11 +35,13 @@ public:
     virtual Tensor sum(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const = 0;
     virtual Tensor mean(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const = 0;
     virtual Tensor max(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const = 0;
+    virtual Tensor selectMax(const Tensor& tensor, const double& min_value) const = 0;
+    virtual Tensor selectMax(const Tensor& a, const Tensor& b) const = 0;
     virtual Tensor min(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const = 0;
     virtual Tensor clip(const Tensor& tensor, const double& min, const double& max) const = 0;
 
     // Element-wise apply operations
-    virtual Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const = 0;
+    virtual Tensor select(const Tensor& condition, const Tensor& a, const Tensor& b) const = 0;
 
     // Linear algebra operations
     virtual Tensor matmul(const Tensor& a, const Tensor& b) const = 0;
@@ -54,6 +56,7 @@ public:
     virtual Tensor power(const Tensor& tensor, double exponent) const = 0;
     virtual Tensor sqrt(const Tensor& tensor) const = 0;
     virtual Tensor abs(const Tensor& tensor) const = 0;
+    virtual Tensor tanh(const Tensor& tensor) const = 0;
     virtual Tensor negative(const Tensor& tensor) const = 0;
     virtual Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) const = 0;
     virtual Tensor reciprocal(const Tensor& tensor, double epsilon) const = 0;
@@ -64,6 +67,15 @@ public:
     virtual bool greaterThanEqual(const Tensor& a, const Tensor& b) const = 0;
     virtual bool lessThan(const Tensor& a, const Tensor& b) const = 0;
     virtual bool lessThanEqual(const Tensor& a, const Tensor& b) const = 0;
+
+    virtual Tensor prodGreaterThan(const Tensor& a, const Tensor& b) const = 0;
+    virtual Tensor prodLessThan(const Tensor& a, const Tensor& b) const = 0;
+    virtual Tensor prodGreaterThan(const Tensor& a, const double& scalar) const = 0;
+    virtual Tensor prodLessThan(const Tensor& a, const double& scalar) const = 0;
+    virtual Tensor prodGreaterThanOrEqual(const Tensor& a, const double& scalar) const = 0;
+    virtual Tensor prodLessThanOrEqual(const Tensor& a, const double& scalar) const = 0;
+    virtual Tensor prodGreaterThanOrEqual(const Tensor& a, const Tensor& b) const = 0;
+    virtual Tensor prodLessThanOrEqual(const Tensor& a, const Tensor& b) const = 0;
 
     // Random number generation
     virtual Tensor rand(const Shape& shape, dtype type) const = 0;

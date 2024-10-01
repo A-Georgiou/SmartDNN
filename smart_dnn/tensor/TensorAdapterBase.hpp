@@ -41,8 +41,6 @@ public:
     virtual void multiplyScalarInPlace(double scalar) = 0;
     virtual void divideScalarInPlace(double scalar) = 0;
 
-    virtual void apply(const std::function<void(double&)>& func) = 0;
-
     // String representation.
     virtual std::string toString() = 0;
     virtual std::string toDataString() = 0;
@@ -58,8 +56,6 @@ public:
     virtual void set(const std::vector<size_t>& indices, const DataItem& value) = 0;
 
     virtual Tensor slice(const std::vector<std::pair<size_t, size_t>>& ranges) const = 0;
-
-    virtual TensorIndex getIndex() const = 0;
 
     // Shape operations.
     virtual void reshape(const Shape& newShape) = 0;

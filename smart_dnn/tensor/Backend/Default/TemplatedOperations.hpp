@@ -162,4 +162,44 @@ Tensor reduction(const Tensor& tensor, const std::vector<size_t>& axes, bool kee
     return Tensor(std::move(result));
 }
 
+template<typename Op>
+Tensor selectOperation(const Tensor& condition, const Tensor& a, const Tensor& b, Op operation) {
+    Shape broadcastShape = ShapeOperations::broadcastShapes(condition.shape(), ShapeOperations::broadcastShapes(a.shape(), b.shape()));
+    dtype resultType = promotionOfTypes(a.type(), b.type());
+
+    auto result = std::make_unique<CPUTensor>(broadcastShape, resultType);
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using ResultT = std::remove_pointer_t<decltype(type_ptr)>;
+        
+        const size_t size = broadcastShape.size();
+        ResultT* result_data = result->typedData<ResultT>();
+
+        applyTypedOperationHelper(condition.type(), [&](auto dummy_cond) {
+            using CondType = decltype(dummy_cond);
+            BroadcastView<CondType> viewCond(condition, broadcastShape);
+
+            applyTypedOperationHelper(a.type(), [&](auto dummy_a) {
+                using TypeA = decltype(dummy_a);
+                BroadcastView<TypeA> viewA(a, broadcastShape);
+
+                applyTypedOperationHelper(b.type(), [&](auto dummy_b) {
+                    using TypeB = decltype(dummy_b);
+                    BroadcastView<TypeB> viewB(b, broadcastShape);
+
+                    #pragma omp parallel for
+                    for (size_t i = 0; i < size; ++i) {
+                        auto condVal = viewCond[i];
+                        auto valA = static_cast<ResultT>(viewA[i]);
+                        auto valB = static_cast<ResultT>(viewB[i]);
+                        result_data[i] = operation(condVal != 0, valA, valB);
+                    }
+                });
+            });
+        });
+    });
+
+    return Tensor(std::move(result));
+}
+
 }

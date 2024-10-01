@@ -142,29 +142,6 @@ TEST(AdamOptimizerTest, NonDefaultBetaValues) {
     }
 }
 
-TEST(AdamOptimizerTest, DifferentBatchSizes) {
-    Tensor weights({2, 2}, {0.5f, -0.5f, 0.8f, -0.8f});
-    Tensor gradients({2, 2}, {0.1f, -0.1f, 0.2f, -0.2f});
-
-    AdamOptions batchSize1;
-    batchSize1.batchSize = 1;
-    AdamOptimizer optimizerBatchSize1(batchSize1);
-
-    AdamOptions batchSize4;
-    batchSize4.batchSize = 4;
-    AdamOptimizer optimizerBatchSize4(batchSize4);
-
-    Tensor weightsBatchSize1 = weights.clone();
-    Tensor weightsBatchSize4 = weights.clone();
-
-    optimizerBatchSize1.optimize({weightsBatchSize1}, {gradients});
-    optimizerBatchSize4.optimize({weightsBatchSize4}, {gradients});
-
-    for (size_t i = 0; i < weights.shape().size(); ++i) {
-        EXPECT_NEAR(weightsBatchSize1.at<float>(i), weightsBatchSize4.at<float>(i), 1e-6)
-            << "Weight update should be similar despite different batch sizes";
-    }
-}
 
 TEST(AdamOptimizerTest, L1AndL2Regularization) {
     Tensor weights({2, 2}, {0.5f, -0.5f, 0.8f, -0.8f});

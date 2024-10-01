@@ -198,5 +198,191 @@ TEST_F(TensorOperationsTest, ClipTensorWithNegativeValues) {
     }
 }
 
+/*
+
+TEST TANH FUNCTION
+
+*/
+
+TEST_F(TensorOperationsTest, TanhTensor) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+
+    Tensor result = tanh(a);
+
+    std::vector<float> expected = {std::tanh(1.0f), std::tanh(2.0f), std::tanh(3.0f), std::tanh(4.0f)};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+/*
+
+TEST COMPARISON OPERATOR PROD FUNCTION
+
+*/
+
+TEST_F(TensorOperationsTest, GreaterThanProd) {
+    Tensor a = createTensor({2, 2}, {1.1f, 2.0f, 3.1f, 4.0f});
+    Tensor b = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+
+    Tensor result = greaterThan(a, b);
+
+    std::vector<float> expected = {1, 0, 1, 0};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+TEST_F(TensorOperationsTest, LessThanProd) {
+    Tensor a = createTensor({2, 2}, {0.9f, 2.0f, 2.9f, 4.0f});
+    Tensor b = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+
+    Tensor result = lessThan(a, b);
+
+    std::vector<float> expected = {1, 0, 1, 0};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+TEST_F(TensorOperationsTest, GreaterThanScalarProd) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.1f, 3.0f, 4.0f});
+    double scalar = 2.0;
+
+    Tensor result = greaterThan(a, scalar);
+
+    std::vector<float> expected = {0, 1, 1, 1};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+TEST_F(TensorOperationsTest, LessThanScalarProd) {
+    Tensor a = createTensor({2, 2}, {1.1f, 2.0f, 3.1f, 4.0f});
+    double scalar = 2.0;
+
+    Tensor result = lessThan(a, scalar);   
+
+    std::vector<float> expected = {1, 0, 0, 0};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+TEST_F(TensorOperationsTest, GreaterThanEqualTensorProd) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor b = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+
+    Tensor result = greaterThanEqual(a, b);
+
+    std::vector<float> expected = {1, 1, 1, 1};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+TEST_F(TensorOperationsTest, LessThanEqualTensorProd) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor b = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+
+    Tensor result = lessThanEqual(a, b);
+
+    std::vector<float> expected = {1, 1, 1, 1};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}  
+
+TEST_F(TensorOperationsTest, GreaterThanEqualScalarProd) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+    double scalar = 2.0;
+
+    Tensor result = greaterThanEqual(a, scalar);
+
+    std::vector<float> expected = {0, 1, 1, 1};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+TEST_F(TensorOperationsTest, LessThanEqualScalarProd) {
+    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
+    double scalar = 2.0;
+
+    Tensor result = lessThanEqual(a, scalar);
+
+    std::vector<float> expected = {1, 1, 0, 0};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+
+/*
+
+TEST SELECT FUNCTION
+
+*/
+
+TEST_F(TensorOperationsTest, SelectTensorProd) {
+    Tensor a = createTensor({2, 2}, {6.0f, 7.0f, 8.0f, 4.0f});
+    Tensor b = createTensor({2, 2}, {5.0f, 6.0f, 7.0f, 8.0f});
+
+    Tensor condition = greaterThan(a, b);
+
+    Tensor result = select(condition, a, b);
+
+    std::vector<float> expected = {6.0f, 7.0f, 8.0f, 8.0f};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+/*
+
+TEST SELECT MAX FUNCTION
+
+*/
+
+TEST_F(TensorOperationsTest, SelectMaxBetweenTensorAndScalar) {
+    Tensor a = createTensor({2, 2}, {6.0f, 7.0f, 2.0f, 4.0f});
+
+    Tensor result = selectMax(a, 5.0f);
+
+    std::vector<float> expected = {6.0f, 7.0f, 5.0f, 5.0f};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+TEST_F(TensorOperationsTest, SelectMaxBetweenTwoTensors) {
+    Tensor a = createTensor({2, 2}, {6.0f, 7.0f, 2.0f, 4.0f});
+    Tensor b = createTensor({2, 2}, {5.0f, 6.0f, 7.0f, 8.0f});
+
+    Tensor result = selectMax(a, b);
+
+    std::vector<float> expected = {6.0f, 7.0f, 7.0f, 8.0f};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
+/*
+
+TEST ABS FUNCTION
+
+*/
+
+TEST_F(TensorOperationsTest, AbsTensorProd) {
+    Tensor a = createTensor({2, 2}, {6.0f, -7.0f, 2.0f, -4.0f});
+
+    Tensor result = abs(a);
+
+    std::vector<float> expected = {6.0f, 7.0f, 2.0f, 4.0f};
+    for (size_t i = 0; i < result.shape().size(); ++i) {
+        EXPECT_NEAR(result.at<float>(i), expected[i], 1e-5);
+    }
+}
+
 
 } // namespace sdnn

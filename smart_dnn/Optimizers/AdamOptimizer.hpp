@@ -106,7 +106,12 @@ private:
         Tensor update = alphaT * mHat / (sqrt(vHat) + epsilon);
 
         if (l1Strength > 0) {
-            Tensor l1Grad = apply(weight, [](auto& x) { x = (x > 0 ? 1.0f : (x < 0 ? -1.0f : 0.0f)); });
+            Tensor weightZeros = zeros(weight.shape(), weight.type());
+            Tensor weightOnes = ones(weight.shape(), weight.type());
+            Tensor negativeOnes = fill(weight.shape(), -1.0f, weight.type());
+            
+            Tensor l1Grad = select(greaterThan(weight, 0), weightOnes, 
+                                   select(lessThan(weight, 0), negativeOnes, weightZeros));
             update += learningRate * l1Strength * l1Grad;
         }
 

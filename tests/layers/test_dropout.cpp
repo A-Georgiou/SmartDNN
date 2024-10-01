@@ -16,6 +16,8 @@ TEST(DropoutLayerTest, ForwardPassTrainingMode) {
     Tensor input({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
     Tensor output = dropoutLayer.forward(input);
 
+    std::cout << output.toString() << std::endl;
+
     ASSERT_EQ(output.shape(), Shape({2, 3}));
     
     // Check that some elements are zeroed out and others are scaled

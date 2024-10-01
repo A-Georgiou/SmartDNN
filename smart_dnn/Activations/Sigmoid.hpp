@@ -18,7 +18,7 @@ namespace sdnn {
 class Sigmoid : public Activation {
 public:
     Tensor forward(const Tensor& input) const override {
-        return apply(input, [](auto& x) { x =  1 / (1 + std::exp(-x)); });
+        return 1 / (1 + exp(input * -1));
     }
 
     Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {

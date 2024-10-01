@@ -14,6 +14,9 @@ Tensor::~Tensor() = default;
 
 Tensor::Tensor(std::unique_ptr<TensorAdapter> tensorImpl): tensorImpl_(std::move(tensorImpl)) {}
 
+Tensor::Tensor(const TensorAdapter& other)
+    : tensorImpl_(other.clone()) {}
+
 Tensor::Tensor(const Tensor& tensor)
     : tensorImpl_(tensor.tensorImpl_->clone()) {}
 
@@ -130,10 +133,6 @@ Tensor Tensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) const
     return tensorImpl_->slice(ranges);
 }
 
-TensorIndex Tensor::getIndex() const {
-    return tensorImpl_->getIndex();
-}
-
 Tensor Tensor::clone() const {
     return Tensor(tensorImpl_->clone());
 }
@@ -156,10 +155,6 @@ std::string Tensor::toString() const {
 
 std::string Tensor::toDataString() const {
     return tensorImpl_->toDataString();
-}
-
-void Tensor::apply(const std::function<void(double&)>& func) {
-    tensorImpl_->apply(func);
 }
 
 
@@ -249,8 +244,40 @@ Tensor operator/(const double& scalar, const Tensor& tensor) {
     return tensor.backend().scalarDiv(scalar, tensor);
 }
 
-Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) {
-    return tensor.backend().apply(tensor, func);
+Tensor greaterThan(const Tensor& lhs, const Tensor& rhs) {
+    return lhs.backend().prodGreaterThan(lhs, rhs);
+}
+
+Tensor lessThan(const Tensor& lhs, const Tensor& rhs) {
+    return lhs.backend().prodLessThan(lhs, rhs);
+}
+
+Tensor greaterThan(const Tensor& lhs, const double& scalar) {
+    return lhs.backend().prodGreaterThan(lhs, scalar);
+}
+
+Tensor lessThan(const Tensor& lhs, const double& scalar) {
+    return lhs.backend().prodLessThan(lhs, scalar);
+}
+
+Tensor greaterThanEqual(const Tensor& a, const double& scalar) {
+    return a.backend().prodGreaterThanOrEqual(a, scalar);
+}
+
+Tensor lessThanEqual(const Tensor& a, const double& scalar) {
+    return a.backend().prodLessThanOrEqual(a, scalar);
+}
+
+Tensor greaterThanEqual(const Tensor& lhs, const Tensor& rhs) {
+    return lhs.backend().prodGreaterThanOrEqual(lhs, rhs);
+}
+
+Tensor lessThanEqual(const Tensor& lhs, const Tensor& rhs) {
+    return lhs.backend().prodLessThanOrEqual(lhs, rhs);
+}
+
+Tensor select(const Tensor& condition, const Tensor& a, const Tensor& b) {
+    return condition.backend().select(condition, a, b);
 }
 
 Tensor matmul(const Tensor& lhs, const Tensor& rhs) {
@@ -281,6 +308,14 @@ Tensor max(const Tensor& input, const std::vector<size_t>& axes, bool keepDims){
     return input.backend().max(input, axes, keepDims);
 }   
 
+Tensor selectMax(const Tensor& input, double min_value){
+    return input.backend().selectMax(input, min_value);
+}
+
+Tensor selectMax(const Tensor& a, const Tensor& b){
+    return a.backend().selectMax(a, b);
+}
+
 Tensor min(const Tensor& input, const std::vector<size_t>& axes, bool keepDims){
     return input.backend().min(input, axes, keepDims);
 }
@@ -295,6 +330,14 @@ Tensor exp(const Tensor& tensor) {
 
 Tensor log(const Tensor& tensor) {
     return tensor.backend().log(tensor);
+}
+
+Tensor abs(const Tensor& tensor) {
+    return tensor.backend().abs(tensor);
+}
+
+Tensor tanh(const Tensor& tensor) {
+    return tensor.backend().tanh(tensor);
 }
 
 Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) {

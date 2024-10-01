@@ -63,9 +63,10 @@ namespace sdnn {
     }
 
     Tensor CPUTensorBackend::sumNoAxes(const Tensor& tensor) const {
-        Tensor sum = zeros(1, tensor.type());
-        tensor.tensorImpl_->apply([&sum](auto& a) { sum += a; });
-        return sum;
+        double sum = 0.0f;
+        CPUTensor tensorImpl = tensor.getImpl<CPUTensor>();
+        tensorImpl.apply([&sum](auto& a) { sum += a; });
+        return Tensor({1}, sum);
     }
 
     Tensor CPUTensorBackend::sum(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
@@ -128,6 +129,14 @@ namespace sdnn {
                         initialValue);
     }
 
+    Tensor CPUTensorBackend::selectMax(const Tensor& tensor, const double& min_value) const {
+        return applyOperation(tensor, [min_value](auto a) { return a > min_value ? a : min_value; });
+    }
+
+    Tensor CPUTensorBackend::selectMax(const Tensor& a, const Tensor& b) const {
+        return elementWiseOp(a, b, [](auto a, auto b) { return std::max(a, b); });
+    }
+
     Tensor CPUTensorBackend::min(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
         if (axes.empty()) {
             return minNoAxes(tensor);
@@ -143,16 +152,18 @@ namespace sdnn {
     }
 
     Tensor CPUTensorBackend::maxNoAxes(const Tensor& tensor) const {
+        auto maxTensor = tensor.getImpl<CPUTensor>();
         float maxVal = std::numeric_limits<float>::lowest();
-        tensor.tensorImpl_->apply([&maxVal](auto a) { 
+        maxTensor.apply([&maxVal](auto a) { 
             maxVal = std::max(maxVal, static_cast<float>(a)); 
         });
         return Tensor({1}, maxVal);
     }
 
     Tensor CPUTensorBackend::minNoAxes(const Tensor& tensor) const {
+        auto minTensor = tensor.getImpl<CPUTensor>();
         float minVal = std::numeric_limits<float>::max();
-        tensor.tensorImpl_->apply([&minVal](auto a) { 
+        minTensor.apply([&minVal](auto a) { 
             minVal = std::min(minVal, static_cast<float>(a)); 
         });
         return Tensor({1}, minVal);
@@ -171,9 +182,21 @@ namespace sdnn {
         }
 
     Tensor CPUTensorBackend::apply(const Tensor& tensor, const std::function<void(double&)>& func) const {
-        auto output = tensor.tensorImpl_->clone();
-        output->apply(func);
-        return Tensor(std::move(output));
+        Tensor output = tensor.clone();
+        auto outputImpl = tensor.getImpl<CPUTensor>();
+        outputImpl.apply(func);
+        return output;
+    }
+
+    Tensor CPUTensorBackend::select(const Tensor& condition, const Tensor& a, const Tensor& b) const {
+        if (condition.shape() != a.shape() || condition.shape() != b.shape()) {
+            throw std::invalid_argument("Select Error - All tensors must have the same shape, mismatch: " + 
+                                        condition.shape().toString() + " != " + a.shape().toString() + " != " + b.shape().toString());
+        }
+
+        return selectOperation(condition, a, b, [](auto cond, auto a, auto b) {
+            return cond == 1 ? a : b;
+        });
     }
 
     Tensor CPUTensorBackend::matmul(const Tensor& a, const Tensor& b) const {
@@ -252,6 +275,10 @@ namespace sdnn {
         });
     }
 
+    Tensor CPUTensorBackend::tanh(const Tensor& tensor) const {
+        return applyOperation(tensor, [](auto a) { return std::tanh(a); });
+    }
+
     Tensor CPUTensorBackend::negative(const Tensor& tensor) const {
         return applyOperation(tensor, [](auto a) { return -a; });
     }
@@ -282,6 +309,38 @@ namespace sdnn {
 
     bool CPUTensorBackend::lessThanEqual(const Tensor& a, const Tensor& b) const {
         return a.tensorImpl_->lessThan(b) || a.tensorImpl_->equal(b);
+    }
+
+    Tensor CPUTensorBackend::prodGreaterThan(const Tensor& a, const Tensor& b) const {
+        return elementWiseOp(a, b, [](auto a, auto b) { return a > b; });
+    }
+
+    Tensor CPUTensorBackend::prodLessThan(const Tensor& a, const Tensor& b) const {
+        return elementWiseOp(a, b, [](auto a, auto b) { return a < b; });
+    }
+
+    Tensor CPUTensorBackend::prodGreaterThan(const Tensor& a, const double& scalar) const {
+        return applyOperation(a, [scalar](auto a) { return a > scalar; });
+    }
+
+    Tensor CPUTensorBackend::prodLessThan(const Tensor& a, const double& scalar) const {
+        return applyOperation(a, [scalar](auto a) { return a < scalar; });
+    }
+
+    Tensor CPUTensorBackend::prodGreaterThanOrEqual(const Tensor& a, const double& scalar) const {
+        return applyOperation(a, [scalar](auto x) { return x >= scalar; });
+    }
+
+    Tensor CPUTensorBackend::prodLessThanOrEqual(const Tensor& a, const double& scalar) const {
+        return applyOperation(a, [scalar](auto x) { return x <= scalar; });
+    }
+
+    Tensor CPUTensorBackend::prodGreaterThanOrEqual(const Tensor& a, const Tensor& b) const {
+        return elementWiseOp(a, b, [](auto a, auto b) { return a >= b; });
+    }
+
+    Tensor CPUTensorBackend::prodLessThanOrEqual(const Tensor& a, const Tensor& b) const {
+        return elementWiseOp(a, b, [](auto a, auto b) { return a <= b; });
     }
 
     Tensor CPUTensorBackend::rand(const Shape& shape, dtype type) const {

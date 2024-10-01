@@ -25,6 +25,8 @@ public:
     ~Tensor();
     explicit Tensor(std::unique_ptr<TensorAdapter> tensorImpl);
 
+    Tensor(const TensorAdapter& other);
+
     template <typename T>
     Tensor(const Shape& shape, const std::vector<T>& data, dtype type);
 
@@ -88,13 +90,9 @@ public:
 
     Tensor clone() const;
 
-    TensorIndex getIndex() const;
-
     const Shape& shape() const noexcept;
     dtype type() const noexcept;
     const TensorBackend& backend() const;
-
-    void apply(const std::function<void(double&)>& func);
 
     std::string toString() const;
     std::string toDataString() const;
@@ -154,7 +152,16 @@ Tensor operator-(const double& scalar, const Tensor& tensor);
 Tensor operator*(const double& scalar, const Tensor& tensor);
 Tensor operator/(const double& scalar, const Tensor& tensor);
 
-Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func);
+Tensor greaterThan(const Tensor& lhs, const Tensor& rhs);
+Tensor lessThan(const Tensor& lhs, const Tensor& rhs);
+Tensor greaterThan(const Tensor& lhs, const double& scalar);
+Tensor lessThan(const Tensor& lhs, const double& scalar);
+Tensor greaterThanEqual(const Tensor& lhs, const Tensor& rhs);
+Tensor lessThanEqual(const Tensor& lhs, const Tensor& rhs);
+Tensor greaterThanEqual(const Tensor& a, const double& scalar);
+Tensor lessThanEqual(const Tensor& a, const double& scalar);
+
+Tensor select(const Tensor& condition, const Tensor& a, const Tensor& b);
 
 // Other operations
 Tensor matmul(const Tensor& lhs, const Tensor& rhs);
@@ -163,6 +170,8 @@ Tensor reshape(const Tensor& tensor, const Shape& newShape);
 Tensor sqrt(const Tensor& tensor);
 Tensor exp(const Tensor& tensor);
 Tensor log(const Tensor& tensor);
+Tensor abs(const Tensor& tensor);
+Tensor tanh(const Tensor& tensor);
 Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes = {});
 Tensor reciprocal(const Tensor& tensor, double epsilon = 1e-12);
 
@@ -170,6 +179,8 @@ Tensor reciprocal(const Tensor& tensor, double epsilon = 1e-12);
 Tensor sum(const Tensor& input, const std::vector<size_t>& axes = {}, bool keepDims = false);
 Tensor mean(const Tensor& input, const std::vector<size_t>& axes = {}, bool keepDims = false);
 Tensor max(const Tensor& input, const std::vector<size_t>& axes = {}, bool keepDims = false);
+Tensor selectMax(const Tensor& input, double min_value);
+Tensor selectMax(const Tensor& a, const Tensor& b);
 Tensor min(const Tensor& input, const std::vector<size_t>& axes = {}, bool keepDims = false);
 Tensor clip(const Tensor& input, const double& min, const double& max);
 
@@ -178,9 +189,6 @@ Tensor zeros(const Shape& shape, dtype type = dtype::f32);
 Tensor ones(const Shape& shape, dtype type = dtype::f32);
 Tensor rand(const Shape& shape, dtype type = dtype::f32);
 Tensor uniformRand(const Shape& shape, dtype type = dtype::f32);
-
-template <typename T>
-Tensor fill(const Shape& shape, T& fillValue, dtype type = dtype::f32);
 
 template <typename T>
 Tensor fromVector(const Shape& shape, const std::vector<T>& vec, dtype type) {

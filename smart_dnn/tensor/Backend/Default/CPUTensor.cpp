@@ -121,13 +121,6 @@ Tensor CPUTensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) co
     return Tensor(std::make_unique<CPUTensor>(Shape(newShape), data_, type_, newIndex));
 }
 
-TensorIndex CPUTensor::getIndex() const {
-    if (!index_) {
-        return *index_;
-    }
-    return TensorIndex(shape_);
-}
-
 void CPUTensor::addInPlace(const Tensor& other) {
     elementWiseOperation(other, [](auto& a, const auto& b) { a += b; });
 }

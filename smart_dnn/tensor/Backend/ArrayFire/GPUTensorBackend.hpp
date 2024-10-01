@@ -1,5 +1,5 @@
-#ifndef CPU_TENSOR_BACKEND_HPP
-#define CPU_TENSOR_BACKEND_HPP
+#ifndef GPU_TENSOR_BACKEND_HPP
+#define GPU_TENSOR_BACKEND_HPP
 
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorBackend.hpp" 
@@ -15,18 +15,12 @@ namespace sdnn {
 
 class Tensor;
 
-class CPUTensorBackend : public TensorBackend {
+class GPUTensorBackend : public TensorBackend {
 public:
-    CPUTensorBackend() = default;
-    ~CPUTensorBackend();
+    GPUTensorBackend() = default;
+    ~GPUTensorBackend();
 
     Tensor fill(const Shape& shape, const DataItem& value, dtype type) const override;
-
-    template <typename T>
-    Tensor fill(const Shape& shape, const T fillValue, dtype type) const{
-        T fillValueTemp = fillValue;
-        return this->fill(shape, {&fillValueTemp, dtype_trait<T>::value}, type);
-    }
 
     // Basic operations
     Tensor add(const Tensor& a, const Tensor& b) const override;
@@ -45,13 +39,9 @@ public:
     Tensor sum(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor mean(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor max(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
-    Tensor selectMax(const Tensor& tensor, const double& min_value) const override;
-    Tensor selectMax(const Tensor& a, const Tensor& b) const override;
+    Tensor selectMax(const Tensor& tensor, const double& value) const override;
     Tensor min(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor clip(const Tensor& tensor, const double& min, const double& max) const override;
-
-    Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const;
-    Tensor select(const Tensor& condition, const Tensor& a, const Tensor& b) const override;
 
     Tensor matmul(const Tensor& a, const Tensor& b) const override;
 
@@ -64,7 +54,6 @@ public:
     Tensor power(const Tensor& tensor, double exponent) const override;
     Tensor sqrt(const Tensor& tensor) const override;
     Tensor abs(const Tensor& tensor) const override;
-    Tensor tanh(const Tensor& tensor) const override;
     Tensor negative(const Tensor& tensor) const override;
     Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) const override;
 
@@ -74,14 +63,16 @@ public:
     bool lessThan(const Tensor& a, const Tensor& b) const override;
     bool lessThanEqual(const Tensor& a, const Tensor& b) const override;
 
+    Tensor select(const Tensor& condition, const Tensor& a, const Tensor& b) const override;
+
     Tensor prodGreaterThan(const Tensor& a, const Tensor& b) const override;
     Tensor prodLessThan(const Tensor& a, const Tensor& b) const override;
     Tensor prodGreaterThan(const Tensor& a, const double& scalar) const override;
     Tensor prodLessThan(const Tensor& a, const double& scalar) const override;
-    Tensor prodGreaterThanOrEqual(const Tensor& a, const Tensor& b) const override;
-    Tensor prodLessThanOrEqual(const Tensor& a, const Tensor& b) const override;
     Tensor prodGreaterThanOrEqual(const Tensor& a, const double& scalar) const override;
     Tensor prodLessThanOrEqual(const Tensor& a, const double& scalar) const override;
+    Tensor prodGreaterThanOrEqual(const Tensor& a, const Tensor& b) const override;
+    Tensor prodLessThanOrEqual(const Tensor& a, const Tensor& b) const override;
 
     Tensor rand(const Shape& shape, dtype type) const override;
     Tensor uniformRand(const Shape& shape, dtype type) const override;
@@ -100,14 +91,8 @@ public:
 
     // Utility functions
     void print(const Tensor& tensor) override;
-private:
-    Tensor meanNoAxes(const Tensor& tensor) const;
-    Tensor minNoAxes(const Tensor& tensor) const;
-    Tensor maxNoAxes(const Tensor& tensor) const;
-    Tensor sumNoAxes(const Tensor& tensor) const;
 };
 
-}; // namespace sdnn
+}
 
-
-#endif // CPU_TENSOR_BACKEND_HPP
+#endif

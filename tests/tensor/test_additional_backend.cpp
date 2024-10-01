@@ -78,29 +78,6 @@ TEST_F(TensorAdditionalOperationsTest, ReshapeTensor) {
 
 /*
 
-    TEST APPLY FUNCTION
-
-*/
-
-TEST_F(TensorAdditionalOperationsTest, ApplyFunction) {
-    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
-    a.apply([](double& x) { x += 1; });
-    
-    Tensor expected = createTensor({2, 2}, {2.0f, 3.0f, 4.0f, 5.0f});
-    for (size_t i = 0; i < a.shape().size(); ++i) {
-        EXPECT_NEAR(a.at<float>(i), expected.at<float>(i), 1e-5);
-    }
-}
-
-TEST_F(TensorAdditionalOperationsTest, ApplyFunctionDoesNotModifyOriginal) {
-    Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
-    Tensor result = a.clone();
-    a.apply([](double& x) { x += 1; });
-    ASSERT_TRUE(result == result);  // Cloned tensor should remain unchanged.
-}
-
-/*
-
     TEST CLONE FUNCTION
 
 */
@@ -108,7 +85,7 @@ TEST_F(TensorAdditionalOperationsTest, ApplyFunctionDoesNotModifyOriginal) {
 TEST_F(TensorAdditionalOperationsTest, CloneFunctionDoesNotModifyOriginal) {
     Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
     Tensor result = a.clone();
-    a.apply([](auto& x) { x += 1; });
+    a += 1;
     ASSERT_TRUE(result != a); 
 }
 

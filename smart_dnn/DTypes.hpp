@@ -17,7 +17,9 @@ namespace sdnn {
         u8 = 7,  // 8-bit unsigned integer
         u16 = 8, // 16-bit unsigned integer
         u32 = 9, // 32-bit unsigned integer
-        u64 = 10  // 64-bit unsigned integer
+        u64 = 10, // 64-bit unsigned integer
+        b8 = 11, // 8-bit boolean
+        Undefined = 12
     };
     
     struct DataItem {
@@ -45,7 +47,6 @@ namespace sdnn {
     template<> struct dtype_trait<uint16_t> { static constexpr dtype value = dtype::u16; };
     template<> struct dtype_trait<uint32_t> { static constexpr dtype value = dtype::u32; };
     template<> struct dtype_trait<uint64_t> { static constexpr dtype value = dtype::u64; };
-
     // Additional definitions only if they differ from the primary types
     template<> struct dtype_trait<char> { static constexpr dtype value = std::is_signed<char>::value ? dtype::s8 : dtype::u8; };
     template<> struct dtype_trait<long> { static constexpr dtype value = sizeof(long) == 4 ? dtype::s32 : dtype::s64; };
@@ -81,6 +82,7 @@ namespace sdnn {
             case dtype::u16: op(uint16_t{}); break;
             case dtype::u32: op(uint32_t{}); break;
             case dtype::u64: op(uint64_t{}); break;
+            case dtype::b8: op(uint8_t{}); break;
             default: throw std::runtime_error("Unsupported dtype for operation");
         }
     }
@@ -103,7 +105,7 @@ namespace sdnn {
     template<> struct cpp_type<dtype::u16> { using type = uint16_t; };
     template<> struct cpp_type<dtype::u32> { using type = uint32_t; };
     template<> struct cpp_type<dtype::u64> { using type = uint64_t; };
-
+    template<> struct cpp_type<dtype::b8> { using type = uint8_t; };
     template <typename T>
     constexpr T dtype_cast(const void* data, dtype dtype) {
         if (data == nullptr) {
@@ -120,6 +122,7 @@ namespace sdnn {
             case dtype::u16: return static_cast<T>(*static_cast<const uint16_t*>(data));
             case dtype::u32: return static_cast<T>(*static_cast<const uint32_t*>(data));
             case dtype::u64: return static_cast<T>(*static_cast<const uint64_t*>(data));
+            case dtype::b8: return static_cast<T>(*static_cast<const uint8_t*>(data));
             default: throw std::runtime_error("Unknown DataType");
         }
     }
@@ -139,6 +142,7 @@ namespace sdnn {
             case dtype::u16: *static_cast<uint16_t*>(dest) = dtype_cast<uint16_t>(src, from_type); break;
             case dtype::u32: *static_cast<uint32_t*>(dest) = dtype_cast<uint32_t>(src, from_type); break;
             case dtype::u64: *static_cast<uint64_t*>(dest) = dtype_cast<uint64_t>(src, from_type); break;
+            case dtype::b8: *static_cast<uint8_t*>(dest) = dtype_cast<uint8_t>(src, from_type); break;
             default: throw std::runtime_error("Unknown destination type");
         }
         return dest;
@@ -156,6 +160,7 @@ namespace sdnn {
             case dtype::u16: return sizeof(uint16_t);
             case dtype::u32: return sizeof(uint32_t);
             case dtype::u64: return sizeof(uint64_t);
+            case dtype::b8: return sizeof(uint8_t);
             default: throw std::runtime_error("Unknown DataType");
         }
     }
@@ -172,6 +177,7 @@ namespace sdnn {
             case dtype::u16: return "u16";
             case dtype::u32: return "u32";
             case dtype::u64: return "u64";
+            case dtype::b8: return "b8";
             default: throw std::runtime_error("Unknown DataType");
         }
     }
@@ -187,6 +193,7 @@ namespace sdnn {
 
     constexpr inline int type_rank(dtype dt) {
         switch (dt) {
+            case dtype::b8: case dtype::u8: return 1;
             case dtype::s16: case dtype::u16: return 2;
             case dtype::s32: case dtype::u32: return 3;
             case dtype::s64: case dtype::u64: return 4;

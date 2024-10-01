@@ -16,7 +16,9 @@ class AdvancedTensorOperations {
     // Reciprocal function: calculates the reciprocal of each element in the tensor
     // Reciprocol is defined as: f(x) = 1 / x if abs(x) > epsilon, else 1 / epsilon
     static Tensor reciprocal(const Tensor& tensor, double epsilon = 1e-12) {
-        return apply(tensor, [epsilon](auto& x) { x = (std::abs(x) > epsilon) ? (1 / x) : (1 / epsilon); });
+        Tensor absolute = abs(tensor);
+        Tensor epsilonTensor = fill(tensor.shape(), epsilon, tensor.type());
+        return select(greaterThan(absolute, epsilonTensor), 1 / tensor, 1 / epsilonTensor);
     }
 
     // Variance function: calculates the variance between tensors along the specified axes

@@ -17,7 +17,9 @@ public:
     Tensor forward(const Tensor& input) override {
         if (this->trainingMode) {
             mask = uniformRand(input.shape(), input.type());
-            (*mask).apply([this](auto& x) { x = (x > dropoutRate ? 1 / (1 - dropoutRate) : 0); });
+            Tensor scaledMask = Tensor((*mask).shape(), (1 / (1 - dropoutRate)));
+            Tensor zeroTensor = zeros(input.shape(), input.type());
+            mask = select(greaterThan((*mask), dropoutRate), scaledMask, zeroTensor);
             return input * (*mask);
         } else {
             return input; // No dropout during inference

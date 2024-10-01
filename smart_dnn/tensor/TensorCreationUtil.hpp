@@ -3,7 +3,12 @@
 
 #include <memory>
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"
-#include "smart_dnn/tensor/Backend/Default/CPUTensor.hpp"
+
+#if USE_ARRAYFIRE_TENSORS
+    #include "smart_dnn/tensor/Backend/ArrayFire/GPUTensor.hpp"
+#else
+    #include "smart_dnn/tensor/Backend/Default/CPUTensor.hpp"
+#endif
 
 namespace sdnn {
 
@@ -11,7 +16,7 @@ namespace sdnn {
     template <typename... Args>
     inline std::unique_ptr<TensorAdapter> createTensorAdapter(Args&&... args) {
     #if USE_ARRAYFIRE_TENSORS
-        return std::make_unique<ArrayFireTensorAdapter>(std::forward<Args>(args)...);
+        return std::make_unique<GPUTensor>(std::forward<Args>(args)...);
     #else
         return std::make_unique<CPUTensor>(std::forward<Args>(args)...);
     #endif

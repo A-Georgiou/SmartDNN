@@ -22,11 +22,13 @@ public:
     explicit LeakyReLU(float alpha = 0.01f) : alpha(alpha) {}
 
     Tensor forward(const Tensor& input) const override {
-        return apply(input, [this](double& x) { x = (x > 0) ? x : (alpha * x); });
+        return selectMax(input, alpha * input);
     }
 
    Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
-        return apply(input, [this](auto& x) { x = (x > 0) ? 1 : alpha; }) * gradOutput;
+        Tensor input_ones = ones(input.shape(), input.type());
+        Tensor input_alpha = fill(input.shape(), alpha, input.type());
+        return select(greaterThan(input, 0), input_ones, input_alpha) * gradOutput;
     }
 
 private:

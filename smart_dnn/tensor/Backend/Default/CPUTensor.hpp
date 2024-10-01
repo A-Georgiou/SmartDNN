@@ -68,7 +68,6 @@ public:
     void set(const std::vector<size_t>& indices, const DataItem& value) override;
     void set(size_t index, const DataItem& value) override;
     Tensor slice(const std::vector<std::pair<size_t, size_t>>& ranges) const override;
-    TensorIndex getIndex() const override;
 
     // Operations
     void addInPlace(const Tensor& other) override;
@@ -89,7 +88,7 @@ public:
     std::string toString() override;
     std::string toDataString() override;
 
-    void apply(const std::function<void(double&)>& func) override;
+    void apply(const std::function<void(double&)>& func);
 
     void fill(const DataItem& value) override;
     CPUTensor subView(const std::vector<size_t>& indices) const;

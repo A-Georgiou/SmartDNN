@@ -19,11 +19,12 @@ namespace sdnn {
 class Tanh : public Activation {
 public:
     Tensor forward(const Tensor& input) const override {
-        return apply(input, [](auto& x) { x = (std::exp(x * 2) - 1) / (std::exp(x * 2) + 1); });
+        return tanh(input);
     }
 
     Tensor backward(const Tensor& input, const Tensor& gradOutput) const override {
-        return apply(input, [](auto& x) {  x = 1 - std::tanh(x) * std::tanh(x);  }) * gradOutput;
+        Tensor tanh_input = tanh(input);
+        return (1 - tanh_input * tanh_input) * gradOutput;
     }
 };
 
