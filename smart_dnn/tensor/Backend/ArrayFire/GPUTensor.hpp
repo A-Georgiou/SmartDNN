@@ -36,6 +36,15 @@ public:
     template <typename T>
     GPUTensor(const Shape& shape, T data, dtype type = dtype::f32);
 
+    template <typename T>
+    GPUTensor(const Shape& shape, T data, dtype type);
+
+    template <typename T>
+    GPUTensor(const Shape& shape, T data);
+
+    template <typename T>
+    GPUTensor(const Shape& shape, std::initializer_list<T> values, dtype type);
+
     // Copy and move
     GPUTensor(const GPUTensor& other);
     GPUTensor(GPUTensor&& other) noexcept;
@@ -97,5 +106,7 @@ private:
 };
 
 } // namespace sdnn
+
+#include "GPUTensor.tpp"
 
 #endif // GPU_TENSOR_HPP

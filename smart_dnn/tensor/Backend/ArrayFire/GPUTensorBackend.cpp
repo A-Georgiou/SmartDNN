@@ -4,6 +4,8 @@
 
 namespace sdnn {
 
+    GPUTensorBackend::~GPUTensorBackend() {}
+
      Tensor GPUTensorBackend::fill(const Shape& shape, const DataItem& value, dtype type) const {
         auto tensorAdapter = createTensorAdapter(shape, type);
         tensorAdapter->fill(value);
