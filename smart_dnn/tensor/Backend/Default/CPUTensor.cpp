@@ -287,12 +287,12 @@ void CPUTensor::setValueFromType(size_t index, const DataItem& data) {
 
 
 size_t CPUTensor::getFlatIndex(size_t index) const {
-        if (index_) {
-            std::vector<size_t> indices = unflattenIndex(index, shape_);
-            return index_->flattenIndex(indices);
-        }
-        return index;
+    if (index_) {
+        std::vector<size_t> indices = unflattenIndex(index, shape_);
+        return index_->flattenIndex(indices);
     }
+    return index;
+}
 
 
 } // namespace sdnn

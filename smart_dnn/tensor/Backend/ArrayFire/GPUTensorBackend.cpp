@@ -1,5 +1,6 @@
 #include "smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.hpp"
 #include "smart_dnn/tensor/Backend/ArrayFire/GPUTensor.hpp"
+#include "smart_dnn/tensor/Backend/ArrayFire/Utils.hpp"
 
 namespace sdnn {
 
@@ -12,55 +13,75 @@ namespace sdnn {
     Tensor GPUTensorBackend::add(const Tensor& a, const Tensor& b) const {
         GPUTensor a_cpu = a.getImpl<GPUTensor>();
         GPUTensor b_cpu = b.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(a_cpu.getArray() + b_cpu.getArray()));
+        af::array result = a_cpu.getArray() + b_cpu.getArray();
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }
 
     Tensor GPUTensorBackend::sub(const Tensor& a, const Tensor& b) const {
         GPUTensor a_cpu = a.getImpl<GPUTensor>();
         GPUTensor b_cpu = b.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(a_cpu.getArray() - b_cpu.getArray()));
+        af::array result = a_cpu.getArray() - b_cpu.getArray();
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }
 
     Tensor GPUTensorBackend::mul(const Tensor& a, const Tensor& b) const {
         GPUTensor a_cpu = a.getImpl<GPUTensor>();
         GPUTensor b_cpu = b.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(a_cpu.getArray() * b_cpu.getArray()));
+        af::array result = a_cpu.getArray() * b_cpu.getArray();
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }
 
     Tensor GPUTensorBackend::div(const Tensor& a, const Tensor& b) const {
         GPUTensor a_cpu = a.getImpl<GPUTensor>();
         GPUTensor b_cpu = b.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(a_cpu.getArray() / b_cpu.getArray()));
+        af::array result = a_cpu.getArray() / b_cpu.getArray();
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }
 
     Tensor GPUTensorBackend::add(const Tensor& a, const double& scalar) const {
         GPUTensor tensor_cpu = a.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(tensor_cpu.getArray() + scalar));
+        af::array result = tensor_cpu.getArray() + scalar;
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }
 
     Tensor GPUTensorBackend::sub(const Tensor& a, const double& scalar) const {
         GPUTensor tensor_cpu = a.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(tensor_cpu.getArray() - scalar));
+        af::array result = tensor_cpu.getArray() - scalar;
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }
 
     Tensor GPUTensorBackend::mul(const Tensor& a, const double& scalar) const {
         GPUTensor tensor_cpu = a.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(tensor_cpu.getArray() * scalar));
+        af::array result = tensor_cpu.getArray() * scalar;
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }
 
     Tensor GPUTensorBackend::div(const Tensor& a, const double& scalar) const {
         GPUTensor tensor_cpu = a.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(tensor_cpu.getArray() / scalar));
+        af::array result = tensor_cpu.getArray() / scalar;
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }
 
     Tensor GPUTensorBackend::scalarSub(const double& scalar, const Tensor& tensor) const {
         GPUTensor tensor_cpu = tensor.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(scalar - tensor_cpu.getArray()));
+        af::array result = scalar - tensor_cpu.getArray();
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::scalarDiv(const double& scalar, const Tensor& tensor) const {
         GPUTensor tensor_cpu = tensor.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(scalar / tensor_cpu.getArray()));
+        af::array result = scalar / tensor_cpu.getArray();
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::sum(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
@@ -77,7 +98,8 @@ namespace sdnn {
             }
         }
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::mean(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
@@ -94,7 +116,8 @@ namespace sdnn {
             }
         }
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::max(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
@@ -111,14 +134,17 @@ namespace sdnn {
             }
         }
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::selectMax(const Tensor& tensor, const double& value) const {
         GPUTensor tensor_cpu = tensor.getImpl<GPUTensor>();
         af::array result = tensor_cpu.getArray();
         af::array mask = result >= value;
-        return Tensor(std::make_unique<GPUTensor>(af::select(result, mask, af::array())));
+        af::array selected = af::select(result, mask, af::array());
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(selected));
+        return Tensor(std::make_unique<GPUTensor>(shape, selected, tensor.type()));
     }
 
     Tensor GPUTensorBackend::selectMax(const Tensor& a, const Tensor& b) const {
@@ -129,8 +155,8 @@ namespace sdnn {
 
         // Element-wise comparison for maximum
         af::array comparisonResult = af::max(aArray, bArray);  
-
-        return Tensor(std::make_unique<GPUTensor>(comparisonResult));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
+        return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
     }
 
     Tensor GPUTensorBackend::min(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
@@ -148,7 +174,8 @@ namespace sdnn {
             }
         }
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::clip(const Tensor& tensor, const double& min, const double& max) const {
@@ -157,13 +184,16 @@ namespace sdnn {
 
         result = af::clamp(result, min, max);
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::matmul(const Tensor& a, const Tensor& b) const {
         GPUTensor a_cpu = a.getImpl<GPUTensor>();
         GPUTensor b_cpu = b.getImpl<GPUTensor>();
-        return Tensor(std::make_unique<GPUTensor>(af::matmul(a_cpu.getArray(), b_cpu.getArray())));
+        af::array result = af::matmul(a_cpu.getArray(), b_cpu.getArray());
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }
 
     Tensor GPUTensorBackend::reshape(const Tensor& tensor, const Shape& newShape) const {
@@ -189,7 +219,8 @@ namespace sdnn {
                                     static_cast<unsigned>(axes[2]), 
                                     static_cast<unsigned>(axes[3])); // For 4D or fewer arrays
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(output_shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::reciprocal(const Tensor& tensor, double epsilon) const {
@@ -198,7 +229,8 @@ namespace sdnn {
 
         af::array result = 1.0 / (inputArray + epsilon);
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::exp(const Tensor& tensor) const {
@@ -207,7 +239,8 @@ namespace sdnn {
 
         af::array result = af::exp(inputArray);
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::log(const Tensor& tensor) const {
@@ -216,7 +249,8 @@ namespace sdnn {
 
         af::array result = af::log(inputArray);
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::power(const Tensor& tensor, double exponent) const {
@@ -225,7 +259,8 @@ namespace sdnn {
 
         af::array result = af::pow(inputArray, exponent);
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::sqrt(const Tensor& tensor) const {
@@ -234,7 +269,8 @@ namespace sdnn {
 
         af::array result = af::sqrt(inputArray);
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::abs(const Tensor& tensor) const {
@@ -243,7 +279,8 @@ namespace sdnn {
 
         af::array result = af::abs(inputArray);
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::tanh(const Tensor& tensor) const {
@@ -252,7 +289,8 @@ namespace sdnn {
 
         af::array result = af::tanh(inputArray);
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::negative(const Tensor& tensor) const {
@@ -261,7 +299,8 @@ namespace sdnn {
 
         af::array result = -inputArray;
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
     Tensor GPUTensorBackend::variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) const {
@@ -280,7 +319,8 @@ namespace sdnn {
             varianceArray = af::mean(varianceArray, static_cast<int>(axis));
         }
 
-        return Tensor(std::make_unique<GPUTensor>(varianceArray));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(varianceArray));
+        return Tensor(std::make_unique<GPUTensor>(shape, varianceArray, tensor.type()));
     }
 
     bool GPUTensorBackend::equal(const Tensor& a, const Tensor& b) const {
@@ -349,8 +389,8 @@ namespace sdnn {
         af::array bArray = bImpl.getArray();
 
         af::array result = af::select(conditionArray, aArray, bArray);
-
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(shape, result, condition.type()));
     }
 
     Tensor GPUTensorBackend::prodGreaterThan(const Tensor& a, const Tensor& b) const {
@@ -361,7 +401,8 @@ namespace sdnn {
         af::array bArray = bImpl.getArray();
 
         af::array comparisonResult = (aArray > bArray);
-        return Tensor(std::make_unique<GPUTensor>(comparisonResult));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
+        return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
     }
 
     Tensor GPUTensorBackend::prodLessThan(const Tensor& a, const Tensor& b) const {
@@ -373,7 +414,8 @@ namespace sdnn {
 
         af::array comparisonResult = (aArray < bArray);
 
-        return Tensor(std::make_unique<GPUTensor>(comparisonResult));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
+        return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
     }
 
     Tensor GPUTensorBackend::prodGreaterThan(const Tensor& a, const double& scalar) const {
@@ -382,7 +424,8 @@ namespace sdnn {
 
         af::array comparisonResult = (aArray > scalar);
 
-        return Tensor(std::make_unique<GPUTensor>(comparisonResult));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
+        return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
     }
 
     Tensor GPUTensorBackend::prodLessThan(const Tensor& a, const double& scalar) const {
@@ -391,7 +434,8 @@ namespace sdnn {
 
         af::array comparisonResult = (aArray < scalar);
 
-        return Tensor(std::make_unique<GPUTensor>(comparisonResult));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
+        return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
     }
 
     Tensor GPUTensorBackend::prodGreaterThanOrEqual(const Tensor& a, const double& scalar) const {
@@ -400,7 +444,8 @@ namespace sdnn {
 
         af::array comparisonResult = (aArray >= scalar);
 
-        return Tensor(std::make_unique<GPUTensor>(comparisonResult));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
+        return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
     }
 
     Tensor GPUTensorBackend::prodLessThanOrEqual(const Tensor& a, const double& scalar) const {
@@ -409,7 +454,8 @@ namespace sdnn {
 
         af::array comparisonResult = (aArray <= scalar);
 
-        return Tensor(std::make_unique<GPUTensor>(comparisonResult));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
+        return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
     }
 
     Tensor GPUTensorBackend::prodGreaterThanOrEqual(const Tensor& a, const Tensor& b) const {
@@ -421,7 +467,8 @@ namespace sdnn {
 
         af::array comparisonResult = (aArray >= bArray);
 
-        return Tensor(std::make_unique<GPUTensor>(comparisonResult));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
+        return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
     }
 
     Tensor GPUTensorBackend::prodLessThanOrEqual(const Tensor& a, const Tensor& b) const {
@@ -433,7 +480,8 @@ namespace sdnn {
 
         af::array comparisonResult = (aArray <= bArray);
 
-        return Tensor(std::make_unique<GPUTensor>(comparisonResult));
+        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
+        return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
     }
 
     Tensor GPUTensorBackend::rand(const Shape& shape, dtype type) const {
@@ -446,7 +494,8 @@ namespace sdnn {
 
         af::array result = af::randu(dims, static_cast<af::dtype>(type));
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
     }
 
     Tensor GPUTensorBackend::uniformRand(const Shape& shape, dtype type) const {
@@ -459,7 +508,8 @@ namespace sdnn {
 
         af::array result = af::randu(dims, static_cast<af::dtype>(type));
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
     }
 
     Tensor GPUTensorBackend::randn(const Shape& shape, dtype type, float min, float max) const {
@@ -472,7 +522,8 @@ namespace sdnn {
 
         af::array result = af::randn(dims, static_cast<af::dtype>(type));
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
     }
 
     Tensor GPUTensorBackend::zeros(const Shape& shape, dtype type) const {
@@ -485,7 +536,8 @@ namespace sdnn {
 
         af::array result = af::constant(0.0, dims, static_cast<af::dtype>(type));
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
     }
 
     Tensor GPUTensorBackend::ones(const Shape& shape, dtype type) const {
@@ -498,13 +550,15 @@ namespace sdnn {
 
         af::array result = af::constant(1.0, dims, static_cast<af::dtype>(type));
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
     }
 
     Tensor GPUTensorBackend::identity(int size, dtype type) const {
         af::array result = af::identity(size, static_cast<af::dtype>(type));
 
-        return Tensor(std::make_unique<GPUTensor>(result));
+        Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+        return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
     }
     
     std::string GPUTensorBackend::backendName() const {

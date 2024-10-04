@@ -92,6 +92,8 @@ private:
     dtype type_;
     std::shared_ptr<af::array> data_;
     std::optional<TensorIndex> index_;
+
+    size_t getFlatIndex(size_t index) const;
 };
 
 } // namespace sdnn

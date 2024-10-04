@@ -57,6 +57,18 @@ namespace sdnn {
             return dim;
         }
 
+        std::vector<int> getArrayDimensionsAsIntVector(const af::array& array) {
+            af::dim4 dims = array.dims();
+            std::vector<int> dimVector;
+
+            for (int i = 0; i < 4; ++i) {
+                if (dims[i] > 1) {
+                    dimVector.push_back(static_cast<int>(dims[i]));
+                }
+            }
+            return dimVector;
+        }
+
         Shape afDimToShape(const af::dim4& dim){
             std::vector<int> dims(dim.ndims());
             for (size_t i = 0; i < dim.ndims(); ++i) {

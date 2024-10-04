@@ -2,12 +2,17 @@ cmake_minimum_required(VERSION 3.10)
 project(SmartDNN)
 set(CMAKE_CXX_STANDARD 17)
 
-option(USE_CPU_TENSORS "Run SmartDNN without any additional libraries" ON)
+option(USE_CPU_TENSORS "Run SmartDNN without any additional libraries" OFF)
 option(USE_ARRAYFIRE_TENSORS "Run SmartDNN with ArrayFire tensors" ON)
 
-# Find ArrayFire package
 if (USE_ARRAYFIRE_TENSORS)
+    set(USE_CPU_TENSORS OFF)
+    message(STATUS "ARRAYFIRE TENSORS ENABLED")
     find_package(ArrayFire REQUIRED)
+    add_definitions(-DUSE_ARRAYFIRE_TENSORS)
+elseif (USE_CPU_TENSORS)
+    set(USE_ARRAYFIRE_TENSORS OFF)
+    message(STATUS "CPU TENSORS ENABLED")
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -36,6 +41,8 @@ add_executable(SmartDNN
     smart_dnn/tensor/TensorBackendUtil.cpp
     smart_dnn/tensor/Backend/Default/CPUTensor.cpp
     smart_dnn/tensor/Backend/Default/CPUTensorBackend.cpp
+    smart_dnn/tensor/Backend/ArrayFire/GPUTensor.cpp
+    smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.cpp
 )
 
 # Link ArrayFire library to SmartDNN executable

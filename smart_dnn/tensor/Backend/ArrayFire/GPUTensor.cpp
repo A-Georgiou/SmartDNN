@@ -14,10 +14,20 @@
 
 namespace sdnn {
 
+GPUTensor::~GPUTensor() {}
+
 GPUTensor::GPUTensor(const Shape& shape, dtype type)
     : shape_(shape), type_(type) {
     std::vector<dim_t> af_dims(shape.getDimensions().begin(), shape.getDimensions().end());
-    data_ = std::make_shared<af::array>(af_dims.size(), af_dims.data(), utils::sdnnToAfType(type));
+    
+    // Convert the vector of dimensions to an af::dim4 object
+    af::dim4 dims(af_dims.size() > 0 ? af_dims[0] : 1,
+                  af_dims.size() > 1 ? af_dims[1] : 1,
+                  af_dims.size() > 2 ? af_dims[2] : 1,
+                  af_dims.size() > 3 ? af_dims[3] : 1);
+
+    // Use the af::dim4 object in the af::array constructor
+    data_ = std::make_shared<af::array>(dims, utils::sdnnToAfType(type));
 }
 
 GPUTensor::GPUTensor(const Shape& shape, const af::array& data, dtype type)
@@ -59,30 +69,6 @@ GPUTensor::GPUTensor(const GPUTensor& other)
     : shape_(other.shape_), type_(other.type_), data_(std::make_shared<af::array>(*other.data_)) {}
 
 GPUTensor::GPUTensor(GPUTensor&& other) noexcept
-    : shape_(std::move(other.shape_)), type_(other.type_), data_(std::move(other.data_)) {}
-
-GPUTensor& GPUTensor::operator=(const GPUTensor& other) {
-    if (this != &other) {
-        shape_ = other.shape_;
-        type_ = other.type_;
-        data_ = std::make_shared<af::array>(*other.data_);
-    }
-    return *this;
-}
-
-GPUTensor& GPUTensor::operator=(GPUTensor&& other) noexcept {
-    if (this != &other) {
-        shape_ = std::move(other.shape_);
-        type_ = other.type_;
-        data_ = std::move(other.data_);
-    }
-    return *this;
-}
-
-GPUTensor::GPUTensor(const GPUTensor& other)
-    : shape_(other.shape_), type_(other.type_), data_(std::make_shared<af::array>(*other.data_)) {}
-
-GPUTensor::GPUTensor(GPUTensor&& other) noexcept
     : shape_(std::move(other.shape_)), type_(other.type_), data_(std::move(other.data_)) {
         other.data_ = nullptr;
         other.shape_ = Shape();
@@ -107,30 +93,6 @@ GPUTensor& GPUTensor::operator=(GPUTensor&& other) noexcept {
     return *this;
 }
 
-void* GPUTensor::data() {
-    return data_.get();
-}
-
-const void* GPUTensor::data() const {
-    return data_.get();
-}
-
-const Shape& GPUTensor::shape() const {
-    return shape_;
-}
-
-const std::vector<size_t>& GPUTensor::stride() const {
-    return shape_.getStride();
-}
-
-size_t GPUTensor::size() const {
-    return shape_.size();
-}
-
-dtype GPUTensor::type() const {
-    return type_;
-}
-
 Tensor GPUTensor::at(const std::vector<size_t>& indices) const {
     return Tensor(std::make_unique<GPUTensor>(shape_, (*data_)(computeFlatIndex(shape_, indices)), type_));
 }
@@ -145,10 +107,14 @@ void GPUTensor::set(const std::vector<size_t>& indices, const DataItem& value) {
     }
 
     size_t flatIndex = computeFlatIndex(shape_, indices);
-    void* dest = (*data_).device<void>();
-    convert_dtype(static_cast<void*>(&(*data_)(flatIndex)), value.data, type_, value.type);
+
+    af::array hostArray = (*data_);
+    void* hostData = hostArray.host<void>();
+
+    convert_dtype(static_cast<char*>(hostData) + flatIndex * dtype_size(type_), value.data, type_, value.type);
 
     af::sync();
+    hostArray.write(hostData, hostArray.elements() * dtype_size(type_));
 }
 
 void GPUTensor::set(size_t index, const DataItem& value) {
@@ -156,9 +122,13 @@ void GPUTensor::set(size_t index, const DataItem& value) {
         throw std::out_of_range("Index exceeds tensor size");
     }
 
-    void* dest = (*data_).device<void>();
-    convert_dtype(static_cast<void*>(&(*data_)(index)), value.data, type_, value.type);
+    af::array hostArray = (*data_);
+    void* hostData = hostArray.host<void>();
+
+    convert_dtype(static_cast<char*>(hostData) + index * dtype_size(type_), value.data, type_, value.type);
+
     af::sync();
+    hostArray.write(hostData, hostArray.elements() * dtype_size(type_));
 }
 
 Tensor GPUTensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) const {
@@ -255,7 +225,9 @@ std::string GPUTensor::toDataString() {
 }
 
 void GPUTensor::fill(const DataItem& value) {
-    *data_ = af::constant(value, data_->dims(), data_->type());
+    for (size_t i = 0; i < shape_.size(); i++) {
+        set(i, value);
+    }
 }
 
 void GPUTensor::reshape(const Shape& newShape) {
@@ -282,4 +254,15 @@ void GPUTensor::setValueFromDouble(size_t index, double value) {
     (*data_)(index) = value;
 }
 
+void GPUTensor::setValueFromType(size_t index, const DataItem& data) {
+    set(index, data);
+}
+
+size_t GPUTensor::getFlatIndex(size_t index) const {
+    if (index_) {
+        std::vector<size_t> indices = unflattenIndex(index, shape_);
+        return index_->flattenIndex(indices);
+    }
+    return index;
+}
 }
