@@ -144,13 +144,21 @@ void GPUTensor::set(const std::vector<size_t>& indices, const DataItem& value) {
         throw std::invalid_argument("Number of indices must match tensor rank");
     }
 
-    af::array valueArray = createScalarArray(value);
-    af::array idxArray = af::array(indices.size(), indices.data());
-    *data_ = af::replace(*data_, idxArray, valueArray);
+    size_t flatIndex = computeFlatIndex(shape_, indices);
+    void* dest = (*data_).device<void>();
+    convert_dtype(static_cast<void*>(&(*data_)(flatIndex)), value.data, type_, value.type);
+
+    af::sync();
 }
 
-void GPUTensor::set(size_t index, const DataItem& value ) {
-    (*data_)(index) = value;
+void GPUTensor::set(size_t index, const DataItem& value) {
+    if (index >= shape_.size()) {
+        throw std::out_of_range("Index exceeds tensor size");
+    }
+
+    void* dest = (*data_).device<void>();
+    convert_dtype(static_cast<void*>(&(*data_)(index)), value.data, type_, value.type);
+    af::sync();
 }
 
 Tensor GPUTensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) const {

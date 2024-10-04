@@ -40,6 +40,7 @@ public:
     Tensor mean(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor max(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor selectMax(const Tensor& tensor, const double& value) const override;
+    Tensor selectMax(const Tensor& a, const Tensor& b) const override;
     Tensor min(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor clip(const Tensor& tensor, const double& min, const double& max) const override;
 
@@ -54,6 +55,7 @@ public:
     Tensor power(const Tensor& tensor, double exponent) const override;
     Tensor sqrt(const Tensor& tensor) const override;
     Tensor abs(const Tensor& tensor) const override;
+    Tensor tanh(const Tensor& tensor) const override;
     Tensor negative(const Tensor& tensor) const override;
     Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) const override;
 

@@ -86,6 +86,7 @@ public:
     void setValueFromType(size_t index, const DataItem& data) override;
     void getValueAsType(size_t index, const DataItem& data) const override;
 
+    af::array& getArray() { return *data_; }
 private:
     Shape shape_;
     dtype type_;
