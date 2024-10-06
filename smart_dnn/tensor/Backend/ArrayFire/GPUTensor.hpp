@@ -12,6 +12,7 @@
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
 #include "smart_dnn/tensor/TensorIndex.hpp"
+#include "smart_dnn/tensor/Backend/ArrayFire/Utils.hpp"
 #include "arrayfire.h"
 
 namespace sdnn {
@@ -31,13 +32,13 @@ public:
     GPUTensor(const Shape& shape, const std::vector<T>& data);
 
     template <typename T>
+    GPUTensor(const Shape& shape, const std::vector<T>& data, dtype type);
+
+    template <typename T>
     GPUTensor(const Shape& shape, const T* data, size_t num_elements);
 
     template <typename T>
     GPUTensor(const Shape& shape, T data, dtype type = dtype::f32);
-
-    template <typename T>
-    GPUTensor(const Shape& shape, T data, dtype type);
 
     template <typename T>
     GPUTensor(const Shape& shape, T data);

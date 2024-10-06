@@ -349,13 +349,11 @@ Tensor reciprocal(const Tensor& tensor, double epsilon) {
 }
 
 Tensor zeros(const Shape& shape, dtype type) {
-    int16_t zero = 0;
-    return defaultTensorBackend().fill(shape, {&zero, dtype::s16}, type);
+    return defaultTensorBackend().zeros(shape, type);
 }
 
 Tensor ones(const Shape& shape, dtype type) {
-    int16_t one = 1;
-    return defaultTensorBackend().fill(shape, {&one, dtype::s16}, type);
+    return defaultTensorBackend().ones(shape, type);
 }
 
 Tensor rand(const Shape& shape, dtype type) {

@@ -106,6 +106,7 @@ namespace sdnn {
     template<> struct cpp_type<dtype::u32> { using type = uint32_t; };
     template<> struct cpp_type<dtype::u64> { using type = uint64_t; };
     template<> struct cpp_type<dtype::b8> { using type = uint8_t; };
+
     template <typename T>
     constexpr T dtype_cast(const void* data, dtype dtype) {
         if (data == nullptr) {

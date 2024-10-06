@@ -186,8 +186,8 @@ Tensor min(const Tensor& input, const std::vector<size_t>& axes = {}, bool keepD
 Tensor clip(const Tensor& input, const double& min, const double& max);
 
 // Creation functions
-Tensor zeros(const Shape& shape, dtype type = dtype::f32);
-Tensor ones(const Shape& shape, dtype type = dtype::f32);
+Tensor zeros(const Shape& shape, dtype type = dtype::s32);
+Tensor ones(const Shape& shape, dtype type = dtype::s32);
 Tensor rand(const Shape& shape, dtype type = dtype::f32);
 Tensor uniformRand(const Shape& shape, dtype type = dtype::f32);
 

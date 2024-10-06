@@ -5,7 +5,6 @@
 #include "smart_dnn/tensor/TensorBase.hpp"
 #include "smart_dnn/shape/ShapeOperations.hpp"
 #include "smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.hpp"
-#include "smart_dnn/tensor/Backend/ArrayFire/Utils.hpp"
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/shape/ShapeOperations.hpp"
 #include <typeindex>
@@ -43,26 +42,6 @@ GPUTensor::GPUTensor(const Shape& shape, af::array&& data, dtype type)
         throw std::invalid_argument("Data size does not match shape");
     }
     data_ = std::make_shared<af::array>(std::move(data));
-}
-
-template <typename T>
-GPUTensor::GPUTensor(const Shape& shape, const std::vector<T>& data)
-    : shape_(shape), type_(dtype_trait<T>::value) {
-    if (shape.size() != data.size()) {
-        throw std::invalid_argument("Data size does not match shape");
-    }
-    std::vector<dim_t> af_dims(shape.getDimensions().begin(), shape.getDimensions().end());
-    data_ = std::make_shared<af::array>(af::array(af_dims.size(), af_dims.data(), data.data()));
-}
-
-template <typename T>
-GPUTensor::GPUTensor(const Shape& shape, const T* data, size_t num_elements)
-    : shape_(shape), type_(dtype_trait<T>::value) {
-    if (shape.size() != num_elements) {
-        throw std::invalid_argument("Data size does not match shape");
-    }
-    std::vector<dim_t> af_dims(shape.getDimensions().begin(), shape.getDimensions().end());
-    data_ = std::make_shared<af::array>(af::array(af_dims.size(), af_dims.data(), data));
 }
 
 GPUTensor::GPUTensor(const GPUTensor& other)
@@ -109,12 +88,8 @@ void GPUTensor::set(const std::vector<size_t>& indices, const DataItem& value) {
     size_t flatIndex = computeFlatIndex(shape_, indices);
 
     af::array hostArray = (*data_);
-    void* hostData = hostArray.host<void>();
-
-    convert_dtype(static_cast<char*>(hostData) + flatIndex * dtype_size(type_), value.data, type_, value.type);
-
-    af::sync();
-    hostArray.write(hostData, hostArray.elements() * dtype_size(type_));
+    
+    // to be implemented
 }
 
 void GPUTensor::set(size_t index, const DataItem& value) {
@@ -123,12 +98,8 @@ void GPUTensor::set(size_t index, const DataItem& value) {
     }
 
     af::array hostArray = (*data_);
-    void* hostData = hostArray.host<void>();
-
-    convert_dtype(static_cast<char*>(hostData) + index * dtype_size(type_), value.data, type_, value.type);
-
-    af::sync();
-    hostArray.write(hostData, hostArray.elements() * dtype_size(type_));
+    float* hostData = hostArray.host<float>();
+    // to be implemented
 }
 
 Tensor GPUTensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) const {
@@ -252,6 +223,11 @@ double GPUTensor::getValueAsDouble(size_t index) const {
 
 void GPUTensor::setValueFromDouble(size_t index, double value) {
     (*data_)(index) = value;
+}
+
+void GPUTensor::getValueAsType(size_t index, const DataItem& data) const {
+    float* output_data = (*data_).host<float>();
+    // to be implemented
 }
 
 void GPUTensor::setValueFromType(size_t index, const DataItem& data) {
