@@ -117,10 +117,6 @@ namespace sdnn {
 
     template<typename Op>
     void CPUTensor::elementWiseOperation(const Tensor& other, Op op) {
-        if (shape_ != other.shape() || type_ != other.type()) {
-            throw std::invalid_argument("Tensor shapes or types do not match, shape_: " + shape_.toString() + " other.shape(): " + other.shape().toString() + " type_: " + dtypeToString(type_) + " other.type(): " + dtypeToString(other.type()));
-        }
-
         if (other.shape().size() != shape_.size()) {
             throw std::invalid_argument("Tensor shapes or types do not match, shape_: " + shape_.toString() + " other.shape(): " + other.shape().toString() + " type_: " + dtypeToString(type_) + " other.type(): " + dtypeToString(other.type()));
         }
@@ -132,16 +128,26 @@ namespace sdnn {
         accessData([&](size_t i) {
             applyTypedOperationHelper(type_, [&](auto dummy) {
                 using T = decltype(dummy);
-                T* a = reinterpret_cast<T*>(data_.get()) + i;  // Correctly accessing element 'a'
-    
+                T* a = reinterpret_cast<T*>(data_.get()) + i;
+
                 size_t bIndex = 0;
                 if (otherCPU.index_) {
                     std::vector<size_t> indices = unflattenIndex(i, shape_);
                     bIndex = otherCPU.index_->flattenIndex(indices);
                 }
 
-                const T* b = reinterpret_cast<const T*>(otherCPU.data_.get()) + bIndex;  // Correctly accessing element 'b'
-                op(*a, *b);  // Perform the element-wise operation
+                // Handle different types
+                if (type_ == otherCPU.type_) {
+                    const T* b = reinterpret_cast<const T*>(otherCPU.data_.get()) + bIndex;
+                    op(*a, *b);
+                } else {
+                    // Cast the value from otherCPU to the type of this tensor
+                    applyTypedOperationHelper(otherCPU.type_, [&](auto otherDummy) {
+                        using OtherT = decltype(otherDummy);
+                        const OtherT* b = reinterpret_cast<const OtherT*>(otherCPU.data_.get()) + bIndex;
+                        op(*a, static_cast<T>(*b));
+                    });
+                }
             });
         });
     }

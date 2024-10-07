@@ -25,35 +25,49 @@ public:
     virtual dtype type() const = 0;
 
     // Basic operations
-    virtual void addInPlace(const Tensor& other) = 0;
-    virtual void subtractInPlace(const Tensor& other) = 0;
-    virtual void multiplyInPlace(const Tensor& other) = 0;
-    virtual void divideInPlace(const Tensor& other) = 0;
+    virtual void add(const Tensor& other) = 0;
+    virtual void sub(const Tensor& other) = 0;
+    virtual void mul(const Tensor& other) = 0;
+    virtual void div(const Tensor& other) = 0;
 
     // Comparison operator
     virtual bool equal(const Tensor& other) const = 0;
     virtual bool greaterThan(const Tensor& other) const = 0;
     virtual bool lessThan(const Tensor& other) const = 0;
 
-    // Scalar operations
-    virtual void addScalarInPlace(double scalar) = 0;
-    virtual void subtractScalarInPlace(double scalar) = 0;
-    virtual void multiplyScalarInPlace(double scalar) = 0;
-    virtual void divideScalarInPlace(double scalar) = 0;
+    #define DECLARE_SCALAR_OPS(TYPE) \
+        virtual void addScalar(TYPE scalar) = 0; \
+        virtual void subScalar(TYPE scalar) = 0; \
+        virtual void mulScalar(TYPE scalar) = 0; \
+        virtual void divScalar(TYPE scalar) = 0; \
+        virtual void set(size_t index, TYPE value) = 0; \
+        virtual void set(const std::vector<size_t>& indices, TYPE value) = 0; \
+        virtual void fill(TYPE value) = 0; \
+        virtual void getValueAsType(size_t index, TYPE& value) const = 0; \
+
+    DECLARE_SCALAR_OPS(bool)
+    DECLARE_SCALAR_OPS(int)
+    DECLARE_SCALAR_OPS(unsigned int)
+    DECLARE_SCALAR_OPS(long)
+    DECLARE_SCALAR_OPS(unsigned long)
+    DECLARE_SCALAR_OPS(long long)
+    DECLARE_SCALAR_OPS(unsigned long long)
+    DECLARE_SCALAR_OPS(float)
+    DECLARE_SCALAR_OPS(double)
+    DECLARE_SCALAR_OPS(char)
+    DECLARE_SCALAR_OPS(unsigned char)
+    DECLARE_SCALAR_OPS(short)
+    DECLARE_SCALAR_OPS(unsigned short)
+
+    #undef DECLARE_SCALAR_OPS
 
     // String representation.
     virtual std::string toString() = 0;
     virtual std::string toDataString() = 0;
 
-    // Fill the tensor with a given value.
-    virtual void fill(const DataItem& value) = 0;
-
     // Element access.
     virtual Tensor at(const std::vector<size_t>& indices) const = 0;
     virtual Tensor at(size_t index) const = 0;
-    
-    virtual void set(size_t index, const DataItem& value) = 0;
-    virtual void set(const std::vector<size_t>& indices, const DataItem& value) = 0;
 
     virtual Tensor slice(const std::vector<std::pair<size_t, size_t>>& ranges) const = 0;
 
@@ -68,9 +82,6 @@ public:
 
     virtual double getValueAsDouble(size_t index) const = 0;
     virtual void setValueFromDouble(size_t index, double value) = 0;
-
-    virtual void getValueAsType(size_t index, const DataItem& data) const = 0;
-    virtual void setValueFromType(size_t index, const DataItem& data) = 0;
 };
 
 } // namespace sdnn

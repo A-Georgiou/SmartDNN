@@ -22,7 +22,8 @@ namespace sdnn {
         af::dim4 shapeToAfDim(const Shape& shape);
         std::vector<int> getArrayDimensionsAsIntVector(const af::array& array);
         Shape afDimToShape(const af::dim4& dim);
-        double getElementAsDouble(const af::array& arr, dim_t index, sdnn::dtype type);
+        double getElementAsDouble(const af::array& arr, dim_t index);
+        void assignElement(af::array& arr, dim_t index, void* value);
 
     } // namespace utils
 } // namespace sdnn

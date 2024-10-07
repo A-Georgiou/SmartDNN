@@ -61,6 +61,18 @@ public:
     Tensor& operator*=(const double& scalar);
     Tensor& operator/=(const double& scalar);
 
+    template <typename T>
+    Tensor& operator+=(const T& scalar);
+
+    template <typename T>
+    Tensor& operator-=(const T& scalar);
+
+    template <typename T>
+    Tensor& operator*=(const T& scalar);
+
+    template <typename T>
+    Tensor& operator/=(const T& scalar);
+
     Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other) noexcept;
 
@@ -108,9 +120,6 @@ public:
     void getValueAsType(size_t index, T* out) const;
 
     template <typename T>
-    void setValueFromType(size_t index, const T& value);
-
-    template <typename T>
     bool isSameType() const;
 
     template <typename T>
@@ -136,22 +145,65 @@ Tensor operator-(const Tensor& lhs, const Tensor& rhs);
 Tensor operator*(const Tensor& lhs, const Tensor& rhs);
 Tensor operator/(const Tensor& lhs, const Tensor& rhs);
 
-// Scalar operations
-Tensor add(const Tensor& tensor, const double& scalar);
-Tensor sub(const Tensor& tensor, const double& scalar);
-Tensor mul(const Tensor& tensor, const double& scalar);
-Tensor div(const Tensor& tensor, const double& scalar);
+template <typename T>
+Tensor add(const Tensor& tensor, const T& scalar) {
+    return tensor.backend().add(tensor, scalar);
+}
 
-// Scalar operator overloads
-Tensor operator+(const Tensor& tensor, const double& scalar);
-Tensor operator-(const Tensor& tensor, const double& scalar);
-Tensor operator*(const Tensor& tensor, const double& scalar);
-Tensor operator/(const Tensor& tensor, const double& scalar);
+template <typename T>
+Tensor sub(const Tensor& tensor, const T& scalar) {
+    return tensor.backend().sub(tensor, scalar);
+}
 
-Tensor operator+(const double& scalar, const Tensor& tensor);
-Tensor operator-(const double& scalar, const Tensor& tensor);
-Tensor operator*(const double& scalar, const Tensor& tensor);
-Tensor operator/(const double& scalar, const Tensor& tensor);
+template <typename T>
+Tensor mul(const Tensor& tensor, const T& scalar) {
+    return tensor.backend().mul(tensor, scalar);
+}
+
+template <typename T>
+Tensor div(const Tensor& tensor, const T& scalar) {
+    return tensor.backend().div(tensor, scalar);
+}
+
+template <typename T>
+Tensor operator+(const T& scalar, const Tensor& tensor) {
+    return tensor.backend().add(tensor, scalar);
+}
+
+template <typename T>
+Tensor operator-(const T& scalar, const Tensor& tensor) {
+    return tensor.backend().sub(tensor, scalar);
+}
+
+template <typename T>
+Tensor operator*(const T& scalar, const Tensor& tensor) {
+    return tensor.backend().mul(tensor, scalar);
+}
+
+template <typename T>
+Tensor operator/(const T& scalar, const Tensor& tensor) {
+    return tensor.backend().div(tensor, scalar);
+}
+
+template <typename T>
+Tensor operator+(const Tensor& tensor, const T& scalar) {
+    return tensor.backend().add(tensor, scalar);
+}
+
+template <typename T>
+Tensor operator-(const Tensor& tensor, const T& scalar) {
+    return tensor.backend().sub(tensor, scalar);
+}
+
+template <typename T>
+Tensor operator*(const Tensor& tensor, const T& scalar) {
+    return tensor.backend().mul(tensor, scalar);
+}
+
+template <typename T>
+Tensor operator/(const Tensor& tensor, const T& scalar) {
+    return tensor.backend().div(tensor, scalar);
+}
 
 Tensor greaterThan(const Tensor& lhs, const Tensor& rhs);
 Tensor lessThan(const Tensor& lhs, const Tensor& rhs);

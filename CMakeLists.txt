@@ -34,20 +34,34 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-add_executable(SmartDNN
+# Common source files
+set(COMMON_SOURCES
     src/main.cpp
     smart_dnn/tensor/TensorBase.cpp
     smart_dnn/tensor/TensorAdapterBase.cpp
     smart_dnn/tensor/TensorBackendUtil.cpp
-    smart_dnn/tensor/Backend/Default/CPUTensor.cpp
-    smart_dnn/tensor/Backend/Default/CPUTensorBackend.cpp
-    smart_dnn/tensor/Backend/ArrayFire/GPUTensor.cpp
-    smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.cpp
-    smart_dnn/tensor/Backend/ArrayFire/Utils.cpp
 )
 
-# Link ArrayFire library to SmartDNN executable
-target_link_libraries(SmartDNN ArrayFire::af)
+# Conditional source files
+if (USE_ARRAYFIRE_TENSORS)
+    set(TENSOR_SOURCES
+        smart_dnn/tensor/Backend/ArrayFire/GPUTensor.cpp
+        smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.cpp
+        smart_dnn/tensor/Backend/ArrayFire/Utils.cpp
+    )
+elseif (USE_CPU_TENSORS)
+    set(TENSOR_SOURCES
+        smart_dnn/tensor/Backend/Default/CPUTensor.cpp
+        smart_dnn/tensor/Backend/Default/CPUTensorBackend.cpp
+    )
+endif()
+
+# Create the executable with all source files
+add_executable(SmartDNN ${COMMON_SOURCES} ${TENSOR_SOURCES})
+
+if (USE_ARRAYFIRE_TENSORS)
+    target_link_libraries(SmartDNN ArrayFire::af)
+endif()
 
 # Enable logging for debug builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

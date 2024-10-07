@@ -80,28 +80,6 @@ Tensor GPUTensor::at(size_t index) const {
     return Tensor(std::make_unique<GPUTensor>(shape_, (*data_)(index), type_));
 }
 
-void GPUTensor::set(const std::vector<size_t>& indices, const DataItem& value) {
-    if (indices.size() != shape_.rank()) {
-        throw std::invalid_argument("Number of indices must match tensor rank");
-    }
-
-    size_t flatIndex = computeFlatIndex(shape_, indices);
-
-    af::array hostArray = (*data_);
-    
-    // to be implemented
-}
-
-void GPUTensor::set(size_t index, const DataItem& value) {
-    if (index >= shape_.size()) {
-        throw std::out_of_range("Index exceeds tensor size");
-    }
-
-    af::array hostArray = (*data_);
-    float* hostData = hostArray.host<float>();
-    // to be implemented
-}
-
 Tensor GPUTensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) const {
     if (ranges.size() > 4) {
         throw std::invalid_argument("ArrayFire only supports up to 4 dimensions");
@@ -127,41 +105,79 @@ Tensor GPUTensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) co
 }
 
 
-void GPUTensor::addInPlace(const Tensor& other) {
+void GPUTensor::add(const Tensor& other) {
     const GPUTensor& otherGPU = dynamic_cast<const GPUTensor&>(*other.tensorImpl_);
     *data_ += *otherGPU.data_;
 }
 
-void GPUTensor::subtractInPlace(const Tensor& other) {
+void GPUTensor::sub(const Tensor& other) {
     const GPUTensor& otherGPU = dynamic_cast<const GPUTensor&>(*other.tensorImpl_);
     *data_ -= *otherGPU.data_;
 }
 
-void GPUTensor::multiplyInPlace(const Tensor& other) {
+void GPUTensor::mul(const Tensor& other) {
     const GPUTensor& otherGPU = dynamic_cast<const GPUTensor&>(*other.tensorImpl_);
     *data_ *= *otherGPU.data_;
 }
 
-void GPUTensor::divideInPlace(const Tensor& other) {
+void GPUTensor::div(const Tensor& other) {
     const GPUTensor& otherGPU = dynamic_cast<const GPUTensor&>(*other.tensorImpl_);
     *data_ /= *otherGPU.data_;
 }
 
-void GPUTensor::addScalarInPlace(double scalar) {
-    *data_ += scalar;
-}
+#define IMPLEMENT_TYPE_SPECIFIC_OPS(TYPE) \
+    void GPUTensor::addScalar(TYPE scalar) { \
+        *data_ += scalar;  \
+    } \
+    void GPUTensor::subScalar(TYPE scalar) { \
+        *data_ -= scalar;  \
+    } \
+    void GPUTensor::mulScalar(TYPE scalar) { \
+        *data_ *= scalar;  \
+    } \
+    void GPUTensor::divScalar(TYPE scalar) { \
+        if (scalar == 0) throw std::runtime_error("Division by zero");  \
+        *data_ /= scalar;  \
+    } \
+    void GPUTensor::set(size_t index, TYPE value) { \
+        (*data_)(index) = value; \
+    } \
+    void GPUTensor::set(const std::vector<size_t>& indices, TYPE value) { \
+        size_t flatIndex = computeFlatIndex(shape_, indices); \
+        (*data_)(flatIndex) = value; \
+    } \
+    void GPUTensor::fill(TYPE value) { \
+        af::dim4 dims = utils::shapeToAfDim(shape_); \
+        af::array result = af::constant(value, dims, utils::sdnnToAfType(type_)); \
+        *data_ = result; \
+    } \
+    void GPUTensor::getValueAsType(size_t index, TYPE& value) const { \
+        if (std::is_same<TYPE, bool>::value) { \
+            throw std::runtime_error("ArrayFire does not support bool scalar extraction on this platform."); \
+        } else if (std::is_same<TYPE, long>::value) { \
+            value = static_cast<long>((*data_)(index).scalar<int64_t>()); \
+        } else if (std::is_same<TYPE, unsigned long>::value) { \
+            value = static_cast<unsigned long>((*data_)(index).scalar<uint64_t>()); \
+        } else { \
+            value = (*data_)(index).scalar<TYPE>(); \
+        } \
+    } \
 
-void GPUTensor::subtractScalarInPlace(double scalar) {
-    *data_ -= scalar;
-}
+IMPLEMENT_TYPE_SPECIFIC_OPS(bool)
+IMPLEMENT_TYPE_SPECIFIC_OPS(int)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned int)
+IMPLEMENT_TYPE_SPECIFIC_OPS(long)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long)
+IMPLEMENT_TYPE_SPECIFIC_OPS(long long)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long long)
+IMPLEMENT_TYPE_SPECIFIC_OPS(float)
+IMPLEMENT_TYPE_SPECIFIC_OPS(double)
+IMPLEMENT_TYPE_SPECIFIC_OPS(char)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned char)
+IMPLEMENT_TYPE_SPECIFIC_OPS(short)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned short)
 
-void GPUTensor::multiplyScalarInPlace(double scalar) {
-    *data_ *= scalar;
-}
-
-void GPUTensor::divideScalarInPlace(double scalar) {
-    *data_ /= scalar;
-}
+#undef IMPLEMENT_TYPE_SPECIFIC_OPS
 
 bool GPUTensor::equal(const Tensor& other) const {
     const GPUTensor& otherGPU = dynamic_cast<const GPUTensor&>(*other.tensorImpl_);
@@ -195,12 +211,6 @@ std::string GPUTensor::toDataString() {
     return af::toString("Tensor: ", (*data_));
 }
 
-void GPUTensor::fill(const DataItem& value) {
-    for (size_t i = 0; i < shape_.size(); i++) {
-        set(i, value);
-    }
-}
-
 void GPUTensor::reshape(const Shape& newShape) {
     if (shape_.size() != newShape.size()) {
         throw std::runtime_error("Number of elements must remain constant during reshape");
@@ -218,20 +228,11 @@ TensorBackend& GPUTensor::backend() const {
 }
 
 double GPUTensor::getValueAsDouble(size_t index) const {
-    return utils::getElementAsDouble(*data_, index, type_);
+    return utils::getElementAsDouble(*data_, index);
 }
 
 void GPUTensor::setValueFromDouble(size_t index, double value) {
     (*data_)(index) = value;
-}
-
-void GPUTensor::getValueAsType(size_t index, const DataItem& data) const {
-    float* output_data = (*data_).host<float>();
-    // to be implemented
-}
-
-void GPUTensor::setValueFromType(size_t index, const DataItem& data) {
-    set(index, data);
 }
 
 size_t GPUTensor::getFlatIndex(size_t index) const {

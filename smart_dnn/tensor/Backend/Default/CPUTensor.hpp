@@ -65,20 +65,40 @@ public:
 
     Tensor at(const std::vector<size_t>& indices) const override;
     Tensor at(size_t index) const override;
-    void set(const std::vector<size_t>& indices, const DataItem& value) override;
-    void set(size_t index, const DataItem& value) override;
     Tensor slice(const std::vector<std::pair<size_t, size_t>>& ranges) const override;
 
     // Operations
-    void addInPlace(const Tensor& other) override;
-    void subtractInPlace(const Tensor& other) override;
-    void multiplyInPlace(const Tensor& other) override;
-    void divideInPlace(const Tensor& other) override;
+    void add(const Tensor& other) override;
+    void sub(const Tensor& other) override;
+    void mul(const Tensor& other) override;
+    void div(const Tensor& other) override;
 
-    void addScalarInPlace(double scalar) override;
-    void subtractScalarInPlace(double scalar) override;
-    void multiplyScalarInPlace(double scalar) override;
-    void divideScalarInPlace(double scalar) override;
+    #define DECLARE_SCALAR_OPS(TYPE) \
+        void addScalar(TYPE scalar) override; \
+        void subScalar(TYPE scalar) override; \
+        void mulScalar(TYPE scalar) override; \
+        void divScalar(TYPE scalar) override; \
+        void set(size_t index, TYPE value) override; \
+        void set(const std::vector<size_t>& indices, TYPE value) override; \
+        void fill(TYPE value) override; \
+        void getValueAsType(size_t index, TYPE& value) const override; \
+
+    // Generate scalar operations for various types
+    DECLARE_SCALAR_OPS(bool)
+    DECLARE_SCALAR_OPS(int)
+    DECLARE_SCALAR_OPS(unsigned int)
+    DECLARE_SCALAR_OPS(long)
+    DECLARE_SCALAR_OPS(unsigned long)
+    DECLARE_SCALAR_OPS(long long)
+    DECLARE_SCALAR_OPS(unsigned long long)
+    DECLARE_SCALAR_OPS(float)
+    DECLARE_SCALAR_OPS(double)
+    DECLARE_SCALAR_OPS(char)
+    DECLARE_SCALAR_OPS(unsigned char)
+    DECLARE_SCALAR_OPS(short)
+    DECLARE_SCALAR_OPS(unsigned short)
+
+    #undef DECLARE_SCALAR_OPS
 
     // Utility functions
     bool equal(const Tensor& other) const override;
@@ -89,8 +109,6 @@ public:
     std::string toDataString() override;
 
     void apply(const std::function<void(double&)>& func);
-
-    void fill(const DataItem& value) override;
     CPUTensor subView(const std::vector<size_t>& indices) const;
 
     void reshape(const Shape& newShape) override;
@@ -124,8 +142,6 @@ public:
 
     double getValueAsDouble(size_t index) const override;
     void setValueFromDouble(size_t index, double value) override;
-    void setValueFromType(size_t index, const DataItem& data) override;
-    void getValueAsType(size_t index, const DataItem& data) const override;
 
 private:
     Shape shape_;

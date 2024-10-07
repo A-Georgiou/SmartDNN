@@ -38,7 +38,7 @@ public:
     GPUTensor(const Shape& shape, const T* data, size_t num_elements);
 
     template <typename T>
-    GPUTensor(const Shape& shape, T data, dtype type = dtype::f32);
+    GPUTensor(const Shape& shape, T data, dtype type);
 
     template <typename T>
     GPUTensor(const Shape& shape, T data);
@@ -62,20 +62,40 @@ public:
 
     Tensor at(const std::vector<size_t>& indices) const override;
     Tensor at(size_t index) const override;
-    void set(const std::vector<size_t>& indices, const DataItem& value) override;
-    void set(size_t index, const DataItem& value) override;
     Tensor slice(const std::vector<std::pair<size_t, size_t>>& ranges) const override;
 
     // Operations
-    void addInPlace(const Tensor& other) override;
-    void subtractInPlace(const Tensor& other) override;
-    void multiplyInPlace(const Tensor& other) override;
-    void divideInPlace(const Tensor& other) override;
+    void add(const Tensor& other) override;
+    void sub(const Tensor& other) override;
+    void mul(const Tensor& other) override;
+    void div(const Tensor& other) override;
 
-    void addScalarInPlace(double scalar) override;
-    void subtractScalarInPlace(double scalar) override;
-    void multiplyScalarInPlace(double scalar) override;
-    void divideScalarInPlace(double scalar) override;
+    #define DECLARE_SCALAR_OPS(TYPE) \
+        void addScalar(TYPE scalar) override; \
+        void subScalar(TYPE scalar) override; \
+        void mulScalar(TYPE scalar) override; \
+        void divScalar(TYPE scalar) override; \
+        void set(size_t index, TYPE value) override; \
+        void set(const std::vector<size_t>& indices, TYPE value) override; \
+        void fill(TYPE value) override; \
+        void getValueAsType(size_t index, TYPE& value) const override; \
+
+    // Generate scalar operations for various types
+    DECLARE_SCALAR_OPS(bool)
+    DECLARE_SCALAR_OPS(int)
+    DECLARE_SCALAR_OPS(unsigned int)
+    DECLARE_SCALAR_OPS(long)
+    DECLARE_SCALAR_OPS(unsigned long)
+    DECLARE_SCALAR_OPS(long long)
+    DECLARE_SCALAR_OPS(unsigned long long)
+    DECLARE_SCALAR_OPS(float)
+    DECLARE_SCALAR_OPS(double)
+    DECLARE_SCALAR_OPS(char)
+    DECLARE_SCALAR_OPS(unsigned char)
+    DECLARE_SCALAR_OPS(short)
+    DECLARE_SCALAR_OPS(unsigned short)
+
+    #undef DECLARE_SCALAR_OPS
 
     // Utility functions
     bool equal(const Tensor& other) const override;
@@ -85,16 +105,12 @@ public:
     std::string toString() override;
     std::string toDataString() override;
 
-    void fill(const DataItem& value) override;
-
     void reshape(const Shape& newShape) override;
     std::unique_ptr<TensorAdapter> clone() const override;
     TensorBackend& backend() const override;
 
     double getValueAsDouble(size_t index) const override;
     void setValueFromDouble(size_t index, double value) override;
-    void setValueFromType(size_t index, const DataItem& data) override;
-    void getValueAsType(size_t index, const DataItem& data) const override;
 
     af::array& getArray() { return *data_; }
 private:

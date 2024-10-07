@@ -37,7 +37,8 @@ namespace sdnn {
                 throw std::invalid_argument("Array proxy shape does not match the provided shape");
             }
         } else {
-            data_ = std::make_shared<af::array>(af::constant(value, utils::shapeToAfDim(shape), utils::sdnnToAfType(type)));
+            af::array temp = af::constant(value, utils::shapeToAfDim(shape), utils::sdnnToAfType(type));
+            data_ = std::make_shared<af::array>(temp);
         }
     }
 

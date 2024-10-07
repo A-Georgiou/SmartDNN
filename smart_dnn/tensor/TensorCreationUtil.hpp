@@ -16,10 +16,8 @@ namespace sdnn {
     template <typename... Args>
     inline std::unique_ptr<TensorAdapter> createTensorAdapter(Args&&... args) {
     #if USE_ARRAYFIRE_TENSORS
-        std::cout << "Creating GPUTensor" << std::endl;
         return std::make_unique<GPUTensor>(std::forward<Args>(args)...);
     #else
-        std::cout << "Creating CPUTensor" << std::endl;
         return std::make_unique<CPUTensor>(std::forward<Args>(args)...);
     #endif
     }

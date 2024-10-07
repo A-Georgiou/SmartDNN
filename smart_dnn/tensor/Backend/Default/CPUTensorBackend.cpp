@@ -16,12 +16,6 @@ namespace sdnn {
 
     CPUTensorBackend::~CPUTensorBackend() = default;
 
-    Tensor CPUTensorBackend::fill(const Shape& shape, const DataItem& value, dtype type) const {
-        auto tensorAdapter = createTensorAdapter(shape, type);
-        tensorAdapter->fill(value);
-        return Tensor(std::move(tensorAdapter));
-    }
-
     Tensor CPUTensorBackend::add(const Tensor& a, const Tensor& b) const {
         return elementWiseOp(a, b, std::plus<>());
     }
@@ -38,29 +32,47 @@ namespace sdnn {
         return elementWiseOp(a, b, std::divides<>());
     }
 
-    Tensor CPUTensorBackend::add(const Tensor& a, const double& scalar) const {
-        return scalarOp(a, scalar, std::plus<>());
-    }
+    #define IMPLEMENT_TYPE_SPECIFIC_OPS(TYPE) \
+        Tensor CPUTensorBackend::add(const Tensor& a, const TYPE& scalar) const { \
+            return scalarOp(a, scalar, std::plus<>());  \
+        } \
+        Tensor CPUTensorBackend::sub(const Tensor& a, const TYPE& scalar) const { \
+            return scalarOp(a, scalar, std::minus<>()); \
+        } \
+        Tensor CPUTensorBackend::mul(const Tensor& a, const TYPE& scalar) const { \
+            return scalarOp(a, scalar, std::multiplies<>());    \
+        } \
+        Tensor CPUTensorBackend::div(const Tensor& a, const TYPE& scalar) const { \
+            return scalarOp(a, scalar, std::divides<>());   \
+        } \
+        Tensor CPUTensorBackend::scalarSub(const TYPE& scalar, const Tensor& a) const { \
+            return scalarOp(a, scalar, [](auto a, auto b) { return b - a; });  \
+        } \
+        Tensor CPUTensorBackend::scalarDiv(const TYPE& scalar, const Tensor& a) const { \
+            return scalarOp(a, scalar, [](auto a, auto b) { return b / a; });  \
+        }  \
+        Tensor CPUTensorBackend::fill(const Shape& shape, const TYPE& fillValue, dtype type) const { \
+            auto tensorAdapter = createTensorAdapter(shape, fillValue, type); \
+            return Tensor(std::move(tensorAdapter)); \
+        } \
 
-    Tensor CPUTensorBackend::sub(const Tensor& a, const double& scalar) const {
-        return scalarOp(a, scalar, std::minus<>());
-    }
+    // Generate scalar operations for various types
+    IMPLEMENT_TYPE_SPECIFIC_OPS(bool)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(int)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned int)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(long)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(long long)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long long)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(float)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(double)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(char)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned char)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(short)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned short)
 
-    Tensor CPUTensorBackend::mul(const Tensor& a, const double& scalar) const {
-        return scalarOp(a, scalar, std::multiplies<>());
-    }
+    #undef IMPLEMENT_TYPE_SPECIFIC_OPS
 
-    Tensor CPUTensorBackend::div(const Tensor& a, const double& scalar) const {
-        return scalarOp(a, scalar, std::divides<>());
-    }
-
-    Tensor CPUTensorBackend::scalarSub(const double& scalar, const Tensor& tensor) const {
-        return scalarOp(tensor, scalar, [](auto a, auto b) { return b - a; });
-    }
-
-    Tensor CPUTensorBackend::scalarDiv(const double& scalar, const Tensor& tensor) const {
-        return scalarOp(tensor, scalar, [](auto a, auto b) { return b / a; });
-    }
 
     Tensor CPUTensorBackend::sumNoAxes(const Tensor& tensor) const {
         double sum = 0.0f;

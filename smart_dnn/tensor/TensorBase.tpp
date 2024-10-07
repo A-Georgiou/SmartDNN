@@ -28,14 +28,12 @@ namespace sdnn {
 
     template <typename T>
     void Tensor::set(size_t index, T data) {
-        T temp = std::forward<T>(data);
-        tensorImpl_->set(index, {static_cast<void*>(&temp), dtype_trait<T>::value});
+        tensorImpl_->set(index, data);
     }
 
     template <typename T>
     void Tensor::set(const std::vector<size_t>& indices, T data){
-        T temp = std::forward<T>(data);
-        tensorImpl_->set(indices, {static_cast<void*>(&temp), dtype_trait<T>::value});
+        tensorImpl_->set(indices, data);
     }
 
     template <typename T>
@@ -58,14 +56,8 @@ namespace sdnn {
     }
 
     template <typename T>
-    void Tensor::setValueFromType(size_t index, const T& value) {
-        tensorImpl_->setValueFromType(index, {static_cast<const void*>(&value), dtype_trait<T>::value});
-    }
-
-    template <typename T>
     Tensor fill(const Shape& shape, T fillValue, dtype type) {
-        const DataItem dItem = {static_cast<void*>(&fillValue), dtype_trait<T>::value};
-        return defaultTensorBackend().fill(shape, dItem, type);
+        return defaultTensorBackend().fill(shape, fillValue, type);
     }
 
     template <typename T>

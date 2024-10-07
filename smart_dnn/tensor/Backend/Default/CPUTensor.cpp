@@ -61,20 +61,6 @@ CPUTensor& CPUTensor::operator=(CPUTensor&& other) noexcept {
     return *this;
 }
 
-void CPUTensor::set(const std::vector<size_t>& indices, const DataItem& value) {
-    size_t flatIndex = index_ ? index_->flattenIndex(indices) : computeFlatIndex(shape_, indices);
-    set(flatIndex, value);
-}
-
-void CPUTensor::set(size_t index, const DataItem& value) {
-    if (index >= shape_.size()) {
-        throw std::out_of_range("Index out of range");
-    }
-    size_t byte_offset = index * dtype_size(type_);
-    void* dest = data_.get() + byte_offset;
-    convert_dtype(dest, value.data, type_, value.type);
-}
-
 Tensor CPUTensor::at(const std::vector<size_t>& indices) const {
         if (indices.size() != shape_.rank()) {
             throw std::invalid_argument("Number of indices doesn't match tensor dimensions");
@@ -121,41 +107,79 @@ Tensor CPUTensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) co
     return Tensor(std::make_unique<CPUTensor>(Shape(newShape), data_, type_, newIndex));
 }
 
-void CPUTensor::addInPlace(const Tensor& other) {
+void CPUTensor::add(const Tensor& other) {
     elementWiseOperation(other, [](auto& a, const auto& b) { a += b; });
 }
 
-void CPUTensor::subtractInPlace(const Tensor& other) {
+void CPUTensor::sub(const Tensor& other) {
     elementWiseOperation(other, [](auto& a, const auto& b) { a -= b; });
 }
 
-void CPUTensor::multiplyInPlace(const Tensor& other) {
+void CPUTensor::mul(const Tensor& other) {
     elementWiseOperation(other, [](auto& a, const auto& b) { a *= b; });
 }
 
-void CPUTensor::divideInPlace(const Tensor& other) {
+void CPUTensor::div(const Tensor& other) {
     elementWiseOperation(other, [](auto& a, const auto& b) { 
         if (b == 0) throw std::runtime_error("Division by zero");
         a /= b; 
     });
 }
 
-void CPUTensor::addScalarInPlace(double scalar) {
-    scalarOperation(scalar, [](auto& a, double b) { a += b; });
-}
+#define IMPLEMENT_TYPE_SPECIFIC_OPS(TYPE) \
+    void CPUTensor::addScalar(TYPE scalar) { \
+        scalarOperation(scalar, [](auto& a, double b) { a += b; });  \
+    } \
+    void CPUTensor::subScalar(TYPE scalar) { \
+        scalarOperation(scalar, [](auto& a, double b) { a -= b; });  \
+    } \
+    void CPUTensor::mulScalar(TYPE scalar) { \
+        scalarOperation(scalar, [](auto& a, double b) { a *= b; });  \
+    } \
+    void CPUTensor::divScalar(TYPE scalar) { \
+        if (scalar == 0) throw std::runtime_error("Division by zero");  \
+        scalarOperation(scalar, [](auto& a, double b) { a /= b; });  \
+    } \
+    void CPUTensor::set(size_t index, TYPE value) { \
+        if (index >= shape_.size()) { \
+            throw std::out_of_range("Index out of range"); \
+        } \
+        size_t byte_offset = index * dtype_size(type_); \
+        void* dest = data_.get() + byte_offset; \
+        convert_dtype(dest, value.data, type_, value.type); \
+    } \
+    void CPUTensor::set(const std::vector<size_t>& indices, TYPE value) { \
+        set(unflattenIndex(indices), value); \
+    } \
+    void CPUTensor::fill(TYPE value) { \
+        for (size_t i = 0; i < shape_.size(); ++i) { \
+            set(i, value); \
+        } \
+    } \
+    void CPUTensor::getValueAsType(size_t index, TYPE& value) const { \
+        if (index >= shape_.size()) { \
+            throw std::out_of_range("Index out of range"); \
+        } \
+        size_t byte_offset = index * dtype_size(type_); \
+        const void* src = data_.get() + byte_offset; \
+        convert_dtype(value.data, src, type_, value.type); \
+    } \
 
-void CPUTensor::subtractScalarInPlace(double scalar) {
-    scalarOperation(scalar, [](auto& a, double b) { a -= b; });
-}
+IMPLEMENT_TYPE_SPECIFIC_OPS(bool)
+IMPLEMENT_TYPE_SPECIFIC_OPS(int)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned int)
+IMPLEMENT_TYPE_SPECIFIC_OPS(long)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long)
+IMPLEMENT_TYPE_SPECIFIC_OPS(long long)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long long)
+IMPLEMENT_TYPE_SPECIFIC_OPS(float)
+IMPLEMENT_TYPE_SPECIFIC_OPS(double)
+IMPLEMENT_TYPE_SPECIFIC_OPS(char)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned char)
+IMPLEMENT_TYPE_SPECIFIC_OPS(short)
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned short)
 
-void CPUTensor::multiplyScalarInPlace(double scalar) {
-    scalarOperation(scalar, [](auto& a, double b) { a *= b; });
-}
-
-void CPUTensor::divideScalarInPlace(double scalar) {
-    if (scalar == 0) throw std::runtime_error("Division by zero");
-    scalarOperation(scalar, [](auto& a, double b) { a /= b; });
-}
+#undef IMPLEMENT_TYPE_SPECIFIC_OPS
 
 bool CPUTensor::equal(const Tensor& other) const {
     if (shape_ != other.shape() || type_ != other.type()) {
@@ -216,12 +240,6 @@ std::string CPUTensor::toDataString() {
     return ss.str();
 }
 
-void CPUTensor::fill(const DataItem& value) {
-    for (size_t i = 0; i < shape_.size(); ++i) {
-        set(i, value);
-    }
-}
-
 CPUTensor CPUTensor::subView(const std::vector<size_t>& indices) const {
     std::vector<size_t> newIndexMap;
     for (const auto& index : indices) {
@@ -272,19 +290,6 @@ void CPUTensor::setValueFromDouble(size_t index, double value) {
         }
     });
 }
-
-void CPUTensor::getValueAsType(size_t index, const DataItem& data) const {
-    size_t flatIndex = getFlatIndex(index);
-    size_t getPosition = flatIndex * dtype_size(type_);
-    convert_dtype(data.data, data_.get() + getPosition, data.type, type_);
-}
-
-void CPUTensor::setValueFromType(size_t index, const DataItem& data) {
-    size_t flatIndex = getFlatIndex(index);
-    size_t setPosition = flatIndex * dtype_size(type_);
-    convert_dtype(data_.get() + setPosition, data.data, type_, data.type);
-}
-
 
 size_t CPUTensor::getFlatIndex(size_t index) const {
     if (index_) {

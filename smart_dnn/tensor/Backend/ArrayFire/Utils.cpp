@@ -37,12 +37,21 @@ namespace sdnn {
             return afToSdnnTypeMap.at(type);
         }
 
-        af::dim4 shapeToAfDim(const Shape& shape){
-            af::dim4 dim;
-            for (size_t i = 0; i < shape.rank(); ++i) {
-                dim[i] = shape[i];
+        af::dim4 shapeToAfDim(const Shape& shape) {
+            size_t rank = shape.rank();
+            
+            switch (rank) {
+                case 1:
+                    return af::dim4(shape[0], 1, 1, 1);  // Rank 1: Only first dimension
+                case 2:
+                    return af::dim4(shape[0], shape[1], 1, 1);  // Rank 2: Set first two dimensions
+                case 3:
+                    return af::dim4(shape[0], shape[1], shape[2], 1);  // Rank 3: Set first three dimensions
+                case 4:
+                    return af::dim4(shape[0], shape[1], shape[2], shape[3]);  // Rank 4: Set all four dimensions
+                default:
+                    throw std::invalid_argument("Shape rank exceeds the supported 4 dimensions.");
             }
-            return dim;
         }
 
         std::vector<int> getArrayDimensionsAsIntVector(const af::array& array) {
@@ -59,13 +68,13 @@ namespace sdnn {
 
         Shape afDimToShape(const af::dim4& dim){
             std::vector<int> dims(dim.ndims());
-            for (size_t i = 0; i < dim.ndims(); ++i) {
+            for (int i = 0; i < dim.ndims(); ++i) {
                 dims[i] = dim[i];
             }
             return Shape(dims);
         }
 
-        double getElementAsDouble(const af::array& arr, dim_t index, sdnn::dtype type) {
+        double getElementAsDouble(const af::array& arr, dim_t index) {
             return arr(index).scalar<double>();
         }
 

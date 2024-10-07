@@ -20,27 +20,37 @@ public:
     CPUTensorBackend() = default;
     ~CPUTensorBackend();
 
-    Tensor fill(const Shape& shape, const DataItem& value, dtype type) const override;
-
-    template <typename T>
-    Tensor fill(const Shape& shape, const T fillValue, dtype type) const{
-        T fillValueTemp = fillValue;
-        return this->fill(shape, {&fillValueTemp, dtype_trait<T>::value}, type);
-    }
-
     // Basic operations
     Tensor add(const Tensor& a, const Tensor& b) const override;
     Tensor sub(const Tensor& a, const Tensor& b) const override;
     Tensor mul(const Tensor& a, const Tensor& b) const override;
     Tensor div(const Tensor& a, const Tensor& b) const override;
 
-    Tensor add(const Tensor& a, const double& scalar) const override;
-    Tensor sub(const Tensor& a, const double& scalar) const override;
-    Tensor mul(const Tensor& a, const double& scalar) const override;
-    Tensor div(const Tensor& a, const double& scalar) const override;
+    #define DECLARE_SCALAR_OPS(TYPE) \
+        Tensor add(const Tensor& a, const TYPE& scalar) const override; \
+        Tensor sub(const Tensor& a, const TYPE& scalar) const override; \
+        Tensor mul(const Tensor& a, const TYPE& scalar) const override; \
+        Tensor div(const Tensor& a, const TYPE& scalar) const override; \
+        Tensor scalarSub(const TYPE& scalar, const Tensor& tensor) const override; \
+        Tensor scalarDiv(const TYPE& scalar, const Tensor& tensor) const override; \
+        Tensor fill(const Shape& shape, const TYPE& fillValue, dtype type) const override;
 
-    Tensor scalarSub(const double& scalar, const Tensor& tensor) const override;
-    Tensor scalarDiv(const double& scalar, const Tensor& tensor) const override;
+    // Generate scalar operations for various types
+    DECLARE_SCALAR_OPS(bool)
+    DECLARE_SCALAR_OPS(int)
+    DECLARE_SCALAR_OPS(unsigned int)
+    DECLARE_SCALAR_OPS(long)
+    DECLARE_SCALAR_OPS(unsigned long)
+    DECLARE_SCALAR_OPS(long long)
+    DECLARE_SCALAR_OPS(unsigned long long)
+    DECLARE_SCALAR_OPS(float)
+    DECLARE_SCALAR_OPS(double)
+    DECLARE_SCALAR_OPS(char)
+    DECLARE_SCALAR_OPS(unsigned char)
+    DECLARE_SCALAR_OPS(short)
+    DECLARE_SCALAR_OPS(unsigned short)
+
+    #undef DECLARE_SCALAR_OPS
 
     Tensor sum(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor mean(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;

@@ -41,42 +41,22 @@ Tensor& Tensor::operator=(Tensor&& tensor) noexcept {
 }
 
 Tensor& Tensor::operator+=(const Tensor& other) {
-    tensorImpl_->addInPlace(other);
+    tensorImpl_->add(other);
     return *this;
 }
 
 Tensor& Tensor::operator-=(const Tensor& other) {
-    tensorImpl_->subtractInPlace(other);
+    tensorImpl_->sub(other);
     return *this;
 }
 
 Tensor& Tensor::operator*=(const Tensor& other) {
-    tensorImpl_->multiplyInPlace(other);
+    tensorImpl_->mul(other);
     return *this;
 }
 
 Tensor& Tensor::operator/=(const Tensor& other) {
-    tensorImpl_->divideInPlace(other);
-    return *this;
-}
-
-Tensor& Tensor::operator+=(const double& scalar) {
-    tensorImpl_->addScalarInPlace(scalar);
-    return *this;
-}
-
-Tensor& Tensor::operator-=(const double& scalar) {
-    tensorImpl_->subtractScalarInPlace(scalar);
-    return *this;
-}
-
-Tensor& Tensor::operator*=(const double& scalar) {
-    tensorImpl_->multiplyScalarInPlace(scalar);
-    return *this;
-}  
-
-Tensor& Tensor::operator/=(const double& scalar) {
-    tensorImpl_->divideScalarInPlace(scalar);
+    tensorImpl_->div(other);
     return *this;
 }
 
@@ -194,54 +174,6 @@ Tensor operator*(const Tensor& lhs, const Tensor& rhs) {
 
 Tensor operator/(const Tensor& lhs, const Tensor& rhs) {
     return div(lhs, rhs);
-}
-
-Tensor add(const Tensor& tensor, const double& scalar) {
-    return tensor.backend().add(tensor, scalar);
-}
-
-Tensor sub(const Tensor& tensor, const double& scalar) {
-    return tensor.backend().sub(tensor, scalar);
-}
-
-Tensor mul(const Tensor& tensor, const double& scalar) {
-    return tensor.backend().mul(tensor, scalar);
-}
-
-Tensor div(const Tensor& tensor, const double& scalar) {
-    return tensor.backend().div(tensor, scalar);
-}
-
-Tensor operator+(const Tensor& tensor, const double& scalar) {
-    return add(tensor, scalar);
-}
-
-Tensor operator-(const Tensor& tensor, const double& scalar) {
-    return sub(tensor, scalar);
-}
-
-Tensor operator*(const Tensor& tensor, const double& scalar) {
-    return mul(tensor, scalar);
-}
-
-Tensor operator/(const Tensor& tensor, const double& scalar) {
-    return div(tensor, scalar);
-}
-
-Tensor operator+(const double& scalar, const Tensor& tensor) {
-    return add(tensor, scalar);
-}
-
-Tensor operator-(const double& scalar, const Tensor& tensor) {
-    return tensor.backend().scalarSub(scalar, tensor);
-}
-
-Tensor operator*(const double& scalar, const Tensor& tensor) {
-    return mul(tensor, scalar);
-}
-
-Tensor operator/(const double& scalar, const Tensor& tensor) {
-    return tensor.backend().scalarDiv(scalar, tensor);
 }
 
 Tensor greaterThan(const Tensor& lhs, const Tensor& rhs) {

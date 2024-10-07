@@ -69,7 +69,7 @@ private:
 
    void updateTensor(Tensor& weight, const Tensor& gradient) {
         size_t key = reinterpret_cast<size_t>(&weight);
-        initializeMomentEstimates(key, weight.shape());
+        initializeMomentEstimates(key, weight.shape(), weight.type());
 
         float beta1Power = std::max(static_cast<float>(std::pow(beta1, iterations)), std::numeric_limits<float>::min());
         float beta2Power = std::max(static_cast<float>(std::pow(beta2, iterations)), std::numeric_limits<float>::min());
@@ -82,10 +82,10 @@ private:
         updateParameter(weight, gradient, mData, vData, alphaT);
     }
 
-    void initializeMomentEstimates(size_t key, const Shape& shape) {
+    void initializeMomentEstimates(size_t key, const Shape& shape, dtype type) {
         if (m.find(key) == m.end()) {
-            m.emplace(key, zeros(shape, dtype::f32));
-            v.emplace(key, zeros(shape, dtype::f32));
+            m.emplace(key, zeros(shape, type));
+            v.emplace(key, zeros(shape, type));
         }
     }
 
@@ -94,6 +94,10 @@ private:
             throw std::runtime_error("Shape mismatch in updateParameter");
         }
         if (weight.type() != gradient.type() || weight.type() != mValue.type() || weight.type() != vValue.type()) {
+            std::cout << "Weight type: " << dtypeToString(weight.type()) << std::endl;
+            std::cout << "Gradient type: " << dtypeToString(gradient.type()) << std::endl;
+            std::cout << "mValue type: " << dtypeToString(mValue.type()) << std::endl;
+            std::cout << "vValue type: " << dtypeToString(vValue.type()) << std::endl;
             throw std::runtime_error("Type mismatch in updateParameter");
         }
 
