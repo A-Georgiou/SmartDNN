@@ -146,10 +146,11 @@ void CPUTensor::div(const Tensor& other) {
         } \
         size_t byte_offset = index * dtype_size(type_); \
         void* dest = data_.get() + byte_offset; \
-        convert_dtype(dest, value.data, type_, value.type); \
+        dtype from_type = dtype_trait<TYPE>::value; \
+        convert_dtype(dest, &value, type_, from_type); \
     } \
     void CPUTensor::set(const std::vector<size_t>& indices, TYPE value) { \
-        set(unflattenIndex(indices), value); \
+        set(computeFlatIndex(shape_, indices), value); \
     } \
     void CPUTensor::fill(TYPE value) { \
         for (size_t i = 0; i < shape_.size(); ++i) { \
@@ -160,9 +161,10 @@ void CPUTensor::div(const Tensor& other) {
         if (index >= shape_.size()) { \
             throw std::out_of_range("Index out of range"); \
         } \
-        size_t byte_offset = index * dtype_size(type_); \
-        const void* src = data_.get() + byte_offset; \
-        convert_dtype(value.data, src, type_, value.type); \
+        size_t flatIndex = getFlatIndex(index); \
+        size_t getPosition = flatIndex * dtype_size(type_); \
+        dtype to_type = dtype_trait<TYPE>::value; \
+        convert_dtype(&value, data_.get() + getPosition, to_type, type_); \
     } \
 
 IMPLEMENT_TYPE_SPECIFIC_OPS(bool)

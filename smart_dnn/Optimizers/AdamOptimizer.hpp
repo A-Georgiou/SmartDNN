@@ -93,13 +93,6 @@ private:
         if (weight.shape() != gradient.shape() || weight.shape() != mValue.shape() || weight.shape() != vValue.shape()) {
             throw std::runtime_error("Shape mismatch in updateParameter");
         }
-        if (weight.type() != gradient.type() || weight.type() != mValue.type() || weight.type() != vValue.type()) {
-            std::cout << "Weight type: " << dtypeToString(weight.type()) << std::endl;
-            std::cout << "Gradient type: " << dtypeToString(gradient.type()) << std::endl;
-            std::cout << "mValue type: " << dtypeToString(mValue.type()) << std::endl;
-            std::cout << "vValue type: " << dtypeToString(vValue.type()) << std::endl;
-            throw std::runtime_error("Type mismatch in updateParameter");
-        }
 
         mValue = beta1 * mValue + (1.0f - beta1) * gradient;
         vValue = beta2 * vValue + (1.0f - beta2) * (gradient * gradient);

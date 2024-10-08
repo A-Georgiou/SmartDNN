@@ -33,14 +33,14 @@ namespace sdnn {
     CPUTensor::CPUTensor(const Shape& shape, T data, dtype type)
         : shape_(shape), type_(type) {
         allocateMemory();
-        fill({&data, type_});
+        fill(data);
     }
 
     template <typename T>
     CPUTensor::CPUTensor(const Shape& shape, T data)
         : shape_(shape), type_(dtype_trait<T>::value){
         allocateMemory();
-        fill({&data, type_});
+        fill(data);
     }
 
     template <typename T>
@@ -152,8 +152,8 @@ namespace sdnn {
         });
     }
 
-    template<typename Op>
-    void CPUTensor::scalarOperation(double scalar, Op op) {
+    template<typename U, typename Op>
+    void CPUTensor::scalarOperation(U scalar, Op op) {
         accessData([&](size_t i) {
             applyTypedOperationHelper(type_, [&](auto dummy) {
                 using T = decltype(dummy);

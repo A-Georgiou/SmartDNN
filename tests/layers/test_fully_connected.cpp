@@ -12,7 +12,7 @@ TEST(FullyConnectedLayerTest, ForwardPassHardcodedFullyConnected) {
     FullyConnectedLayer fcLayer(2, 3);  // Input size = 2, Output size = 3
 
     Tensor weightValues({2, 3}, {1.0f, 2.0f, 3.0f,
-                                        4.0f, 5.0f, 6.0f});
+                                 4.0f, 5.0f, 6.0f});
     Tensor biasValues({1, 3}, {0.1f, 0.2f, 0.3f});
 
     fcLayer.setWeights(weightValues);
@@ -157,12 +157,12 @@ TEST(FullyConnectedLayerTest, DifferentInputShapes) {
     // Test with a single sample (1D input)
     Tensor input1D({3}, {1.0f, 2.0f, 3.0f});
     Tensor output1D = fcLayer.forward(input1D);
-    ASSERT_EQ(output1D.shape(), Shape({2}));
+    ASSERT_EQ(output1D.shape(), Shape({1,2}));
 
     // Test with different single sample (1D input)
     Tensor input1D_2({3}, {4.0f, 5.0f, 6.0f});
     Tensor output1D_2 = fcLayer.forward(input1D_2);
-    ASSERT_EQ(output1D_2.shape(), Shape({2}));
+    ASSERT_EQ(output1D_2.shape(), Shape({1, 2}));
 
     // Test with multiple samples (2D input)
     Tensor input2D({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});

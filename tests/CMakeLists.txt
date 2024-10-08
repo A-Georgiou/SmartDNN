@@ -3,6 +3,19 @@ project(SmartDNNTesting)
 
 set(CMAKE_CXX_STANDARD 17)
 
+option(USE_CPU_TENSORS "Run SmartDNN without any additional libraries" ON)
+option(USE_ARRAYFIRE_TENSORS "Run SmartDNN with ArrayFire tensors" OFF)
+
+if (USE_ARRAYFIRE_TENSORS)
+    set(USE_CPU_TENSORS OFF)
+    message(STATUS "ARRAYFIRE TENSORS ENABLED")
+    find_package(ArrayFire REQUIRED)
+    add_definitions(-DUSE_ARRAYFIRE_TENSORS)
+elseif (USE_CPU_TENSORS)
+    set(USE_ARRAYFIRE_TENSORS OFF)
+    message(STATUS "CPU TENSORS ENABLED")
+endif()
+
 enable_testing()
 
 include(FetchContent)
@@ -17,14 +30,34 @@ include_directories(${PROJECT_SOURCE_DIR}/../)
 
 file(GLOB_RECURSE TEST_SOURCES main.cpp **/*.cpp)
 
-file(GLOB_RECURSE MAIN_SOURCES ${PROJECT_SOURCE_DIR}/../smart_dnn/**/*.cpp)
+set(COMMON_SOURCES
+    ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/TensorBase.cpp
+    ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/TensorAdapterBase.cpp
+    ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/TensorBackendUtil.cpp
+)
+
+if (USE_ARRAYFIRE_TENSORS)
+    set(TENSOR_SOURCES
+        ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/ArrayFire/GPUTensor.cpp
+        ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.cpp
+        ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/ArrayFire/Utils.cpp
+    )
+elseif (USE_CPU_TENSORS)
+    set(TENSOR_SOURCES
+    ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/Default/CPUTensor.cpp
+        ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/Default/CPUTensorBackend.cpp
+    )
+endif()
 
 list(FILTER TEST_SOURCES EXCLUDE REGEX ".*CMakeFiles/.*.cpp$")
 
 message("Test Sources: ${TEST_SOURCES}")
-message("Main Sources: ${MAIN_SOURCES}")
 
-add_executable(RunTests ${TEST_SOURCES} ${MAIN_SOURCES})
+add_executable(RunTests ${TEST_SOURCES} ${COMMON_SOURCES} ${TENSOR_SOURCES})
+
+if (USE_ARRAYFIRE_TENSORS)
+    target_link_libraries(RunTests ArrayFire::af)
+endif()
 
 target_link_libraries(RunTests GTest::gtest GTest::gtest_main)
 

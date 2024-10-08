@@ -37,6 +37,7 @@ namespace sdnn {
     struct dtype_trait;
 
     // Primary type definitions
+    template<> struct dtype_trait<bool> { static constexpr dtype value = dtype::b8; };
     template<> struct dtype_trait<float> { static constexpr dtype value = dtype::f32; };
     template<> struct dtype_trait<double> { static constexpr dtype value = dtype::f64; };
     template<> struct dtype_trait<int8_t> { static constexpr dtype value = dtype::s8; };

@@ -52,7 +52,8 @@ namespace sdnn {
             return scalarOp(a, scalar, [](auto a, auto b) { return b / a; });  \
         }  \
         Tensor CPUTensorBackend::fill(const Shape& shape, const TYPE& fillValue, dtype type) const { \
-            auto tensorAdapter = createTensorAdapter(shape, fillValue, type); \
+            auto tensorAdapter = createTensorAdapter(shape, type); \
+            tensorAdapter->fill(fillValue); \
             return Tensor(std::move(tensorAdapter)); \
         } \
 

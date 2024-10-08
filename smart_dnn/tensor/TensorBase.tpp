@@ -27,6 +27,30 @@ namespace sdnn {
     : tensorImpl_(createTensorAdapter(Shape(shape), dtype_trait<T>::value)) {}
 
     template <typename T>
+    Tensor& Tensor::operator+=(const T& scalar) {
+        tensorImpl_->addScalar(scalar);
+        return *this;
+    }
+
+    template <typename T>
+    Tensor& Tensor::operator-=(const T& scalar) {
+        tensorImpl_->subScalar(scalar);
+        return *this;
+    }
+
+    template <typename T>
+    Tensor& Tensor::operator*=(const T& scalar) {
+        tensorImpl_->mulScalar(scalar);
+        return *this;
+    }
+
+    template <typename T>
+    Tensor& Tensor::operator/=(const T& scalar) {
+        tensorImpl_->divScalar(scalar);
+        return *this;
+    }
+
+    template <typename T>
     void Tensor::set(size_t index, T data) {
         tensorImpl_->set(index, data);
     }
@@ -52,7 +76,7 @@ namespace sdnn {
 
     template <typename T>
     void Tensor::getValueAsType(size_t index, T* out) const {
-        tensorImpl_->getValueAsType(index, {out, dtype_trait<T>::value});
+        tensorImpl_->getValueAsType(index, *out);
     }
 
     template <typename T>

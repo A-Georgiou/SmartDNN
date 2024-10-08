@@ -12,8 +12,8 @@ namespace sdnn {
 class FullyConnectedLayer : public Layer {
 public:
     FullyConnectedLayer(int inputSize, int outputSize) {
-        weights.emplace(rand(Shape({inputSize, outputSize}), dtype::f32));
-        biases.emplace(zeros(Shape({1, outputSize}), dtype::f32));
+        weights.emplace(rand(Shape({inputSize, outputSize})));
+        biases.emplace(zeros(Shape({1, outputSize})));
     }
 
     /*
@@ -33,11 +33,12 @@ public:
         if (input.shape().rank() == 1) {
             reshapedInput = reshape(input, {1, input.shape()[0]});
         }
+
         Tensor output = matmul(reshapedInput, *weights);
         output = output + *biases;
 
-        if (input.shape().rank() == 1) {
-            output = reshape(output, {output.shape()[1]});
+        if (output.shape().rank() == 1) {
+            output = reshape(output, {1, output.shape()[0]});
         }
 
         return output;

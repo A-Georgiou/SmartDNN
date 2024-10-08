@@ -127,8 +127,8 @@ public:
     template<typename Op>
     void elementWiseOperation(const Tensor& other, Op op);
 
-    template<typename Op>
-    void scalarOperation(double scalar, Op op);
+    template<typename U, typename Op>
+    void scalarOperation(U scalar, Op op);
 
     template<typename T>
     T* typedData() {

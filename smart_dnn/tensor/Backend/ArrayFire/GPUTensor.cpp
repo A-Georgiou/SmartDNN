@@ -204,7 +204,7 @@ bool GPUTensor::lessThan(const Tensor& other) const {
 }
 
 std::string GPUTensor::toString() {
-    return af::toString("Tensor: ", (*data_));
+    return "Shape: " + shape_.toString() + "\n" + af::toString("Tensor: ", (*data_));
 }
 
 std::string GPUTensor::toDataString() {

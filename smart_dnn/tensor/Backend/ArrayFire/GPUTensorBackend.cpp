@@ -201,9 +201,6 @@ namespace sdnn {
     Tensor GPUTensorBackend::matmul(const Tensor& a, const Tensor& b) const {
         GPUTensor a_cpu = a.getImpl<GPUTensor>();
         GPUTensor b_cpu = b.getImpl<GPUTensor>();
-        if (a_cpu.getArray().type() != b_cpu.getArray().type()) {
-            throw std::invalid_argument("ArrayFire Error - Array types do not match");
-        }
         af::array result = af::matmul(a_cpu.getArray(), b_cpu.getArray());
         Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
         return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
@@ -504,8 +501,9 @@ namespace sdnn {
                     dimsVec.size() > 1 ? dimsVec[1] : 1,
                     dimsVec.size() > 2 ? dimsVec[2] : 1,
                     dimsVec.size() > 3 ? dimsVec[3] : 1);
-
-        af::array result = af::randu(dims, static_cast<af::dtype>(type));
+        
+        af::dtype afType = utils::sdnnToAfType(type);
+        af::array result = af::randu(dims, afType);
 
         Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
         return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
@@ -519,7 +517,8 @@ namespace sdnn {
                     dimsVec.size() > 2 ? dimsVec[2] : 1,
                     dimsVec.size() > 3 ? dimsVec[3] : 1);
 
-        af::array result = af::randu(dims, static_cast<af::dtype>(type));
+        af::dtype afType = utils::sdnnToAfType(type);
+        af::array result = af::randu(dims, afType);
 
         Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
         return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
@@ -533,7 +532,8 @@ namespace sdnn {
                     dimsVec.size() > 2 ? dimsVec[2] : 1,
                     dimsVec.size() > 3 ? dimsVec[3] : 1);
 
-        af::array result = af::randn(dims, static_cast<af::dtype>(type));
+        af::dtype afType = utils::sdnnToAfType(type);
+        af::array result = af::randn(dims, afType);
 
         Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
         return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
@@ -576,7 +576,8 @@ namespace sdnn {
     }
 
     Tensor GPUTensorBackend::identity(int size, dtype type) const {
-        af::array result = af::identity(size, static_cast<af::dtype>(type));
+        af::dtype afType = utils::sdnnToAfType(type);
+        af::array result = af::identity(size, afType);
 
         Shape output_shape = Shape(utils::getArrayDimensionsAsIntVector(result));
         return Tensor(std::make_unique<GPUTensor>(output_shape, result, type));
