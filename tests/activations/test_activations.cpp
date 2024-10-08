@@ -18,7 +18,8 @@ bool approxEqual(float a, float b, float epsilon = 1e-5f) {
 
 TEST(LeakyReLUTest, ForwardPass) {
     LeakyReLU leakyRelu(0.1f);
-    Tensor input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
+    Tensor input({2, 3}, {-2.0f, -1.0f, 0.0f,
+                          1.0f, 2.0f, 3.0f});
     Tensor output = leakyRelu.forward(input);
 
     ASSERT_EQ(output.shape(), input.shape());
@@ -128,18 +129,19 @@ TEST(TanhTest, BackwardPass) {
 
 TEST(SoftmaxTest, ForwardPass) {
     Softmax softmax;
-    Tensor input({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor input({2, 3}, {1.0f, 2.0f, 3.0f,
+                          4.0f, 5.0f, 6.0f});
     Tensor output = softmax.forward(input);
 
     ASSERT_EQ(output.shape(), input.shape());
     float sum1 = std::exp(1.0f) + std::exp(2.0f) + std::exp(3.0f);
     float sum2 = std::exp(4.0f) + std::exp(5.0f) + std::exp(6.0f);
-    EXPECT_TRUE(approxEqual(output.at<float>(0), std::exp(1.0f) / sum1));
-    EXPECT_TRUE(approxEqual(output.at<float>(1), std::exp(2.0f) / sum1));
-    EXPECT_TRUE(approxEqual(output.at<float>(2), std::exp(3.0f) / sum1));
-    EXPECT_TRUE(approxEqual(output.at<float>(3), std::exp(4.0f) / sum2));
-    EXPECT_TRUE(approxEqual(output.at<float>(4), std::exp(5.0f) / sum2));
-    EXPECT_TRUE(approxEqual(output.at<float>(5), std::exp(6.0f) / sum2));
+    EXPECT_NEAR(output.at<float>(0), std::exp(1.0f) / sum1, 1e-5);
+    EXPECT_NEAR(output.at<float>(1), std::exp(2.0f) / sum1, 1e-5);
+    EXPECT_NEAR(output.at<float>(2), std::exp(3.0f) / sum1, 1e-5);
+    EXPECT_NEAR(output.at<float>(3), std::exp(4.0f) / sum2, 1e-5);
+    EXPECT_NEAR(output.at<float>(4), std::exp(5.0f) / sum2, 1e-5);
+    EXPECT_NEAR(output.at<float>(5), std::exp(6.0f) / sum2, 1e-5);
 }
 
 TEST(SoftmaxTest, BackwardPass) {

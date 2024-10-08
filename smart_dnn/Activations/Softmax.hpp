@@ -34,7 +34,7 @@ public:
         Tensor expInput = exp(shiftedInput);
 
         Tensor sumExp = sum(expInput, featureDims, true);
-        
+                
         return expInput / sumExp;
     }
 

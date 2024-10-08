@@ -238,8 +238,46 @@ void GPUTensor::setValueFromDouble(size_t index, double value) {
 size_t GPUTensor::getFlatIndex(size_t index) const {
     if (index_) {
         std::vector<size_t> indices = unflattenIndex(index, shape_);
-        return index_->flattenIndex(indices);
+        return rowMajorToColumnMajorIndex(indices, shape_);
     }
-    return index;
+    return rowWiseToColumnMajorIndex(index, shape_);
 }
+
+size_t GPUTensor::rowMajorToColumnMajorIndex(const std::vector<size_t>& indices, const Shape& shape) const {
+    size_t columnMajorIndex = 0;
+    size_t stride = 1;
+
+    for (size_t i = 0; i < indices.size(); ++i) {
+        columnMajorIndex += indices[i] * stride;
+        stride *= shape.getDimensions()[i];
+    }
+
+    return columnMajorIndex;
+}
+
+size_t GPUTensor::rowWiseToColumnMajorIndex(size_t rowWiseIndex, const Shape& shape) const {
+    std::vector<int> dims = shape_.getDimensions();
+    size_t numDims = dims.size();
+    
+    if (numDims < 2) {
+        return rowWiseIndex;
+    }
+
+    std::vector<size_t> positions(numDims);
+    size_t remaining = rowWiseIndex;
+    for (int i = numDims - 1; i >= 0; --i) {
+        positions[i] = remaining % dims[i];
+        remaining /= dims[i];
+    }
+
+    size_t columnMajorIndex = 0;
+    size_t stride = 1;
+    for (size_t i = 0; i < numDims; ++i) {
+        columnMajorIndex += positions[i] * stride;
+        stride *= dims[i];
+    }
+
+    return columnMajorIndex;
+}
+
 }

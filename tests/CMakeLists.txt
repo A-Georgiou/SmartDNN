@@ -51,7 +51,10 @@ endif()
 
 list(FILTER TEST_SOURCES EXCLUDE REGEX ".*CMakeFiles/.*.cpp$")
 
-message("Test Sources: ${TEST_SOURCES}")
+if (USE_ARRAYFIRE_TENSORS)
+    list(FILTER TEST_SOURCES EXCLUDE REGEX ".*/tensor/test_templated_functions.cpp$")
+endif()
+
 
 add_executable(RunTests ${TEST_SOURCES} ${COMMON_SOURCES} ${TENSOR_SOURCES})
 

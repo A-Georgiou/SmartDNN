@@ -149,10 +149,9 @@ namespace sdnn {
     }
 
     Tensor GPUTensorBackend::selectMax(const Tensor& tensor, const double& value) const {
-        GPUTensor tensor_cpu = tensor.getImpl<GPUTensor>();
-        af::array result = tensor_cpu.getArray();
-        af::array mask = result >= value;
-        af::array selected = af::select(result, mask, af::array());
+        GPUTensor tensor_gpu = tensor.getImpl<GPUTensor>();
+        af::array result = tensor_gpu.getArray();
+        af::array selected = af::select(result >= value, result, 0.0);
         Shape shape = Shape(utils::getArrayDimensionsAsIntVector(selected));
         return Tensor(std::make_unique<GPUTensor>(shape, selected, tensor.type()));
     }
@@ -163,7 +162,6 @@ namespace sdnn {
         af::array aArray = aImpl.getArray();
         af::array bArray = bImpl.getArray();
 
-        // Element-wise comparison for maximum
         af::array comparisonResult = af::max(aArray, bArray);  
         Shape shape = Shape(utils::getArrayDimensionsAsIntVector(comparisonResult));
         return Tensor(std::make_unique<GPUTensor>(shape, comparisonResult, a.type()));
