@@ -78,6 +78,22 @@ namespace sdnn {
             return arr(index).scalar<double>();
         }
 
+        size_t rowMajorToColumnMajorIndex(const std::vector<size_t>& indices, const Shape& shape) {
+            std::vector<size_t> reversedIndices = indices;
+            std::reverse(reversedIndices.begin(), reversedIndices.end());
+
+            size_t columnMajorIndex = 0;
+            size_t stride = 1;
+
+            for (size_t i = 0; i < reversedIndices.size(); ++i) {
+                columnMajorIndex += reversedIndices[i] * stride;
+                stride *= shape.getDimensions()[i];
+            }
+
+            return columnMajorIndex;
+        }
+
+
     } // namespace utils
 } // namespace sdnn
 

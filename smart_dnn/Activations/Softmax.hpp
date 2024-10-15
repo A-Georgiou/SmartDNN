@@ -32,7 +32,7 @@ public:
         Tensor maxValues = max(input, featureDims, true);
         Tensor shiftedInput = input - maxValues;
         Tensor expInput = exp(shiftedInput);
-
+        
         Tensor sumExp = sum(expInput, featureDims, true);
                 
         return expInput / sumExp;

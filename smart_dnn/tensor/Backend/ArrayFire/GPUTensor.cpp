@@ -73,11 +73,13 @@ GPUTensor& GPUTensor::operator=(GPUTensor&& other) noexcept {
 }
 
 Tensor GPUTensor::at(const std::vector<size_t>& indices) const {
-    return Tensor(std::make_unique<GPUTensor>(shape_, (*data_)(computeFlatIndex(shape_, indices)), type_));
+    size_t colMajorIndex = getFlatIndex(computeFlatIndex(shape_, indices));
+    return Tensor(std::make_unique<GPUTensor>(shape_, (*data_)(colMajorIndex), type_));
 }
 
 Tensor GPUTensor::at(size_t index) const {
-    return Tensor(std::make_unique<GPUTensor>(shape_, (*data_)(index), type_));
+    size_t colMajorIndex = getFlatIndex(index);
+    return Tensor(std::make_unique<GPUTensor>(shape_, (*data_)(colMajorIndex), type_));
 }
 
 Tensor GPUTensor::slice(const std::vector<std::pair<size_t, size_t>>& ranges) const {
@@ -140,7 +142,8 @@ void GPUTensor::div(const Tensor& other) {
         *data_ /= scalar;  \
     } \
     void GPUTensor::set(size_t index, TYPE value) { \
-        (*data_)(index) = value; \
+        size_t colMajorIndex = getFlatIndex(index); \
+        (*data_)(colMajorIndex) = value; \
     } \
     void GPUTensor::set(const std::vector<size_t>& indices, TYPE value) { \
         size_t flatIndex = computeFlatIndex(shape_, indices); \
@@ -152,14 +155,15 @@ void GPUTensor::div(const Tensor& other) {
         *data_ = result; \
     } \
     void GPUTensor::getValueAsType(size_t index, TYPE& value) const { \
+        size_t flat_index = getFlatIndex(index); \
         if (std::is_same<TYPE, bool>::value) { \
             throw std::runtime_error("ArrayFire does not support bool scalar extraction on this platform."); \
         } else if (std::is_same<TYPE, long>::value) { \
-            value = static_cast<long>((*data_)(index).scalar<int64_t>()); \
+            value = static_cast<long>((*data_)(flat_index).scalar<int64_t>()); \
         } else if (std::is_same<TYPE, unsigned long>::value) { \
-            value = static_cast<unsigned long>((*data_)(index).scalar<uint64_t>()); \
+            value = static_cast<unsigned long>((*data_)(flat_index).scalar<uint64_t>()); \
         } else { \
-            value = (*data_)(index).scalar<TYPE>(); \
+            value = (*data_)(flat_index).scalar<TYPE>(); \
         } \
     } \
 
@@ -236,11 +240,8 @@ void GPUTensor::setValueFromDouble(size_t index, double value) {
 }
 
 size_t GPUTensor::getFlatIndex(size_t index) const {
-    if (index_) {
-        std::vector<size_t> indices = unflattenIndex(index, shape_);
-        return rowMajorToColumnMajorIndex(indices, shape_);
-    }
-    return rowWiseToColumnMajorIndex(index, shape_);
+    size_t output = rowWiseToColumnMajorIndex(index, shape_);
+    return output;
 }
 
 size_t GPUTensor::rowMajorToColumnMajorIndex(const std::vector<size_t>& indices, const Shape& shape) const {

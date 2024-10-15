@@ -25,6 +25,8 @@ namespace sdnn {
         double getElementAsDouble(const af::array& arr, dim_t index);
         void assignElement(af::array& arr, dim_t index, void* value);
 
+        af::array rowMajorToColumnMajor(const std::vector<size_t>& indices, const Shape& shape);
+
     } // namespace utils
 } // namespace sdnn
 
