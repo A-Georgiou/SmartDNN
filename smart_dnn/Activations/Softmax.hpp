@@ -27,12 +27,12 @@ public:
         }
 
         std::vector<size_t> featureDims(input.shape().rank() - 1);
-        std::iota(featureDims.begin(), featureDims.end(), 1);  // [1, 2, ..., rank-1]
+        std::iota(featureDims.begin(), featureDims.end(), 1);
 
         Tensor maxValues = max(input, featureDims, true);
         Tensor shiftedInput = input - maxValues;
         Tensor expInput = exp(shiftedInput);
-        
+
         Tensor sumExp = sum(expInput, featureDims, true);
                 
         return expInput / sumExp;

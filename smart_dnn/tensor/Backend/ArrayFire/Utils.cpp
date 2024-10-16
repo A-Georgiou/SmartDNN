@@ -58,10 +58,12 @@ namespace sdnn {
             af::dim4 dims = array.dims();
             std::vector<int> dimVector;
 
-            for (int i = 0; i < 4; ++i) {
-                if (dims[i] > 1) {
-                    dimVector.push_back(static_cast<int>(dims[i]));
-                }
+            int i = 3;
+            while (i > 0 && dims[i] == 1) {
+                i--;
+            }
+            for (int j = 0; j <= i; ++j) {
+                dimVector.push_back(dims[j]);
             }
             return dimVector;
         }
