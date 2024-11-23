@@ -200,6 +200,7 @@ namespace sdnn {
         GPUTensor a_cpu = a.getImpl<GPUTensor>();
         GPUTensor b_cpu = b.getImpl<GPUTensor>();
         af::array result = af::matmul(a_cpu.getArray(), b_cpu.getArray());
+
         Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
         return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
     }

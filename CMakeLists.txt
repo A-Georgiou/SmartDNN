@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 project(SmartDNN)
 set(CMAKE_CXX_STANDARD 17)
 
-option(USE_CPU_TENSORS "Run SmartDNN without any additional libraries" ON)
-option(USE_ARRAYFIRE_TENSORS "Run SmartDNN with ArrayFire tensors" OFF)
+option(USE_CPU_TENSORS "Run SmartDNN without any additional libraries" OFF)
+option(USE_ARRAYFIRE_TENSORS "Run SmartDNN with ArrayFire tensors" ON)
 
 if (USE_ARRAYFIRE_TENSORS)
     set(USE_CPU_TENSORS OFF)
