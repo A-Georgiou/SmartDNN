@@ -118,10 +118,6 @@ private:
     dtype type_;
     std::shared_ptr<af::array> data_;
     std::optional<TensorIndex> index_;
-
-    size_t getFlatIndex(size_t index) const;
-    size_t rowMajorToColumnMajorIndex(const std::vector<size_t>& indices, const Shape& shape) const;
-    size_t rowWiseToColumnMajorIndex(size_t rowWiseIndex, const Shape& shape) const;
 };
 
 } // namespace sdnn

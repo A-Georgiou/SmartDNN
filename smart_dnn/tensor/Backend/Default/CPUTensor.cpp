@@ -61,7 +61,7 @@ CPUTensor& CPUTensor::operator=(CPUTensor&& other) noexcept {
     return *this;
 }
 
-Tensor CPUTensor::at(const std::vector<size_t>& indices) const {
+    Tensor CPUTensor::at(const std::vector<size_t>& indices) const {
         if (indices.size() != shape_.rank()) {
             throw std::invalid_argument("Number of indices doesn't match tensor dimensions");
         }
@@ -69,7 +69,7 @@ Tensor CPUTensor::at(const std::vector<size_t>& indices) const {
         return at(flatIndex);
     }
 
-Tensor CPUTensor::at(size_t index) const {
+    Tensor CPUTensor::at(size_t index) const {
         if (index >= shape_.size()) {
             throw std::out_of_range("Index out of range");
         }

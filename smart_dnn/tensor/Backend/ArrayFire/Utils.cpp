@@ -38,32 +38,21 @@ namespace sdnn {
         }
 
         af::dim4 shapeToAfDim(const Shape& shape) {
-            size_t rank = shape.rank();
-            
-            switch (rank) {
-                case 1:
-                    return af::dim4(shape[0], 1, 1, 1);  // Rank 1: Only first dimension
-                case 2:
-                    return af::dim4(shape[0], shape[1], 1, 1);  // Rank 2: Set first two dimensions
-                case 3:
-                    return af::dim4(shape[0], shape[1], shape[2], 1);  // Rank 3: Set first three dimensions
-                case 4:
-                    return af::dim4(shape[0], shape[1], shape[2], shape[3]);  // Rank 4: Set all four dimensions
-                default:
-                    throw std::invalid_argument("Shape rank exceeds the supported 4 dimensions.");
-            }
+            std::vector<int> dims = shape.getDimensions();
+            return af::dim4(
+                dims.size() > 0 ? dims[0] : 1,
+                dims.size() > 1 ? dims[1] : 1,
+                dims.size() > 2 ? dims[2] : 1,
+                dims.size() > 3 ? dims[3] : 1
+            );
         }
 
         std::vector<int> getArrayDimensionsAsIntVector(const af::array& array) {
             af::dim4 dims = array.dims();
             std::vector<int> dimVector;
-
-            int i = 3;
-            while (i > 0 && dims[i] == 1) {
-                i--;
-            }
-            for (int j = 0; j <= i; ++j) {
-                dimVector.push_back(dims[j]);
+            
+            for (int i = 0; i < 4 && dims[i] > 1; ++i) {
+                dimVector.push_back(dims[i]);
             }
             return dimVector;
         }
@@ -79,23 +68,6 @@ namespace sdnn {
         double getElementAsDouble(const af::array& arr, dim_t index) {
             return arr(index).scalar<double>();
         }
-
-        size_t rowMajorToColumnMajorIndex(const std::vector<size_t>& indices, const Shape& shape) {
-            std::vector<size_t> reversedIndices = indices;
-            std::reverse(reversedIndices.begin(), reversedIndices.end());
-
-            size_t columnMajorIndex = 0;
-            size_t stride = 1;
-
-            for (size_t i = 0; i < reversedIndices.size(); ++i) {
-                columnMajorIndex += reversedIndices[i] * stride;
-                stride *= shape.getDimensions()[i];
-            }
-
-            return columnMajorIndex;
-        }
-
-
     } // namespace utils
 } // namespace sdnn
 

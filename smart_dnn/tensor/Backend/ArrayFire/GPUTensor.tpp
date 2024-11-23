@@ -8,9 +8,7 @@ namespace sdnn {
             throw std::invalid_argument("Data size does not match shape");
         }
 
-        std::vector<T> data_col_major(data.size());
-        convertRowMajorToColumnMajor(data.data(), data_col_major.data(), shape);
-        data_ = std::make_shared<af::array>(utils::shapeToAfDim(shape), data_col_major.data());
+        data_ = std::make_shared<af::array>(utils::shapeToAfDim(shape), data.data());
     }
 
     template <typename T>
@@ -20,9 +18,7 @@ namespace sdnn {
             throw std::invalid_argument("Data size does not match shape");
         }
 
-        std::vector<T> data_col_major(data.size());
-        convertRowMajorToColumnMajor(data.data(), data_col_major.data(), shape);
-        data_ = std::make_shared<af::array>(utils::shapeToAfDim(shape), data_col_major.data());
+        data_ = std::make_shared<af::array>(utils::shapeToAfDim(shape), data.data());
     }
 
     template <typename T>
@@ -31,10 +27,7 @@ namespace sdnn {
         if (shape.size() != num_elements) {
             throw std::invalid_argument("Number of elements does not match shape");
         }
-
-        std::vector<T> data_col_major(num_elements);
-        convertRowMajorToColumnMajor(data, data_col_major.data(), shape);
-        data_ = std::make_shared<af::array>(utils::shapeToAfDim(shape), data_col_major.data());
+        data_ = std::make_shared<af::array>(utils::shapeToAfDim(shape), data);
     }
 
     template <typename T>
@@ -46,8 +39,9 @@ namespace sdnn {
                 throw std::invalid_argument("Array proxy shape does not match the provided shape");
             }
         } else {
-            af::array temp = af::constant(value, utils::shapeToAfDim(shape), utils::sdnnToAfType(type));
-            data_ = std::make_shared<af::array>(temp);
+            data_ = std::make_shared<af::array>(
+                af::constant(value, utils::shapeToAfDim(shape), utils::sdnnToAfType(type))
+            );
         }
     }
 
@@ -63,32 +57,7 @@ namespace sdnn {
         if (shape.size() != values.size()) {
             throw std::invalid_argument("Initializer list size does not match shape");
         }
-        std::vector<T> values_col_major(values);
-        convertRowMajorToColumnMajor(values.begin(), values_col_major.data(), shape);
-        data_ = std::make_shared<af::array>(utils::shapeToAfDim(shape), values_col_major.data());
+        std::vector<T> data(values.begin(), values.end());
+        data_ = std::make_shared<af::array>(utils::shapeToAfDim(shape), data.data());
     }
-
-    template <typename T>
-    void convertRowMajorToColumnMajor(const T* srcData, T* dstData, const Shape& shape) {
-        size_t totalElements = shape.size();
-        std::vector<size_t> indices(shape.rank());
-
-        for (size_t idx = 0; idx < totalElements; ++idx) {
-            size_t remaining = idx;
-            for (int i = shape.rank() - 1; i >= 0; --i) {
-                indices[i] = remaining % shape[i];
-                remaining /= shape[i];
-            }
-
-            size_t colMajorIndex = 0;
-            size_t stride = 1;
-            for (size_t i = 0; i < shape.rank(); ++i) {
-                colMajorIndex += indices[i] * stride;
-                stride *= shape[i];
-            }
-
-            dstData[colMajorIndex] = srcData[idx];
-        }
-    }
-
 }
