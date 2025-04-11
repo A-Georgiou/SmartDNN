@@ -1,151 +1,182 @@
-
-# SmartDNN - A High-Performance C++ Deep Learning Library
+# SmartDNN
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![C++](https://img.shields.io/badge/language-C%2B%2B-orange.svg)](https://isocpp.org/)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/a-georgiou/SmartDNN)
 
-SmartDNN is a modern C++ deep learning library designed to offer a flexible and efficient framework for developing and training deep neural networks. With a focus on providing a high-level API, SmartDNN simplifies the process of building and training various neural network architectures while maintaining the performance advantages of C++.
+A high-performance C++ deep learning library designed for flexibility and efficiency.
+
+## Overview
+
+SmartDNN is a modern C++ deep learning framework that offers a clean, intuitive API for building and training neural networks while maintaining C++'s performance advantages. The library focuses on providing a high-level interface that simplifies neural network development without sacrificing computational efficiency.
+
+### Key Features
+
+- **Flexible Architecture**: Easily build and customize neural network architectures
+- **High Performance**: Optimized C++ implementation with significant runtime improvements
+- **Comprehensive Layer Support**: Full suite of essential neural network layers
+- **Customizable Training**: Multiple loss functions and optimization methods
+- **Clean API**: Intuitive interface for model building and training
+
+## Performance Highlights
+
+SmartDNN leverages templated C++ to deliver exceptional performance gains:
+
+### Linear Regression Model (1000 samples, 1000 epochs)
+- **Non-templated runtime**: ~17680ms
+- **Optimized templated runtime**: ~8325ms
+- **Performance gain**: ~53% improvement
+
+### MNIST Classification (1000 samples, batch size: 64, 1000 epochs)
+- **Non-templated runtime**: ~83 minutes per epoch
+- **Optimized templated runtime**: ~10969ms per epoch
+- **Performance gain**: ~99.8% improvement
 
 ## Getting Started
 
-Creating your first neural network with SmartDNN is straightforward. Define your model's architecture using a variety of available layers, compile it with your chosen loss function and optimizer, and then train it using your dataset.
-
-#### Example Linear Regression Model
+Creating your first neural network with SmartDNN is straightforward:
 
 ```cpp
-int epochs = 100;
-float learningRate = 0.001f;
-
+// Initialize the model
 SmartDNN model;
 
-model.addLayer( FullyConnectedLayer(10, 100) );     // Fully Connected Layer - 10 -> 100
-model.addLayer( ActivationLayer( ReLU()) );         // Activation Function Layer - ReLU.
-model.addLayer( FullyConnectedLayer(100, 100) );    // Fully Connected Layer - 100 -> 100
-model.addLayer( ActivationLayer( Sigmoid() ) );     // Activation Function Layer - Sigmoid.
-model.addLayer( FullyConnectedLayer(100, 10) );     // Fully Connected Layer - 100 -> 10
-model.addLayer( ActivationLayer( Softmax() ) );     // Activation Function Layer - Softmax.
+// Define architecture
+model.addLayer(FullyConnectedLayer(10, 100));        // Input -> Hidden
+model.addLayer(ActivationLayer(ReLU()));             // ReLU activation
+model.addLayer(FullyConnectedLayer(100, 100));       // Hidden -> Hidden
+model.addLayer(ActivationLayer(Sigmoid()));          // Sigmoid activation
+model.addLayer(FullyConnectedLayer(100, 10));        // Hidden -> Output
+model.addLayer(ActivationLayer(Softmax()));          // Softmax for classification
 
+// Compile and train
 model.compile(MSELoss(), AdamOptimizer());
 model.train(inputs, targets, epochs);
 ```
 
-#### Example MNist Model
+## Advanced Example: MNIST CNN Model
 
 ```cpp
-// Initialize the SmartDNN MNist model
+// Initialize the SmartDNN MNIST model
 SmartDNN<float> model;
 
-model.addLayer( Conv2DLayer(1, 32, 3) );            // Conv2D layer.
-model.addLayer( BatchNormalizationLayer(32) );      // Batch normalization after Conv2D.
-model.addLayer( ActivationLayer( ReLU() ) );        // ReLU activation.
-model.addLayer( MaxPooling2DLayer(2, 2) );          // Added MaxPooling.
-model.addLayer( DropoutLayer(0.25f) );              // Reduced dropout rate.
+// Convolutional layers
+model.addLayer(Conv2DLayer(1, 32, 3));               // Conv2D layer
+model.addLayer(BatchNormalizationLayer(32));         // Batch normalization
+model.addLayer(ActivationLayer(ReLU()));             // ReLU activation
+model.addLayer(MaxPooling2DLayer(2, 2));             // MaxPooling
+model.addLayer(DropoutLayer(0.25f));                 // Dropout for regularization
 
-model.addLayer( FlattenLayer() );                   // Flatten layer.
-model.addLayer( FullyConnectedLayer(5408, 128) );   // Adjusted input size due to MaxPooling.
-model.addLayer( BatchNormalizationLayer(128) );     // Batch normalization after FC.
-model.addLayer( ActivationLayer( ReLU() ) );        // ReLU activation.
-model.addLayer( DropoutLayer(0.25f) );              // Reduced dropout rate.
+// Fully connected layers
+model.addLayer(FlattenLayer());                      // Flatten layer
+model.addLayer(FullyConnectedLayer(5408, 128));      // FC layer
+model.addLayer(BatchNormalizationLayer(128));        // Batch normalization
+model.addLayer(ActivationLayer(ReLU()));             // ReLU activation
+model.addLayer(DropoutLayer(0.25f));                 // Dropout
 
-model.addLayer( FullyConnectedLayer(128, 10) );     // Output layer.
-model.addLayer( ActivationLayer( Softmax() ) );     // Softmax activation.
+// Output layer
+model.addLayer(FullyConnectedLayer(128, 10));        // Output layer
+model.addLayer(ActivationLayer(Softmax()));          // Softmax activation
 
+// Configure optimizer options
 AdamOptions adamOptions;
 adamOptions.learningRate = learningRate;
 adamOptions.beta1 = 0.9f;
 adamOptions.beta2 = 0.999f;
 adamOptions.epsilon = 1e-8f;
-adamOptions.l1Strength = 0.0f; 
-adamOptions.l2Strength = 0.0f;  
-adamOptions.decay = 0.0f;  
 
+// Compile and train
 model.compile(CategoricalCrossEntropyLoss(), AdamOptimizer(adamOptions));
 model.train(inputs, targets, epochs);
 ```
 
-## Key Features
+## Components
 
--   **Custom Tensor Library**: A robust and feature-rich tensor library with comprehensive tensor operations.
--   **Testing Environment**: A built-in testing environment that facilitates clean and efficient development.
--   **Layers**: Includes essential layers such as Fully Connected layer, Convolutional 2D layer, Flatten layer and Activation layers.
--   **Optimizers**: Currently supports the Adam optimizer.
--   **Loss Functions**: Implements Mean Squared Error (MSE) for regression tasks and Categorical Cross Entropy.
--   **Activation Functions**: Includes popular activation functions like Softmax, Sigmoid, Tanh, ReLU, and Leaky ReLU.
--   **Regularisation Techniques**: Batch Normalisation, Dropout, Max Pooling 2D.
+### Available Layers
+- **Fully Connected Layer**: Dense neural network layers
+- **Convolutional 2D Layer**: For image processing tasks
+- **Activation Layers**: ReLU, Sigmoid, Tanh, Softmax, Leaky ReLU
+- **Regularization Layers**: Dropout, Batch Normalization
+- **Pooling Layers**: Max Pooling 2D
+- **Utility Layers**: Flatten
 
-## Templated Runtime improvements - CPU Training!
+### Optimizers
+- **Adam**: Adaptive Moment Estimation optimizer with configurable parameters
 
-### Runtime Performance Gains
-#### Linear Regression Model Tests:
-- Linear Regression Classification.
-- Tested on 1000 samples.
-- Trained for 1000 epochs.
+### Loss Functions
+- **Mean Squared Error (MSE)**: For regression tasks
+- **Categorical Cross Entropy**: For classification tasks
 
-#### Results:
-- **Average non-templated runtime:** ~17680ms
-- **Average optimised templated runtime:** ~8325ms
-- **Performance gains:** ~53% performance improvement!
+## Performance Optimizations
 
-#### MNist Model Tests:
-- MNist Classification task.
-- Tested on 1000 samples, batch size: 64.
-- Trained for 1000 epochs.
+SmartDNN includes several key optimizations:
 
-#### Results:
-- **Average non-templated runtime: (per epoch)** ~83 minutes
-- **Average optimised templated runtime (per epoch):** ~10969ms
-- **Performance gains:** ~99.8% performance improvement!
-
-### Optimisations:
-- **Slice View:** SliceView allowing for sliced data access into a Tensor without copying.
-- **Broadcast View:** BroadcastView instead of actually broadcasting data significantly increases performance.
-- **Transforms**: Implementated transforms across all operations running on iterators, enables much more performant compiler optimisations.
-- **Cleaner interface:** better principles applied to retain single responsibility.
-- **Templates:** Now you can specify what type of data you are using on any default type
-- **Parallel Directives:** Better application of directives for expensive loops.
-
-## Overview
-
-## Example Models
-
-- [Simple Linear Regression model with dataset generator](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/SimpleLinearRegressionModel.cpp) - [Fully Connected Layer, ReLU, Mean Squared Error Loss, Adam Optimizer]
-- [Convolutional Neural Network for training MNist Dataset](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/MNistModel.cpp) - [Convolutional 2D Layer, ReLU, Max Pooling 2D Layer, Flatten Layer, Softmax, Categorical Cross Entropy Loss, Adam Optimizer]
+- **Slice View**: Access tensor data without copying
+- **Broadcast View**: Efficient data broadcasting for better performance
+- **Transforms**: Iterator-based transforms for compiler optimizations
+- **Clean Architecture**: Single responsibility principle for better code organization
+- **Template Specialization**: Type-specific optimizations
+- **Parallel Directives**: Optimized parallelization for computationally expensive operations
 
 ## Installation
 
-To install the library, follow these steps:
+### Standard Installation
 
-1. Clone the repository: `git clone https://github.com/A-Georgiou/SmartDNN.git`
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/A-Georgiou/SmartDNN.git
+   ```
 
-2. Build the library by running the command `CMake .` which will install required dependencies.
+2. Build the library:
+   ```bash
+   cmake .
+   ```
 
-3. Create a `src/main.cpp` file to create your neural networks.
+3. Create a `src/main.cpp` file for your neural network code
 
-3. Build your project from the Makefile with the command `make`
+4. Build your project:
+   ```bash
+   make
+   ```
 
-4. Run the program with command `./SmartDNN`
+5. Run the program:
+   ```bash
+   ./SmartDNN
+   ```
 
-## Running your models (With Docker)
+### Docker Installation
 
-To create your first model and run using docker, follow these steps:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/A-Georgiou/SmartDNN.git
+   ```
 
-1. Clone the repository: `git clone https://github.com/A-Georgiou/SmartDNN.git`
+2. Create a `src/main.cpp` file (or copy from the `Examples/` folder)
 
-2. Create a `src/main.cpp` file where your model creation code should exist, feel free to copy an example from the `Examples/` folder.
+3. Build the Docker image:
+   ```bash
+   docker build -f .docker/Dockerfile -t smartdnn-app .
+   ```
 
-3. Build the Docker Image by running the command `docker build -f .docker/Dockerfile -t smartdnn-app .`
+4. Run the project:
+   ```bash
+   docker run --rm -it smartdnn-app
+   ```
 
-4. Run the project with the command `docker run --rm -it smartdnn-app`
+## Example Models
 
-## Roadmap
+- [Simple Linear Regression model](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/SimpleLinearRegressionModel.cpp)
+- [CNN for MNIST Classification](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/MNistModel.cpp)
 
--   **Extended Layer Support**: Upcoming support for additional layers, including Convolutional, Recurrent, and more.
--   **Advanced Network Architectures**: Flexible and customizable network architectures with user-friendly APIs.
--   **GPU Acceleration**: Future integration of CUDA for efficient GPU-based training and inference.
--   **Comprehensive Documentation**: Detailed documentation and examples to accelerate your development process.
+## Future Roadmap
+
+- **Extended Layer Support**: Additional layer types including advanced convolutional and recurrent layers
+- **Advanced Network Architectures**: More flexible and customizable network structures
+- **GPU Acceleration**: CUDA integration for GPU-based training and inference
+- **Comprehensive Documentation**: Detailed guides and examples
 
 ## Contributing
 
-Contributions are welcome! If you would like to contribute to the project, please reach out to me via my contact information below.
+Contributions are welcome! If you would like to contribute to the project, please reach out via the contact information below.
 
 ## License
 
@@ -153,4 +184,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Contact
 
-For any questions or inquiries, please contact [AndrewGeorgiou98@outlook.com](mailto:andrewgeorgiou98@outlook.com).
+For questions or inquiries, please contact [AndrewGeorgiou98@outlook.com](mailto:andrewgeorgiou98@outlook.com).
