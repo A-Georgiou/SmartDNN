@@ -1,7 +1,7 @@
 #ifndef LOSS_HPP
 #define LOSS_HPP
 
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 
 namespace smart_dnn {
 

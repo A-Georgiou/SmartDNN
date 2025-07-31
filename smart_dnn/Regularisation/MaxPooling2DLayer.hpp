@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <limits>
 #include "smart_dnn/Layer.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 
 namespace smart_dnn {
 

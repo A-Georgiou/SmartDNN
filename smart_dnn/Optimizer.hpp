@@ -2,7 +2,7 @@
 #define OPTIMIZER_HPP
 
 #include <vector>
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 
 namespace smart_dnn {
 

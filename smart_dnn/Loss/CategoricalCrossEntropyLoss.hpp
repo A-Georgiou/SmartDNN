@@ -2,7 +2,7 @@
 #define CATEGORICAL_CROSS_ENTROPY_LOSS_HPP
 
 #include "smart_dnn/Loss.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 #include <cmath>
 #include <numeric>
 

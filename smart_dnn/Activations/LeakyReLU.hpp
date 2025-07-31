@@ -2,8 +2,8 @@
 #define LEAKY_RELU_HPP
 
 #include "smart_dnn/Activation.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
-#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/AdvancedTensorOperations.hpp"
 #include <algorithm>
 
 namespace smart_dnn {

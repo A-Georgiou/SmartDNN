@@ -1,7 +1,7 @@
 #ifndef DROPOUT_LAYER_HPP
 #define DROPOUT_LAYER_HPP
 
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 #include "smart_dnn/Layer.hpp"
 
 namespace smart_dnn {

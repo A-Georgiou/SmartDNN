@@ -2,8 +2,8 @@
 #define FLATTEN_LAYER_HPP
 
 #include "smart_dnn/Layer.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
-#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/AdvancedTensorOperations.hpp"
 
 namespace smart_dnn {
 
