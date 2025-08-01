@@ -7,6 +7,8 @@
 #include "../../smart_dnn/Activations/Sigmoid.hpp"
 #include "../../smart_dnn/Activations/Softmax.hpp"
 #include "../../smart_dnn/Activations/Tanh.hpp"
+#include "../../smart_dnn/Activations/Swish.hpp"
+#include "../../smart_dnn/Activations/Mish.hpp"
 #include <cmath>
 
 namespace smart_dnn {
@@ -160,6 +162,75 @@ TEST(TanhTest, BackwardPass) {
     for (size_t i = 0; i < input.getShape().size(); ++i) {
         float t = std::tanh(input.getData()[i]);
         EXPECT_TRUE(approxEqual(gradInput.getData()[i], 1.0f - t * t));
+    }
+}
+
+TEST(SwishTest, ForwardPass) {
+    Swish<float> swish;
+    Tensor<float> input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
+    Tensor<float> output = swish.forward(input);
+
+    ASSERT_EQ(output.getShape(), input.getShape());
+    
+    // Test expected values: f(x) = x * sigmoid(x)
+    for (size_t i = 0; i < input.getShape().size(); ++i) {
+        float x = input.getData()[i];
+        float sigmoid_x = 1.0f / (1.0f + std::exp(-x));
+        float expected = x * sigmoid_x;
+        EXPECT_TRUE(approxEqual(output.getData()[i], expected));
+    }
+}
+
+TEST(SwishTest, BackwardPass) {
+    Swish<float> swish;
+    Tensor<float> input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
+    Tensor<float> gradOutput({2, 3}, {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f});
+    Tensor<float> gradInput = swish.backward(input, gradOutput);
+
+    ASSERT_EQ(gradInput.getShape(), input.getShape());
+    
+    // Test expected derivative: f'(x) = sigmoid(x) * (1 + x * (1 - sigmoid(x)))
+    for (size_t i = 0; i < input.getShape().size(); ++i) {
+        float x = input.getData()[i];
+        float sigmoid_x = 1.0f / (1.0f + std::exp(-x));
+        float expected = sigmoid_x * (1.0f + x * (1.0f - sigmoid_x));
+        EXPECT_TRUE(approxEqual(gradInput.getData()[i], expected));
+    }
+}
+
+TEST(MishTest, ForwardPass) {
+    Mish<float> mish;
+    Tensor<float> input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
+    Tensor<float> output = mish.forward(input);
+
+    ASSERT_EQ(output.getShape(), input.getShape());
+    
+    // Test expected values: f(x) = x * tanh(softplus(x))
+    for (size_t i = 0; i < input.getShape().size(); ++i) {
+        float x = input.getData()[i];
+        float softplus_x = std::log(1.0f + std::exp(x));
+        float expected = x * std::tanh(softplus_x);
+        EXPECT_TRUE(approxEqual(output.getData()[i], expected));
+    }
+}
+
+TEST(MishTest, BackwardPass) {
+    Mish<float> mish;
+    Tensor<float> input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
+    Tensor<float> gradOutput({2, 3}, {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f});
+    Tensor<float> gradInput = mish.backward(input, gradOutput);
+
+    ASSERT_EQ(gradInput.getShape(), input.getShape());
+    
+    // Test expected derivative
+    for (size_t i = 0; i < input.getShape().size(); ++i) {
+        float x = input.getData()[i];
+        float softplus_x = std::log(1.0f + std::exp(x));
+        float tanh_softplus = std::tanh(softplus_x);
+        float sigmoid_x = 1.0f / (1.0f + std::exp(-x));
+        float sech_squared = 1.0f - tanh_softplus * tanh_softplus;
+        float expected = tanh_softplus + x * sech_squared * sigmoid_x;
+        EXPECT_TRUE(approxEqual(gradInput.getData()[i], expected));
     }
 }
 
