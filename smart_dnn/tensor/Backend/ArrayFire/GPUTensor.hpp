@@ -7,6 +7,7 @@
 #include <cstring>
 #include <any>
 #include <stdexcept>
+#include <optional>
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"

@@ -17,7 +17,7 @@ class Tensor;
 
 class GPUTensorBackend : public TensorBackend {
 public:
-    GPUTensorBackend() = default;
+    GPUTensorBackend();
     ~GPUTensorBackend();
 
     // Basic operations

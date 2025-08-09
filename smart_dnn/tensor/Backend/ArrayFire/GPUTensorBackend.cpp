@@ -4,6 +4,16 @@
 
 namespace sdnn {
 
+   GPUTensorBackend::GPUTensorBackend() {
+       // Initialize ArrayFire with CPU backend
+       try {
+           af::setBackend(AF_BACKEND_CPU);
+       } catch (const af::exception& e) {
+           // If CPU backend fails, try to use whatever is available
+           af::info();
+       }
+   }
+
    GPUTensorBackend::~GPUTensorBackend() = default;
 
     Tensor GPUTensorBackend::add(const Tensor& a, const Tensor& b) const {
@@ -190,7 +200,7 @@ namespace sdnn {
         GPUTensor tensor_cpu = tensor.getImpl<GPUTensor>();
         af::array result = tensor_cpu.getArray();
 
-        result = af::clamp(result, min, max);
+        result = af::max(af::min(result, max), min);
 
         Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
         return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
