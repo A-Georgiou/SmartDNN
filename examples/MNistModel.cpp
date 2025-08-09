@@ -18,9 +18,9 @@ int main() {
     using namespace sdnn;
 
     // Define the number of epochs and learning rate
-    constexpr int EPOCHS = 2;
+    constexpr int EPOCHS = 3;
     constexpr int BATCH_SIZE = 8;
-    constexpr int SAMPLE_COUNT = 100;
+    constexpr int SAMPLE_COUNT = 200;
     constexpr float LEARNING_RATE = 0.001f;
 
     // Initialize the SmartDNN MNist model
