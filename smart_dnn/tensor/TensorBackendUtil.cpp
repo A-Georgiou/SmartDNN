@@ -1,8 +1,13 @@
 #include "smart_dnn/tensor/TensorBackendUtil.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
-#include "smart_dnn/tensor/Backend/Default/CPUTensorBackend.hpp"
-#include "smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.hpp"
-#include "smart_dnn/tensor/Backend/Eigen/EigenTensorBackend.hpp"
+
+#if USE_ARRAYFIRE_TENSORS
+    #include "smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.hpp"
+#elif USE_EIGEN_TENSORS
+    #include "smart_dnn/tensor/Backend/Eigen/EigenTensorBackend.hpp"
+#else
+    #include "smart_dnn/tensor/Backend/Default/CPUTensorBackend.hpp"
+#endif
 
 namespace sdnn {
     TensorBackend& defaultTensorBackend()

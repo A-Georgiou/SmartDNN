@@ -7,7 +7,6 @@ namespace sdnn {
     
         af::dtype sdnnToAfType(const sdnn::dtype type){
             static const std::unordered_map<sdnn::dtype, af::dtype> sdnnToAfTypeMap = {
-                {sdnn::dtype::f16, af::dtype::f16},
                 {sdnn::dtype::f32, af::dtype::f32},
                 {sdnn::dtype::f64, af::dtype::f64},
                 {sdnn::dtype::s16, af::dtype::s16},
@@ -18,12 +17,19 @@ namespace sdnn {
                 {sdnn::dtype::u32, af::dtype::u32},
                 {sdnn::dtype::u64, af::dtype::u64}
             };
-            return sdnnToAfTypeMap.at(type);
+            auto it = sdnnToAfTypeMap.find(type);
+            if (it == sdnnToAfTypeMap.end()) {
+                if (type == sdnn::dtype::f16) {
+                    // Fall back to f32 for f16 since this ArrayFire version doesn't support it
+                    return af::dtype::f32;
+                }
+                throw std::runtime_error("Unsupported data type conversion from sdnn to ArrayFire");
+            }
+            return it->second;
         }
 
         sdnn::dtype afToSdnnType(const af::dtype type){
             static const std::unordered_map<af::dtype, sdnn::dtype> afToSdnnTypeMap = {
-                {af::dtype::f16, sdnn::dtype::f16},
                 {af::dtype::f32, sdnn::dtype::f32},
                 {af::dtype::f64, sdnn::dtype::f64},
                 {af::dtype::s16, sdnn::dtype::s16},
@@ -34,7 +40,11 @@ namespace sdnn {
                 {af::dtype::u32, sdnn::dtype::u32},
                 {af::dtype::u64, sdnn::dtype::u64}
             };
-            return afToSdnnTypeMap.at(type);
+            auto it = afToSdnnTypeMap.find(type);
+            if (it == afToSdnnTypeMap.end()) {
+                throw std::runtime_error("Unsupported data type conversion from ArrayFire to sdnn");
+            }
+            return it->second;
         }
 
         af::dim4 shapeToAfDim(const Shape& shape) {

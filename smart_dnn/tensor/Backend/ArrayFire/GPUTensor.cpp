@@ -158,12 +158,10 @@ void GPUTensor::div(const Tensor& other) {
         size_t flat_index = getFlatIndex(index); \
         if (std::is_same<TYPE, bool>::value) { \
             throw std::runtime_error("ArrayFire does not support bool scalar extraction on this platform."); \
-        } else if (std::is_same<TYPE, long>::value) { \
-            value = static_cast<long>((*data_)(flat_index).scalar<int64_t>()); \
-        } else if (std::is_same<TYPE, unsigned long>::value) { \
-            value = static_cast<unsigned long>((*data_)(flat_index).scalar<uint64_t>()); \
         } else { \
-            value = (*data_)(flat_index).scalar<TYPE>(); \
+            /* ArrayFire only reliably supports float scalar extraction, so we extract as float and cast */ \
+            float temp_value = (*data_)(flat_index).scalar<float>(); \
+            value = static_cast<TYPE>(temp_value); \
         } \
     } \
 
