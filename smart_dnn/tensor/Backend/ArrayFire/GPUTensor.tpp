@@ -40,11 +40,10 @@ namespace sdnn {
     template <typename T>
     GPUTensor::GPUTensor(const Shape& shape, T value, dtype type)
         : shape_(shape), type_(type) {
-        if constexpr (std::is_same_v<T, af::array::array_proxy>) {
-            data_ = std::make_shared<af::array>(value);
-            if (data_->dims() != utils::shapeToAfDim(shape)) {
-                throw std::invalid_argument("Array proxy shape does not match the provided shape");
-            }
+        // Handle array_proxy specially to avoid template instantiation issues
+        if (std::is_same<T, af::array::array_proxy>::value) {
+            // For array_proxy, just copy the array
+            data_ = std::make_shared<af::array>(static_cast<af::array>(value));
         } else {
             af::array temp = af::constant(value, utils::shapeToAfDim(shape), utils::sdnnToAfType(type));
             data_ = std::make_shared<af::array>(temp);
@@ -53,8 +52,7 @@ namespace sdnn {
 
     template <typename T>
     GPUTensor::GPUTensor(const Shape& shape, T value)
-        : shape_(shape), type_(dtype_trait<T>::value) {
-        GPUTensor(shape, value, dtype_trait<T>::value);
+        : GPUTensor(shape, value, dtype_trait<T>::value) {
     }
 
     template <typename T>
@@ -89,6 +87,20 @@ namespace sdnn {
 
             dstData[colMajorIndex] = srcData[idx];
         }
+    }
+
+    // Explicit specialization for array_proxy to prevent instantiation issues
+    template <>
+    inline GPUTensor::GPUTensor(const Shape& shape, af::array::array_proxy value, dtype type)
+        : shape_(shape), type_(type) {
+        // Convert array_proxy to array
+        af::array temp = static_cast<af::array>(value);
+        data_ = std::make_shared<af::array>(temp);
+    }
+
+    template <>
+    inline GPUTensor::GPUTensor(const Shape& shape, af::array::array_proxy value)
+        : GPUTensor(shape, value, dtype::f32) {
     }
 
 }
