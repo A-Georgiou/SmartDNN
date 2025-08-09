@@ -3,16 +3,26 @@ project(SmartDNNTesting)
 
 set(CMAKE_CXX_STANDARD 17)
 
-option(USE_CPU_TENSORS "Run SmartDNN without any additional libraries" ON)
+option(USE_CPU_TENSORS "Run SmartDNN without any additional libraries" OFF)
 option(USE_ARRAYFIRE_TENSORS "Run SmartDNN with ArrayFire tensors" OFF)
+option(USE_EIGEN_TENSORS "Run SmartDNN with Eigen tensors" ON)
 
 if (USE_ARRAYFIRE_TENSORS)
     set(USE_CPU_TENSORS OFF)
+    set(USE_EIGEN_TENSORS OFF)
     message(STATUS "ARRAYFIRE TENSORS ENABLED")
     find_package(ArrayFire REQUIRED)
     add_definitions(-DUSE_ARRAYFIRE_TENSORS)
+elseif (USE_EIGEN_TENSORS)
+    set(USE_CPU_TENSORS OFF)
+    set(USE_ARRAYFIRE_TENSORS OFF)
+    message(STATUS "EIGEN TENSORS ENABLED")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(EIGEN3 REQUIRED eigen3)
+    add_definitions(-DUSE_EIGEN_TENSORS)
 elseif (USE_CPU_TENSORS)
     set(USE_ARRAYFIRE_TENSORS OFF)
+    set(USE_EIGEN_TENSORS OFF)
     message(STATUS "CPU TENSORS ENABLED")
 endif()
 
@@ -42,6 +52,11 @@ if (USE_ARRAYFIRE_TENSORS)
         ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.cpp
         ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/ArrayFire/Utils.cpp
     )
+elseif (USE_EIGEN_TENSORS)
+    set(TENSOR_SOURCES
+        ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/Default/CPUTensor.cpp
+        ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/Eigen/EigenTensorBackend.cpp
+    )
 elseif (USE_CPU_TENSORS)
     set(TENSOR_SOURCES
     ${PROJECT_SOURCE_DIR}/../smart_dnn/tensor/Backend/Default/CPUTensor.cpp
@@ -60,6 +75,9 @@ add_executable(RunTests ${TEST_SOURCES} ${COMMON_SOURCES} ${TENSOR_SOURCES})
 
 if (USE_ARRAYFIRE_TENSORS)
     target_link_libraries(RunTests ArrayFire::af)
+elseif (USE_EIGEN_TENSORS)
+    target_include_directories(RunTests PRIVATE ${EIGEN3_INCLUDE_DIRS})
+    target_compile_definitions(RunTests PRIVATE ${EIGEN3_CFLAGS_OTHER})
 endif()
 
 target_link_libraries(RunTests GTest::gtest GTest::gtest_main)

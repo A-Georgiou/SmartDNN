@@ -50,8 +50,10 @@ namespace sdnn {
     template<> struct dtype_trait<uint64_t> { static constexpr dtype value = dtype::u64; };
     // Additional definitions only if they differ from the primary types
     template<> struct dtype_trait<char> { static constexpr dtype value = std::is_signed<char>::value ? dtype::s8 : dtype::u8; };
-    template<> struct dtype_trait<long> { static constexpr dtype value = sizeof(long) == 4 ? dtype::s32 : dtype::s64; };
-    template<> struct dtype_trait<unsigned long> { static constexpr dtype value = sizeof(unsigned long) == 4 ? dtype::u32 : dtype::u64; };
+    
+    // Skip long/unsigned long specializations to avoid conflicts on systems where long == int64_t
+    // template<> struct dtype_trait<long> { static constexpr dtype value = sizeof(long) == 4 ? dtype::s32 : dtype::s64; };
+    // template<> struct dtype_trait<unsigned long> { static constexpr dtype value = sizeof(unsigned long) == 4 ? dtype::u32 : dtype::u64; };
 
     template<typename T>
     constexpr T* safe_cast(void* data, dtype type) {
