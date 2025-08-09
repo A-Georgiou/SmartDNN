@@ -218,6 +218,10 @@ void GPUTensor::reshape(const Shape& newShape) {
         throw std::runtime_error("Number of elements must remain constant during reshape");
     }
     shape_ = newShape;
+    
+    // Actually reshape the ArrayFire array
+    af::dim4 newDims = utils::shapeToAfDim(newShape);
+    *data_ = af::moddims(*data_, newDims);
 }
 
 std::unique_ptr<TensorAdapter> GPUTensor::clone() const {
