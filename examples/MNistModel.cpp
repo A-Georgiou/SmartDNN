@@ -1,26 +1,26 @@
 #include "smart_dnn/tensor/TensorBase.hpp"
 #include "smart_dnn/SmartDNN.hpp"
-#include "smart_dnn/activations/ReLU.hpp"
-#include "smart_dnn/activations/Softmax.hpp"
-#include "smart_dnn/loss/CategoricalCrossEntropyLoss.hpp"
-#include "smart_dnn/layers/FullyConnectedLayer.hpp"
-#include "smart_dnn/layers/ActivationLayer.hpp"
-#include "smart_dnn/layers/Conv2DLayer.hpp"
-#include "smart_dnn/regularisation/MaxPooling2DLayer.hpp"
-#include "smart_dnn/layers/FlattenLayer.hpp"
-#include "smart_dnn/optimizers/AdamOptimizer.hpp"
+#include "smart_dnn/Activations/ReLU.hpp"
+#include "smart_dnn/Activations/Softmax.hpp"
+#include "smart_dnn/Loss/CategoricalCrossEntropyLoss.hpp"
+#include "smart_dnn/Layers/FullyConnectedLayer.hpp"
+#include "smart_dnn/Layers/ActivationLayer.hpp"
+#include "smart_dnn/Layers/Conv2DLayer.hpp"
+#include "smart_dnn/Regularisation/MaxPooling2DLayer.hpp"
+#include "smart_dnn/Layers/FlattenLayer.hpp"
+#include "smart_dnn/Optimizers/AdamOptimizer.hpp"
 #include "smart_dnn/Datasets/MNistLoader.hpp"
-#include "smart_dnn/regularisation/BatchNormalizationLayer.hpp"
-#include "smart_dnn/regularisation/DropoutLayer.hpp"
+#include "smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
+#include "smart_dnn/Regularisation/DropoutLayer.hpp"
 
 int main() {
 
     using namespace sdnn;
 
     // Define the number of epochs and learning rate
-    constexpr int EPOCHS = 10;
-    constexpr int BATCH_SIZE = 8;
-    constexpr int SAMPLE_COUNT = 1000;
+    constexpr int EPOCHS = 1;
+    constexpr int BATCH_SIZE = 2;
+    constexpr int SAMPLE_COUNT = 10;
     constexpr float LEARNING_RATE = 0.001f;
 
     // Initialize the SmartDNN MNist model
