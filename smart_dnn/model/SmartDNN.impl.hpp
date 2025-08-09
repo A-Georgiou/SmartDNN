@@ -2,7 +2,7 @@
 #define SMART_DNN_IMPL_HPP
 
 #include "smart_dnn/SmartDNN.hpp"
-#include "smart_dnn/debugging/Logger.hpp"
+#include "smart_dnn/Debugging/Logger.hpp"
 
 namespace sdnn {
 

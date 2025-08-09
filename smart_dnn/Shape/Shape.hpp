@@ -5,6 +5,7 @@
 #include <numeric>
 #include <vector>
 #include <sstream>
+#include <limits>
 
 namespace sdnn {
 

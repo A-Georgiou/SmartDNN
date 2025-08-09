@@ -7,6 +7,8 @@
 #include <cstring>
 #include <any>
 #include <stdexcept>
+#include <optional>
+#include <functional>
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"
@@ -151,7 +153,12 @@ private:
 
     size_t getFlatIndex(size_t index) const;
 
-    void allocateMemory();
+    void allocateMemory() {
+        size_t size = shape_.size() * dtype_size(type_);
+        if (!data_) {
+            data_ = std::shared_ptr<char[]>(new char[size], std::default_delete<char[]>());
+        }
+    }
 
     template<typename TargetType, typename SourceType = double>
     void writeElement(void* buffer, size_t index, SourceType value);

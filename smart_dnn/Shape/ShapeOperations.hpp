@@ -2,6 +2,7 @@
 #define SHAPE_OPERATIONS_HPP
 
 #include "Shape.hpp"
+#include <algorithm>
 
 namespace sdnn {
 

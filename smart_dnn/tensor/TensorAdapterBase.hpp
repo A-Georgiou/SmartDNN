@@ -2,6 +2,7 @@
 #define TENSOR_ADAPTER_BASE_HPP
 
 #include <vector>
+#include <memory>
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorIndex.hpp"

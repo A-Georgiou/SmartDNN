@@ -254,14 +254,6 @@ CPUTensor CPUTensor::subView(const std::vector<size_t>& indices) const {
     return CPUTensor(newShape, data_, type_);
 }
 
-// Safer allocation.
-inline void CPUTensor::allocateMemory() {
-    size_t size = shape_.size() * dtype_size(type_);
-    if (!data_) {
-        data_ = std::shared_ptr<char[]>(new char[size], std::default_delete<char[]>());
-    }
-}
-
 TensorBackend& CPUTensor::backend() const {
     static CPUTensorBackend backend;
     return backend;

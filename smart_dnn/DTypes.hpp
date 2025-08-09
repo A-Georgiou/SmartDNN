@@ -4,6 +4,9 @@
 #include <unordered_map>
 #include <typeinfo>
 #include <string>
+#include <cstdint>
+#include <stdexcept>
+#include <algorithm>
 
 namespace sdnn {
     enum class dtype {
@@ -50,8 +53,14 @@ namespace sdnn {
     template<> struct dtype_trait<uint64_t> { static constexpr dtype value = dtype::u64; };
     // Additional definitions only if they differ from the primary types
     template<> struct dtype_trait<char> { static constexpr dtype value = std::is_signed<char>::value ? dtype::s8 : dtype::u8; };
-    template<> struct dtype_trait<long> { static constexpr dtype value = sizeof(long) == 4 ? dtype::s32 : dtype::s64; };
-    template<> struct dtype_trait<unsigned long> { static constexpr dtype value = sizeof(unsigned long) == 4 ? dtype::u32 : dtype::u64; };
+    
+    // Skip long/unsigned long specializations to avoid conflicts on systems where long == int64_t
+    // template<> struct dtype_trait<long> { static constexpr dtype value = sizeof(long) == 4 ? dtype::s32 : dtype::s64; };
+    // template<> struct dtype_trait<unsigned long> { static constexpr dtype value = sizeof(unsigned long) == 4 ? dtype::u32 : dtype::u64; };
+    
+    // Add specializations for long long types
+    template<> struct dtype_trait<long long> { static constexpr dtype value = dtype::s64; };
+    template<> struct dtype_trait<unsigned long long> { static constexpr dtype value = dtype::u64; };
 
     template<typename T>
     constexpr T* safe_cast(void* data, dtype type) {
@@ -208,9 +217,11 @@ namespace sdnn {
 
     constexpr inline dtype promotionOfTypes(dtype a, dtype b) {
         if (is_floating_point(a) || is_floating_point(b)) {
-            return std::max({a, b, dtype::f32}, [](dtype x, dtype y) {
+            dtype candidates[] = {a, b, dtype::f32};
+            auto result = *std::max_element(candidates, candidates + 3, [](dtype x, dtype y) {
                 return type_rank(x) < type_rank(y);
             });
+            return result;
         }
 
         if (is_signed(a) == is_signed(b)) {

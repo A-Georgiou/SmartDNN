@@ -1,5 +1,5 @@
-#ifndef CPU_TENSOR_BACKEND_HPP
-#define CPU_TENSOR_BACKEND_HPP
+#ifndef EIGEN_TENSOR_BACKEND_HPP
+#define EIGEN_TENSOR_BACKEND_HPP
 
 #include "smart_dnn/shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorBackend.hpp" 
@@ -8,18 +8,18 @@
 #include <vector>
 #include <stdexcept>
 #include <memory>
-#include <functional>
-#include <vector>
 #include <string>
+#include <Eigen/Dense>
+#include <Eigen/Core>
 
 namespace sdnn {
 
 class Tensor;
 
-class CPUTensorBackend : public TensorBackend {
+class EigenTensorBackend : public TensorBackend {
 public:
-    CPUTensorBackend() = default;
-    ~CPUTensorBackend();
+    EigenTensorBackend() = default;
+    ~EigenTensorBackend();
 
     // Basic operations
     Tensor add(const Tensor& a, const Tensor& b) const override;
@@ -53,6 +53,7 @@ public:
 
     #undef DECLARE_SCALAR_OPS
 
+    // Reduction operations
     Tensor sum(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor mean(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor max(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
@@ -61,15 +62,17 @@ public:
     Tensor min(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const override;
     Tensor clip(const Tensor& tensor, const double& min, const double& max) const override;
 
-    Tensor apply(const Tensor& tensor, const std::function<void(double&)>& func) const;
+    // Element-wise apply operations
     Tensor select(const Tensor& condition, const Tensor& a, const Tensor& b) const override;
 
+    // Linear algebra operations
     Tensor matmul(const Tensor& a, const Tensor& b) const override;
 
+    // Shape operations
     Tensor reshape(const Tensor& tensor, const Shape& newShape) const override;
     Tensor transpose(const Tensor& tensor, const std::vector<size_t>& axes) const override;
-    Tensor reciprocal(const Tensor& tensor, double epsilon) const override;
 
+    // Element-wise operations
     Tensor exp(const Tensor& tensor) const override;
     Tensor log(const Tensor& tensor) const override;
     Tensor power(const Tensor& tensor, double exponent) const override;
@@ -78,7 +81,9 @@ public:
     Tensor tanh(const Tensor& tensor) const override;
     Tensor negative(const Tensor& tensor) const override;
     Tensor variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) const override;
+    Tensor reciprocal(const Tensor& tensor, double epsilon) const override;
 
+    // Comparison operations
     bool equal(const Tensor& a, const Tensor& b) const override;
     bool greaterThan(const Tensor& a, const Tensor& b) const override;
     bool greaterThanEqual(const Tensor& a, const Tensor& b) const override;
@@ -87,17 +92,20 @@ public:
 
     Tensor prodGreaterThan(const Tensor& a, const Tensor& b) const override;
     Tensor prodLessThan(const Tensor& a, const Tensor& b) const override;
-    Tensor prodGreaterThan(const Tensor& a, const double& scalar) const override;
-    Tensor prodLessThan(const Tensor& a, const double& scalar) const override;
     Tensor prodGreaterThanOrEqual(const Tensor& a, const Tensor& b) const override;
     Tensor prodLessThanOrEqual(const Tensor& a, const Tensor& b) const override;
+
+    Tensor prodGreaterThan(const Tensor& a, const double& scalar) const override;
+    Tensor prodLessThan(const Tensor& a, const double& scalar) const override;
     Tensor prodGreaterThanOrEqual(const Tensor& a, const double& scalar) const override;
     Tensor prodLessThanOrEqual(const Tensor& a, const double& scalar) const override;
 
+    // Random number generation
     Tensor rand(const Shape& shape, dtype type) const override;
     Tensor uniformRand(const Shape& shape, dtype type) const override;
     Tensor randn(const Shape& shape, dtype type, float min, float max) const override;
 
+    // Tensor generation with Shape values
     Tensor zeros(const Shape& shape, dtype type) const override;
     Tensor zeros(int size, dtype type) const override;
 
@@ -111,14 +119,15 @@ public:
 
     // Utility functions
     void print(const Tensor& tensor) override;
+
 private:
+    // Helper functions for Eigen operations
+    Tensor sumNoAxes(const Tensor& tensor) const;
     Tensor meanNoAxes(const Tensor& tensor) const;
     Tensor minNoAxes(const Tensor& tensor) const;
     Tensor maxNoAxes(const Tensor& tensor) const;
-    Tensor sumNoAxes(const Tensor& tensor) const;
 };
 
-}; // namespace sdnn
+} // namespace sdnn
 
-
-#endif // CPU_TENSOR_BACKEND_HPP
+#endif // EIGEN_TENSOR_BACKEND_HPP
