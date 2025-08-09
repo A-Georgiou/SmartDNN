@@ -8,6 +8,7 @@
 #include <vector>
 #include <stdexcept>
 #include <memory>
+#include <functional>
 #include <vector>
 #include <string>
 

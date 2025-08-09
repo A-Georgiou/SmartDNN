@@ -5,7 +5,7 @@
 #include "smart_dnn/loss/MSELoss.hpp"
 #include "smart_dnn/layers/FullyConnectedLayer.hpp"
 #include "smart_dnn/layers/ActivationLayer.hpp"
-#include "smart_dnn/datasets/SampleGenerator.hpp"
+#include "smart_dnn/Datasets/SampleGenerator.hpp"
 #include "smart_dnn/optimizers/AdamOptimizer.hpp"
 
 int main() {

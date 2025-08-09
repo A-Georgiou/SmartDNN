@@ -10,6 +10,7 @@
 #include <vector>
 #include <stdexcept>
 #include <iostream>
+#include <cstdlib>
 #include <Eigen/Dense>
 #include <Eigen/Core>
 
@@ -396,15 +397,44 @@ Tensor EigenTensorBackend::prodLessThanOrEqual(const Tensor& a, const double& sc
 }
 
 Tensor EigenTensorBackend::rand(const Shape& shape, dtype type) const {
-    throw std::runtime_error("rand operation not yet implemented in Eigen backend");
+    auto result = std::make_unique<CPUTensor>(shape, type);
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        
+        T* result_data = result->typedData<T>();
+        const size_t size = shape.size();
+        
+        // Simple random initialization using rand()
+        for (size_t i = 0; i < size; ++i) {
+            result_data[i] = static_cast<T>(::rand()) / static_cast<T>(RAND_MAX);
+        }
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::uniformRand(const Shape& shape, dtype type) const {
-    throw std::runtime_error("uniformRand operation not yet implemented in Eigen backend");
+    return rand(shape, type);  // Use same implementation for now
 }
 
 Tensor EigenTensorBackend::randn(const Shape& shape, dtype type, float min, float max) const {
-    throw std::runtime_error("randn operation not yet implemented in Eigen backend");
+    auto result = std::make_unique<CPUTensor>(shape, type);
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        
+        T* result_data = result->typedData<T>();
+        const size_t size = shape.size();
+        
+        // Simple normal distribution approximation
+        for (size_t i = 0; i < size; ++i) {
+            float r = static_cast<float>(::rand()) / static_cast<float>(RAND_MAX);
+            result_data[i] = static_cast<T>(min + r * (max - min));
+        }
+    });
+    
+    return Tensor(std::move(result));
 }
 
 // Basic tensor creation operations 
@@ -463,6 +493,48 @@ Tensor EigenTensorBackend::minNoAxes(const Tensor& tensor) const {
 
 Tensor EigenTensorBackend::maxNoAxes(const Tensor& tensor) const {
     throw std::runtime_error("maxNoAxes operation not yet implemented in Eigen backend");
+}
+
+Tensor EigenTensorBackend::log(const Tensor& tensor) const {
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = input_vec.array().log();
+    });
+    
+    return Tensor(std::move(result));
+}
+
+Tensor EigenTensorBackend::power(const Tensor& tensor, double exponent) const {
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = input_vec.array().pow(static_cast<T>(exponent));
+    });
+    
+    return Tensor(std::move(result));
 }
 
 } // namespace sdnn

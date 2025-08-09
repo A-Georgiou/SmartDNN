@@ -9,7 +9,7 @@
 #include "smart_dnn/regularisation/MaxPooling2DLayer.hpp"
 #include "smart_dnn/layers/FlattenLayer.hpp"
 #include "smart_dnn/optimizers/AdamOptimizer.hpp"
-#include "smart_dnn/datasets/MNistLoader.hpp"
+#include "smart_dnn/Datasets/MNistLoader.hpp"
 #include "smart_dnn/regularisation/BatchNormalizationLayer.hpp"
 #include "smart_dnn/regularisation/DropoutLayer.hpp"
 
