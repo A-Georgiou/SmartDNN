@@ -18,9 +18,9 @@ int main() {
     using namespace sdnn;
 
     // Define the number of epochs and learning rate
-    constexpr int EPOCHS = 10;
+    constexpr int EPOCHS = 2;
     constexpr int BATCH_SIZE = 8;
-    constexpr int SAMPLE_COUNT = 1000;
+    constexpr int SAMPLE_COUNT = 100;
     constexpr float LEARNING_RATE = 0.001f;
 
     // Initialize the SmartDNN MNist model
@@ -52,8 +52,8 @@ int main() {
     model.compile(new CategoricalCrossEntropyLoss(), new AdamOptimizer(adamOptions));
 
     // Download the MNist dataset from http://yann.lecun.com/exdb/mnist/
-    std::string imagesPath = ".datasets/train-images-idx3-ubyte";
-    std::string labelsPath = ".datasets/train-labels-idx1-ubyte";
+    std::string imagesPath = "datasets/train-images-idx3-ubyte";
+    std::string labelsPath = "datasets/train-labels-idx1-ubyte";
 
     // Load your MNIST dataset here
     MNISTLoader dataLoader = MNISTLoader(imagesPath, labelsPath, BATCH_SIZE, SAMPLE_COUNT);
