@@ -246,28 +246,89 @@ Tensor EigenTensorBackend::transpose(const Tensor& tensor, const std::vector<siz
     throw std::runtime_error("transpose operation not yet implemented in Eigen backend");
 }
 
+// Element-wise mathematical operations using Eigen
 Tensor EigenTensorBackend::exp(const Tensor& tensor) const {
-    throw std::runtime_error("exp operation not yet implemented in Eigen backend");
-}
-
-Tensor EigenTensorBackend::log(const Tensor& tensor) const {
-    throw std::runtime_error("log operation not yet implemented in Eigen backend");
-}
-
-Tensor EigenTensorBackend::power(const Tensor& tensor, double exponent) const {
-    throw std::runtime_error("power operation not yet implemented in Eigen backend");
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = input_vec.array().exp();
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::sqrt(const Tensor& tensor) const {
-    throw std::runtime_error("sqrt operation not yet implemented in Eigen backend");
-}
-
-Tensor EigenTensorBackend::abs(const Tensor& tensor) const {
-    throw std::runtime_error("abs operation not yet implemented in Eigen backend");
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = input_vec.array().sqrt();
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::tanh(const Tensor& tensor) const {
-    throw std::runtime_error("tanh operation not yet implemented in Eigen backend");
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = input_vec.array().tanh();
+    });
+    
+    return Tensor(std::move(result));
+}
+
+Tensor EigenTensorBackend::abs(const Tensor& tensor) const {
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = input_vec.array().abs();
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::negative(const Tensor& tensor) const {
