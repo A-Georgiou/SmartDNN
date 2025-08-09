@@ -5,13 +5,7 @@
 namespace sdnn {
 
    GPUTensorBackend::GPUTensorBackend() {
-       // Initialize ArrayFire with CPU backend
-       try {
-           af::setBackend(AF_BACKEND_CPU);
-       } catch (const af::exception& e) {
-           // If CPU backend fails, try to use whatever is available
-           af::info();
-       }
+       // ArrayFire backend initialization is now handled in defaultTensorBackend()
    }
 
    GPUTensorBackend::~GPUTensorBackend() = default;
