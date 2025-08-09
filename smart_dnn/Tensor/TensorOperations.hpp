@@ -1,8 +1,8 @@
 #ifndef TENSOR_OPERATIONS_HPP
 #define TENSOR_OPERATIONS_HPP
 
-#include "smart_dnn/tensor/TensorData.hpp"
-#include "smart_dnn/tensor/BroadcastView.hpp"
+#include "smart_dnn/Tensor/TensorData.hpp"
+#include "smart_dnn/Tensor/BroadcastView.hpp"
 #include "smart_dnn/RandomEngine.hpp"
 #include <functional>
 

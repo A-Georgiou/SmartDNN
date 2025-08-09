@@ -3,7 +3,7 @@
 
 #include <unordered_map>
 #include <cmath>
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 #include "smart_dnn/Optimizer.hpp"
 
 namespace smart_dnn {

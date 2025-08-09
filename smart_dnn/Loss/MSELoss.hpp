@@ -2,8 +2,8 @@
 #define MSELOSS_HPP
 
 #include "smart_dnn/Loss.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
-#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/AdvancedTensorOperations.hpp"
 #include <cmath>
 
 namespace smart_dnn {

@@ -1,8 +1,8 @@
 #ifndef FULLY_CONNECTED_LAYER_HPP
 #define FULLY_CONNECTED_LAYER_HPP
 
-#include "smart_dnn/tensor/Tensor.hpp"
-#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/AdvancedTensorOperations.hpp"
 #include "smart_dnn/Optimizer.hpp"
 #include "smart_dnn/Layer.hpp"
 #include <vector>

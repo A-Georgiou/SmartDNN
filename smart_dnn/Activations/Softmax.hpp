@@ -2,7 +2,7 @@
 #define SOFTMAX_HPP
 
 #include "smart_dnn/Activation.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 #include <cmath>
 #include <algorithm>
 #include <numeric>

@@ -1,13 +1,13 @@
 #ifndef ADVANCED_TENSOR_OPERATIONS_HPP
 #define ADVANCED_TENSOR_OPERATIONS_HPP
 
-#include "smart_dnn/tensor/TensorData.hpp"
-#include "smart_dnn/tensor/DeviceTypes.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
-#include "smart_dnn/shape/ShapeOperations.hpp"
-#include "smart_dnn/tensor/SliceView.hpp"
-#include "smart_dnn/tensor/TensorOperations.hpp"
-#include "smart_dnn/tensor/BroadcastView.hpp"
+#include "smart_dnn/Tensor/TensorData.hpp"
+#include "smart_dnn/Tensor/DeviceTypes.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
+#include "smart_dnn/Shape/ShapeOperations.hpp"
+#include "smart_dnn/Tensor/SliceView.hpp"
+#include "smart_dnn/Tensor/TensorOperations.hpp"
+#include "smart_dnn/Tensor/BroadcastView.hpp"
 #include <functional>
 
 namespace smart_dnn {

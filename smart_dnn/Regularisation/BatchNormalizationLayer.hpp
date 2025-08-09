@@ -1,7 +1,7 @@
 #ifndef BATCH_NORMALIZATION_LAYER_HPP
 #define BATCH_NORMALIZATION_LAYER_HPP
 
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 #include "smart_dnn/Layer.hpp"
 #include <cmath>
 #include <optional>

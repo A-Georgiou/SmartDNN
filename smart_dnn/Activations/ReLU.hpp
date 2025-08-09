@@ -2,7 +2,7 @@
 #define RELU_HPP
 
 #include "smart_dnn/Activation.hpp"
-#include "smart_dnn/tensor/AdvancedTensorOperations.hpp"
+#include "smart_dnn/Tensor/AdvancedTensorOperations.hpp"
 
 namespace smart_dnn {
 

@@ -5,7 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 
 namespace smart_dnn {
 

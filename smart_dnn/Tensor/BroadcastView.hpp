@@ -1,10 +1,10 @@
 #ifndef BROADCAST_VIEW_HPP
 #define BROADCAST_VIEW_HPP
 
-#include "smart_dnn/shape/ShapeOperations.hpp"
-#include "smart_dnn/shape/Shape.hpp"
-#include "smart_dnn/tensor/Tensor.hpp"
-#include "smart_dnn/tensor/DeviceTypes.hpp"
+#include "smart_dnn/Shape/ShapeOperations.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/DeviceTypes.hpp"
 #include <vector>
 #include <stdexcept>
 
