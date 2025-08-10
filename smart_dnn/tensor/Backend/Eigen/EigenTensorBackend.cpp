@@ -180,18 +180,17 @@ Tensor EigenTensorBackend::matmul(const Tensor& a, const Tensor& b) const {
 
 // Generate scalar operations for various types
 IMPLEMENT_TYPE_SPECIFIC_OPS(bool)
+IMPLEMENT_TYPE_SPECIFIC_OPS(char)
+IMPLEMENT_TYPE_SPECIFIC_OPS(signed char)     // Maps to int8_t
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned char)
+IMPLEMENT_TYPE_SPECIFIC_OPS(short)           // 16-bit integer
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned short)  // 16-bit unsigned integer
 IMPLEMENT_TYPE_SPECIFIC_OPS(int)
 IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned int)
 IMPLEMENT_TYPE_SPECIFIC_OPS(long)
 IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long)
-IMPLEMENT_TYPE_SPECIFIC_OPS(long long)
-IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long long)
 IMPLEMENT_TYPE_SPECIFIC_OPS(float)
 IMPLEMENT_TYPE_SPECIFIC_OPS(double)
-IMPLEMENT_TYPE_SPECIFIC_OPS(char)
-IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned char)
-IMPLEMENT_TYPE_SPECIFIC_OPS(short)
-IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned short)
 
 #undef IMPLEMENT_TYPE_SPECIFIC_OPS
 
@@ -249,42 +248,64 @@ Tensor EigenTensorBackend::transpose(const Tensor& tensor, const std::vector<siz
 
 // Element-wise mathematical operations using Eigen
 Tensor EigenTensorBackend::exp(const Tensor& tensor) const {
+    // Check if tensor type is boolean - mathematical operations don't make sense for boolean types
+    if (tensor.type() == dtype::b8) {
+        throw std::invalid_argument("exp operation is not supported for boolean tensors");
+    }
+    
     auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
     const auto& input_cpu = tensor.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
         using T = std::remove_pointer_t<decltype(type_ptr)>;
         
-        const T* input_data = input_cpu.typedData<T>();
-        T* result_data = result->typedData<T>();
-        const size_t size = tensor.shape().size();
-        
-        // Map to Eigen vectors
-        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
-        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
-        
-        result_vec = input_vec.array().exp();
+        // Use constexpr if to avoid instantiation for bool
+        if constexpr (!std::is_same_v<T, bool>) {
+            const T* input_data = input_cpu.typedData<T>();
+            T* result_data = result->typedData<T>();
+            const size_t size = tensor.shape().size();
+            
+            // Map to Eigen vectors
+            Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+            Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+            
+            result_vec = input_vec.array().exp();
+        } else {
+            // This should never be reached due to the guard, but we need it for compilation
+            throw std::runtime_error("Boolean type should have been caught by guard");
+        }
     });
     
     return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::sqrt(const Tensor& tensor) const {
+    // Check if tensor type is boolean - mathematical operations don't make sense for boolean types
+    if (tensor.type() == dtype::b8) {
+        throw std::invalid_argument("sqrt operation is not supported for boolean tensors");
+    }
+    
     auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
     const auto& input_cpu = tensor.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
         using T = std::remove_pointer_t<decltype(type_ptr)>;
         
-        const T* input_data = input_cpu.typedData<T>();
-        T* result_data = result->typedData<T>();
-        const size_t size = tensor.shape().size();
-        
-        // Map to Eigen vectors
-        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
-        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
-        
-        result_vec = input_vec.array().sqrt();
+        // Use constexpr if to avoid instantiation for bool
+        if constexpr (!std::is_same_v<T, bool>) {
+            const T* input_data = input_cpu.typedData<T>();
+            T* result_data = result->typedData<T>();
+            const size_t size = tensor.shape().size();
+            
+            // Map to Eigen vectors
+            Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+            Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+            
+            result_vec = input_vec.array().sqrt();
+        } else {
+            // This should never be reached due to the guard, but we need it for compilation
+            throw std::runtime_error("Boolean type should have been caught by guard");
+        }
     });
     
     return Tensor(std::move(result));
@@ -496,42 +517,66 @@ Tensor EigenTensorBackend::maxNoAxes(const Tensor& tensor) const {
 }
 
 Tensor EigenTensorBackend::log(const Tensor& tensor) const {
+    // Check if tensor type is boolean - mathematical operations don't make sense for boolean types
+    if (tensor.type() == dtype::b8) {
+        throw std::invalid_argument("log operation is not supported for boolean tensors");
+    }
+    
     auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
     const auto& input_cpu = tensor.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
         using T = std::remove_pointer_t<decltype(type_ptr)>;
         
-        const T* input_data = input_cpu.typedData<T>();
-        T* result_data = result->typedData<T>();
-        const size_t size = tensor.shape().size();
-        
-        // Map to Eigen vectors
-        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
-        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
-        
-        result_vec = input_vec.array().log();
+        // Use constexpr if to avoid instantiation for bool
+        if constexpr (!std::is_same_v<T, bool>) {
+            const T* input_data = input_cpu.typedData<T>();
+            T* result_data = result->typedData<T>();
+            const size_t size = tensor.shape().size();
+            
+            // Map to Eigen vectors
+            Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+            Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+            
+            result_vec = input_vec.array().log();
+        } else {
+            // This should never be reached due to the guard, but we need it for compilation
+            throw std::runtime_error("Boolean type should have been caught by guard");
+        }
     });
     
     return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::power(const Tensor& tensor, double exponent) const {
+    // Check if tensor type is boolean - mathematical operations don't make sense for boolean types
+    if (tensor.type() == dtype::b8) {
+        throw std::invalid_argument("power operation is not supported for boolean tensors");
+    }
+    
     auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
     const auto& input_cpu = tensor.getImpl<CPUTensor>();
     
+    // Use a conditional template to avoid instantiating pow for bool
     result->applyTypedOperation([&](auto* type_ptr) {
         using T = std::remove_pointer_t<decltype(type_ptr)>;
         
-        const T* input_data = input_cpu.typedData<T>();
-        T* result_data = result->typedData<T>();
-        const size_t size = tensor.shape().size();
-        
-        // Map to Eigen vectors
-        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
-        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
-        
-        result_vec = input_vec.array().pow(static_cast<T>(exponent));
+        // This should never be reached for bool due to the guard above,
+        // but we need to handle it at compile time to avoid template errors
+        if constexpr (!std::is_same_v<T, bool>) {
+            const T* input_data = input_cpu.typedData<T>();
+            T* result_data = result->typedData<T>();
+            const size_t size = tensor.shape().size();
+            
+            // Map to Eigen vectors
+            Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+            Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+            
+            result_vec = input_vec.array().pow(static_cast<T>(exponent));
+        } else {
+            // This should never be reached due to the guard, but we need it for compilation
+            throw std::runtime_error("Boolean type should have been caught by guard");
+        }
     });
     
     return Tensor(std::move(result));
