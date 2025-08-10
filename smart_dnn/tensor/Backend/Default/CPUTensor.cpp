@@ -175,8 +175,10 @@ IMPLEMENT_TYPE_SPECIFIC_OPS(short)         // 16-bit integer
 IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned short) // 16-bit unsigned integer
 IMPLEMENT_TYPE_SPECIFIC_OPS(int)
 IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned int)
-IMPLEMENT_TYPE_SPECIFIC_OPS(long)          // 64-bit integer on most systems
-IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long) // 64-bit unsigned integer on most systems
+// Use fixed-width integer types for better portability
+IMPLEMENT_TYPE_SPECIFIC_OPS(int64_t)        // 64-bit integer
+IMPLEMENT_TYPE_SPECIFIC_OPS(uint64_t)       // 64-bit unsigned integer
+// Removed long and unsigned long to avoid portability issues - use int64_t/uint64_t instead
 IMPLEMENT_TYPE_SPECIFIC_OPS(float)
 IMPLEMENT_TYPE_SPECIFIC_OPS(double)
 
