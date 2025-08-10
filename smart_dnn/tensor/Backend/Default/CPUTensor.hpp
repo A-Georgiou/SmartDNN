@@ -88,12 +88,14 @@ public:
     // Generate scalar operations for various types
     DECLARE_SCALAR_OPS(bool)
     DECLARE_SCALAR_OPS(char)
+    DECLARE_SCALAR_OPS(signed char)   // Maps to int8_t
     DECLARE_SCALAR_OPS(unsigned char)
+    DECLARE_SCALAR_OPS(short)         // 16-bit integer
+    DECLARE_SCALAR_OPS(unsigned short) // 16-bit unsigned integer
     DECLARE_SCALAR_OPS(int)
     DECLARE_SCALAR_OPS(unsigned int)
-    // Use fixed-width types for 64-bit to avoid conflicts with variable-width types
-    DECLARE_SCALAR_OPS(int64_t)
-    DECLARE_SCALAR_OPS(uint64_t)
+    DECLARE_SCALAR_OPS(long)          // 64-bit integer on most systems
+    DECLARE_SCALAR_OPS(unsigned long) // 64-bit unsigned integer on most systems
     DECLARE_SCALAR_OPS(float)
     DECLARE_SCALAR_OPS(double)
 

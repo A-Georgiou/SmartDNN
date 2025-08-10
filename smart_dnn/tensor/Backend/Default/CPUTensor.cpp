@@ -169,12 +169,14 @@ void CPUTensor::div(const Tensor& other) {
 
 IMPLEMENT_TYPE_SPECIFIC_OPS(bool)
 IMPLEMENT_TYPE_SPECIFIC_OPS(char)
+IMPLEMENT_TYPE_SPECIFIC_OPS(signed char)   // Maps to int8_t
 IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned char)
+IMPLEMENT_TYPE_SPECIFIC_OPS(short)         // 16-bit integer
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned short) // 16-bit unsigned integer
 IMPLEMENT_TYPE_SPECIFIC_OPS(int)
 IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned int)
-// Use fixed-width types for 64-bit to avoid conflicts with variable-width types
-IMPLEMENT_TYPE_SPECIFIC_OPS(int64_t)
-IMPLEMENT_TYPE_SPECIFIC_OPS(uint64_t)
+IMPLEMENT_TYPE_SPECIFIC_OPS(long)          // 64-bit integer on most systems
+IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long) // 64-bit unsigned integer on most systems
 IMPLEMENT_TYPE_SPECIFIC_OPS(float)
 IMPLEMENT_TYPE_SPECIFIC_OPS(double)
 

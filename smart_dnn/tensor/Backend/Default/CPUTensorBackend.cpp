@@ -59,18 +59,17 @@ namespace sdnn {
 
     // Generate scalar operations for various types
     IMPLEMENT_TYPE_SPECIFIC_OPS(bool)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(char)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(signed char)   // Maps to int8_t
+    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned char)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(short)         // 16-bit integer
+    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned short) // 16-bit unsigned integer
     IMPLEMENT_TYPE_SPECIFIC_OPS(int)
     IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned int)
-    IMPLEMENT_TYPE_SPECIFIC_OPS(long)
-    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long)
-    IMPLEMENT_TYPE_SPECIFIC_OPS(long long)
-    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long long)
+    IMPLEMENT_TYPE_SPECIFIC_OPS(long)          // 64-bit integer on most systems
+    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned long) // 64-bit unsigned integer on most systems
     IMPLEMENT_TYPE_SPECIFIC_OPS(float)
     IMPLEMENT_TYPE_SPECIFIC_OPS(double)
-    IMPLEMENT_TYPE_SPECIFIC_OPS(char)
-    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned char)
-    IMPLEMENT_TYPE_SPECIFIC_OPS(short)
-    IMPLEMENT_TYPE_SPECIFIC_OPS(unsigned short)
 
     #undef IMPLEMENT_TYPE_SPECIFIC_OPS
 
