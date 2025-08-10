@@ -3,7 +3,7 @@
 #define TENSOR_BACKEND_HPP
 
 #include "smart_dnn/DTypes.hpp"
-#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
 
 namespace sdnn {
 

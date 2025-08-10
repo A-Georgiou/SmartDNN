@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <algorithm>
+#include <type_traits>
 
 namespace sdnn {
     enum class dtype {
@@ -54,13 +55,8 @@ namespace sdnn {
     // Additional definitions only if they differ from the primary types
     template<> struct dtype_trait<char> { static constexpr dtype value = std::is_signed<char>::value ? dtype::s8 : dtype::u8; };
     
-    // Skip long/unsigned long specializations to avoid conflicts on systems where long == int64_t
-    // template<> struct dtype_trait<long> { static constexpr dtype value = sizeof(long) == 4 ? dtype::s32 : dtype::s64; };
-    // template<> struct dtype_trait<unsigned long> { static constexpr dtype value = sizeof(unsigned long) == 4 ? dtype::u32 : dtype::u64; };
-    
-    // Add specializations for long long types
-    template<> struct dtype_trait<long long> { static constexpr dtype value = dtype::s64; };
-    template<> struct dtype_trait<unsigned long long> { static constexpr dtype value = dtype::u64; };
+    // Skip long long types that may conflict with int64_t/uint64_t on some systems
+    // Code should use int64_t/uint64_t directly instead of long long
 
     template<typename T>
     constexpr T* safe_cast(void* data, dtype type) {

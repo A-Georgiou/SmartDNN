@@ -1,4 +1,4 @@
-#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
 #include <vector>
 #include <arrayfire.h>
 

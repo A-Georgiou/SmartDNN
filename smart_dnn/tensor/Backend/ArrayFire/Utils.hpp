@@ -4,7 +4,7 @@
 
 #include <cmath>
 #include "smart_dnn/DTypes.hpp"
-#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
 #include "arrayfire.h"
 #include <af/data.h>
 

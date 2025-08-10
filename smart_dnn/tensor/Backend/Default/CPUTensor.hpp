@@ -10,7 +10,7 @@
 #include <optional>
 #include <functional>
 #include "smart_dnn/DTypes.hpp"
-#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
 #include "smart_dnn/tensor/TensorIndex.hpp"
@@ -87,18 +87,15 @@ public:
 
     // Generate scalar operations for various types
     DECLARE_SCALAR_OPS(bool)
-    DECLARE_SCALAR_OPS(int)
-    DECLARE_SCALAR_OPS(unsigned int)
-    DECLARE_SCALAR_OPS(long)
-    DECLARE_SCALAR_OPS(unsigned long)
-    DECLARE_SCALAR_OPS(long long)
-    DECLARE_SCALAR_OPS(unsigned long long)
-    DECLARE_SCALAR_OPS(float)
-    DECLARE_SCALAR_OPS(double)
     DECLARE_SCALAR_OPS(char)
     DECLARE_SCALAR_OPS(unsigned char)
-    DECLARE_SCALAR_OPS(short)
-    DECLARE_SCALAR_OPS(unsigned short)
+    DECLARE_SCALAR_OPS(int)
+    DECLARE_SCALAR_OPS(unsigned int)
+    // Use fixed-width types for 64-bit to avoid conflicts with variable-width types
+    DECLARE_SCALAR_OPS(int64_t)
+    DECLARE_SCALAR_OPS(uint64_t)
+    DECLARE_SCALAR_OPS(float)
+    DECLARE_SCALAR_OPS(double)
 
     #undef DECLARE_SCALAR_OPS
 

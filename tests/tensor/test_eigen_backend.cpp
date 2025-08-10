@@ -2,7 +2,7 @@
 #include "smart_dnn/tensor/Backend/Eigen/EigenTensorBackend.hpp"
 #include "smart_dnn/tensor/Backend/Default/CPUTensor.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
-#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
 
 namespace sdnn {
 
