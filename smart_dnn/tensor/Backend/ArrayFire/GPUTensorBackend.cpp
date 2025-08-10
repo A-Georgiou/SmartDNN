@@ -5,13 +5,7 @@
 namespace sdnn {
 
    GPUTensorBackend::GPUTensorBackend() {
-       // Initialize ArrayFire with CPU backend
-       try {
-           af::setBackend(AF_BACKEND_CPU);
-       } catch (const af::exception& e) {
-           // If CPU backend fails, try to use whatever is available
-           af::info();
-       }
+       // ArrayFire backend initialization is now handled in defaultTensorBackend()
    }
 
    GPUTensorBackend::~GPUTensorBackend() = default;
@@ -207,12 +201,122 @@ namespace sdnn {
     }
 
     Tensor GPUTensorBackend::matmul(const Tensor& a, const Tensor& b) const {
-        GPUTensor a_cpu = a.getImpl<GPUTensor>();
-        GPUTensor b_cpu = b.getImpl<GPUTensor>();
-        af::array result = af::matmul(a_cpu.getArray(), b_cpu.getArray());
-
-        Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
-        return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
+        GPUTensor a_gpu = a.getImpl<GPUTensor>();
+        GPUTensor b_gpu = b.getImpl<GPUTensor>();
+        af::array aArray = a_gpu.getArray();
+        af::array bArray = b_gpu.getArray();
+        
+        const Shape& aShape = a.shape();
+        const Shape& bShape = b.shape();
+        
+        // Handle different dimensionalities
+        if (aShape.rank() == 2 && bShape.rank() == 2) {
+            // Simple 2D matrix multiplication
+            af::array result = af::matmul(aArray, bArray);
+            Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
+            return Tensor(std::make_unique<GPUTensor>(shape, result, a.type()));
+        }
+        else if (aShape.rank() >= 3 || bShape.rank() >= 3) {
+            // Handle batched matrix multiplication by manually implementing it
+            // This approach works for any number of batch dimensions
+            
+            // Find the matrix dimensions (last two dimensions)
+            size_t aRank = aShape.rank();
+            size_t bRank = bShape.rank();
+            
+            if (aRank < 2 || bRank < 2) {
+                throw std::invalid_argument("Tensors must have at least 2 dimensions for matrix multiplication");
+            }
+            
+            int aRows = aShape[aRank - 2];
+            int aCols = aShape[aRank - 1];
+            int bRows = bShape[bRank - 2];
+            int bCols = bShape[bRank - 1];
+            
+            if (aCols != bRows) {
+                throw std::invalid_argument("Matrix dimensions incompatible for multiplication");
+            }
+            
+            // For now, handle the specific case of 3D tensors which is most common in deep learning
+            if (aRank == 3 && bRank == 3) {
+                int batchSize = aShape[0];
+                
+                if (batchSize != bShape[0]) {
+                    throw std::invalid_argument("Batch sizes must match");
+                }
+                
+                // ArrayFire stores as [batch, rows, cols, 1], but we need [rows, cols] for each batch
+                // We need to reorder the array to have batch as the last dimension
+                af::array aReordered = af::reorder(aArray, 1, 2, 0);  // [rows, cols, batch]
+                af::array bReordered = af::reorder(bArray, 1, 2, 0);  // [rows, cols, batch]
+                
+                // Create result array  
+                af::dim4 resultDims(aRows, bCols, batchSize, 1);
+                af::array result = af::constant(0.0f, resultDims, aArray.type());
+                
+                // Perform matrix multiplication for each batch
+                for (int batch = 0; batch < batchSize; ++batch) {
+                    af::array aBatch = aReordered(af::span, af::span, batch);
+                    af::array bBatch = bReordered(af::span, af::span, batch);
+                    af::array batchResult = af::matmul(aBatch, bBatch);
+                    result(af::span, af::span, batch) = batchResult;
+                }
+                
+                // Reorder result back to original format [batch, rows, cols]
+                af::array finalResult = af::reorder(result, 2, 0, 1);
+                
+                Shape shape = Shape(utils::getArrayDimensionsAsIntVector(finalResult));
+                return Tensor(std::make_unique<GPUTensor>(shape, finalResult, a.type()));
+            }
+            else if (aRank == 2 && bRank == 3) {
+                // Broadcasting: [M, K] x [batch, K, N] -> [batch, M, N]
+                int batchSize = bShape[0];
+                
+                // Replicate the 2D matrix for each batch
+                af::array aReplicated = af::tile(aArray, 1, 1, batchSize);
+                af::array aReordered = af::reorder(aReplicated, 0, 1, 2);
+                af::array bReordered = af::reorder(bArray, 1, 2, 0);
+                
+                af::dim4 resultDims(aRows, bCols, batchSize, 1);
+                af::array result = af::constant(0.0f, resultDims, aArray.type());
+                
+                for (int batch = 0; batch < batchSize; ++batch) {
+                    af::array aBatch = aReordered(af::span, af::span, batch);
+                    af::array bBatch = bReordered(af::span, af::span, batch);
+                    af::array batchResult = af::matmul(aBatch, bBatch);
+                    result(af::span, af::span, batch) = batchResult;
+                }
+                
+                af::array finalResult = af::reorder(result, 2, 0, 1);
+                Shape shape = Shape(utils::getArrayDimensionsAsIntVector(finalResult));
+                return Tensor(std::make_unique<GPUTensor>(shape, finalResult, a.type()));
+            }
+            else if (aRank == 3 && bRank == 2) {
+                // Broadcasting: [batch, M, K] x [K, N] -> [batch, M, N]
+                int batchSize = aShape[0];
+                
+                af::array bReplicated = af::tile(bArray, 1, 1, batchSize);
+                af::array aReordered = af::reorder(aArray, 1, 2, 0);
+                af::array bReordered = af::reorder(bReplicated, 0, 1, 2);
+                
+                af::dim4 resultDims(aRows, bCols, batchSize, 1);
+                af::array result = af::constant(0.0f, resultDims, aArray.type());
+                
+                for (int batch = 0; batch < batchSize; ++batch) {
+                    af::array aBatch = aReordered(af::span, af::span, batch);
+                    af::array bBatch = bReordered(af::span, af::span, batch);
+                    af::array batchResult = af::matmul(aBatch, bBatch);
+                    result(af::span, af::span, batch) = batchResult;
+                }
+                
+                af::array finalResult = af::reorder(result, 2, 0, 1);
+                Shape shape = Shape(utils::getArrayDimensionsAsIntVector(finalResult));
+                return Tensor(std::make_unique<GPUTensor>(shape, finalResult, a.type()));
+            }
+        }
+        
+        throw std::runtime_error("Unsupported tensor dimensions for matrix multiplication: " + 
+                                  aShape.toString() + " x " + bShape.toString());
     }
 
     Tensor GPUTensorBackend::reshape(const Tensor& tensor, const Shape& newShape) const {
