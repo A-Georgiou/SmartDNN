@@ -3,7 +3,7 @@
 
 #include <functional>
 #include "smart_dnn/tensor/TensorBase.hpp"
-#include "smart_dnn/shape/ShapeOperations.hpp"
+#include "smart_dnn/Shape/ShapeOperations.hpp"
 #include "smart_dnn/tensor/Backend/Default/BroadcastView.hpp"
 
 namespace sdnn {

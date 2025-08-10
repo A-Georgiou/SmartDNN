@@ -3,10 +3,9 @@
 #include "smart_dnn/tensor/Backend/ArrayFire/GPUTensor.hpp"
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
-#include "smart_dnn/shape/ShapeOperations.hpp"
+#include "smart_dnn/Shape/ShapeOperations.hpp"
 #include "smart_dnn/tensor/Backend/ArrayFire/GPUTensorBackend.hpp"
-#include "smart_dnn/shape/Shape.hpp"
-#include "smart_dnn/shape/ShapeOperations.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
 #include <typeindex>
 #include <memory>
 #include <any>

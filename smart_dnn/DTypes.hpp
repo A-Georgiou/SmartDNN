@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <algorithm>
+#include <type_traits>
 
 namespace sdnn {
     enum class dtype {
@@ -54,13 +55,8 @@ namespace sdnn {
     // Additional definitions only if they differ from the primary types
     template<> struct dtype_trait<char> { static constexpr dtype value = std::is_signed<char>::value ? dtype::s8 : dtype::u8; };
     
-    // Skip long/unsigned long specializations to avoid conflicts on systems where long == int64_t
-    // template<> struct dtype_trait<long> { static constexpr dtype value = sizeof(long) == 4 ? dtype::s32 : dtype::s64; };
-    // template<> struct dtype_trait<unsigned long> { static constexpr dtype value = sizeof(unsigned long) == 4 ? dtype::u32 : dtype::u64; };
-    
-    // Add specializations for long long types
-    template<> struct dtype_trait<long long> { static constexpr dtype value = dtype::s64; };
-    template<> struct dtype_trait<unsigned long long> { static constexpr dtype value = dtype::u64; };
+    // Skip long long types that may conflict with int64_t/uint64_t on some systems
+    // Code should use int64_t/uint64_t directly instead of long long
 
     template<typename T>
     constexpr T* safe_cast(void* data, dtype type) {
@@ -85,14 +81,15 @@ namespace sdnn {
         switch (type) {
             case dtype::f32: op(float{}); break;
             case dtype::f64: op(double{}); break;
-            case dtype::s16: op(int16_t{}); break;
-            case dtype::s32: op(int32_t{}); break;
-            case dtype::s64: op(int64_t{}); break;
-            case dtype::u8: op(uint8_t{}); break;
-            case dtype::u16: op(uint16_t{}); break;
-            case dtype::u32: op(uint32_t{}); break;
-            case dtype::u64: op(uint64_t{}); break;
-            case dtype::b8: op(uint8_t{}); break;
+            case dtype::s8: { signed char t{}; op(t); } break;  // Map int8_t to signed char
+            case dtype::s16: op(short{}); break;  // Map int16_t to short
+            case dtype::s32: op(int{}); break;  // Map int32_t to int
+            case dtype::s64: op(long{}); break; // Map int64_t to long (64-bit on most systems)
+            case dtype::u8: { unsigned char t{}; op(t); } break;
+            case dtype::u16: { unsigned short t{}; op(t); } break;  // Map uint16_t to unsigned short
+            case dtype::u32: { unsigned int t{}; op(t); } break;  // Map uint32_t to unsigned int
+            case dtype::u64: { unsigned long t{}; op(t); } break; // Map uint64_t to unsigned long
+            case dtype::b8: op(bool{}); break;
             default: throw std::runtime_error("Unsupported dtype for operation");
         }
     }

@@ -4,8 +4,8 @@
 #include <vector>
 #include <memory>
 #include <string>
-#include "smart_dnn/shape/Shape.hpp"
-#include "smart_dnn/shape/ShapeOperations.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
+#include "smart_dnn/Shape/ShapeOperations.hpp"
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/tensor/TensorBackendUtil.hpp"
 #include "smart_dnn/tensor/TensorIndex.hpp"

@@ -1,7 +1,7 @@
 #ifndef EIGEN_TENSOR_BACKEND_HPP
 #define EIGEN_TENSOR_BACKEND_HPP
 
-#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorBackend.hpp" 
 #include "smart_dnn/tensor/TensorCreationUtil.hpp"
 #include <algorithm>

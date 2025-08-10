@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <optional>
 #include "smart_dnn/DTypes.hpp"
-#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
 #include "smart_dnn/tensor/TensorAdapterBase.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
 #include "smart_dnn/tensor/TensorIndex.hpp"

@@ -2,7 +2,7 @@
 #define TENSOR_INDEX_HPP
 
 #include <vector>
-#include "smart_dnn/shape/Shape.hpp"
+#include "smart_dnn/Shape/Shape.hpp"
 
 namespace sdnn {
 
