@@ -158,12 +158,24 @@ void GPUTensor::div(const Tensor& other) {
         size_t flat_index = getFlatIndex(index); \
         if (std::is_same<TYPE, bool>::value) { \
             throw std::runtime_error("ArrayFire does not support bool scalar extraction on this platform."); \
-        } else if (std::is_same<TYPE, long>::value) { \
-            value = static_cast<long>((*data_)(flat_index).scalar<int64_t>()); \
-        } else if (std::is_same<TYPE, unsigned long>::value) { \
-            value = static_cast<unsigned long>((*data_)(flat_index).scalar<uint64_t>()); \
+        } else if (std::is_same<TYPE, long>::value && sizeof(long) == sizeof(long long)) { \
+            /* On 64-bit, long is same as long long */ \
+            af::array elem = (*data_)(flat_index); \
+            long long* host_ptr = elem.host<long long>(); \
+            value = static_cast<TYPE>(*host_ptr); \
+            af::freeHost(host_ptr); \
+        } else if (std::is_same<TYPE, unsigned long>::value && sizeof(unsigned long) == sizeof(unsigned long long)) { \
+            /* On 64-bit, unsigned long is same as unsigned long long */ \
+            af::array elem = (*data_)(flat_index); \
+            unsigned long long* host_ptr = elem.host<unsigned long long>(); \
+            value = static_cast<TYPE>(*host_ptr); \
+            af::freeHost(host_ptr); \
         } else { \
-            value = (*data_)(flat_index).scalar<TYPE>(); \
+            /* Use host() which copies to CPU and extracts value */ \
+            af::array elem = (*data_)(flat_index); \
+            TYPE* host_ptr = elem.host<TYPE>(); \
+            value = *host_ptr; \
+            af::freeHost(host_ptr); \
         } \
     } \
 
