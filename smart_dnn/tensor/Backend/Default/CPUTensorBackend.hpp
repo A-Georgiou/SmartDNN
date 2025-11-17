@@ -5,6 +5,7 @@
 #include "smart_dnn/tensor/TensorBackend.hpp" 
 #include "smart_dnn/tensor/TensorCreationUtil.hpp"
 #include <algorithm>
+#include <functional>
 #include <vector>
 #include <stdexcept>
 #include <memory>
