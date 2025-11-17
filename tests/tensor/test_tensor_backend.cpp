@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cmath>
 #include "smart_dnn/tensor/TensorCreationUtil.hpp"
 #include "smart_dnn/tensor/TensorBase.hpp"
 

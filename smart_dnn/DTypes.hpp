@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <typeinfo>
 #include <string>
+#include <stdexcept>
+#include <cstdint>
 
 namespace sdnn {
     enum class dtype {
@@ -50,8 +52,15 @@ namespace sdnn {
     template<> struct dtype_trait<uint64_t> { static constexpr dtype value = dtype::u64; };
     // Additional definitions only if they differ from the primary types
     template<> struct dtype_trait<char> { static constexpr dtype value = std::is_signed<char>::value ? dtype::s8 : dtype::u8; };
+    #if !defined(__LP64__) || defined(_WIN64)
+    // Only define these if long is not the same as int32_t/int64_t
+    #if !std::is_same<long, int32_t>::value && !std::is_same<long, int64_t>::value
     template<> struct dtype_trait<long> { static constexpr dtype value = sizeof(long) == 4 ? dtype::s32 : dtype::s64; };
+    #endif
+    #if !std::is_same<unsigned long, uint32_t>::value && !std::is_same<unsigned long, uint64_t>::value
     template<> struct dtype_trait<unsigned long> { static constexpr dtype value = sizeof(unsigned long) == 4 ? dtype::u32 : dtype::u64; };
+    #endif
+    #endif
 
     template<typename T>
     constexpr T* safe_cast(void* data, dtype type) {
@@ -208,9 +217,15 @@ namespace sdnn {
 
     constexpr inline dtype promotionOfTypes(dtype a, dtype b) {
         if (is_floating_point(a) || is_floating_point(b)) {
-            return std::max({a, b, dtype::f32}, [](dtype x, dtype y) {
-                return type_rank(x) < type_rank(y);
-            });
+            // Promote to at least f32 if any type is floating point
+            dtype types[] = {a, b, dtype::f32};
+            dtype result = types[0];
+            for (int i = 1; i < 3; i++) {
+                if (type_rank(types[i]) > type_rank(result)) {
+                    result = types[i];
+                }
+            }
+            return result;
         }
 
         if (is_signed(a) == is_signed(b)) {

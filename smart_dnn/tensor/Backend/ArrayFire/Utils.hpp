@@ -3,6 +3,8 @@
 
 
 #include <cmath>
+#include <optional>
+#include <algorithm>
 #include "smart_dnn/DTypes.hpp"
 #include "smart_dnn/shape/Shape.hpp"
 #include "arrayfire.h"

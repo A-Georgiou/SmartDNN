@@ -190,7 +190,9 @@ namespace sdnn {
         GPUTensor tensor_cpu = tensor.getImpl<GPUTensor>();
         af::array result = tensor_cpu.getArray();
 
-        result = af::clamp(result, min, max);
+        // Manually implement clip using af::min and af::max
+        result = af::max(result, min);
+        result = af::min(result, max);
 
         Shape shape = Shape(utils::getArrayDimensionsAsIntVector(result));
         return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));

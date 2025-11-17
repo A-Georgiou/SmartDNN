@@ -3,7 +3,7 @@
 
 #if USE_ARRAYFIRE_TENSORS
   #include "Backend/ArrayFire/GPUTensor.hpp"
-  #include "Backend/ArrayFire/GPUBackend.hpp"
+  #include "Backend/ArrayFire/GPUTensorBackend.hpp"
 #endif
 
 #endif // DEFAULT_TENSOR_TYPE_HPP
