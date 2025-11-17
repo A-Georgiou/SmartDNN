@@ -60,7 +60,7 @@ endif()
 add_executable(SmartDNN ${COMMON_SOURCES} ${TENSOR_SOURCES})
 
 if (USE_ARRAYFIRE_TENSORS)
-    target_link_libraries(SmartDNN ArrayFire::af)
+    target_link_libraries(SmartDNN afcpu)
 endif()
 
 # Enable logging for debug builds

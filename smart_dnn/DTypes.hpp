@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <typeinfo>
 #include <string>
+#include <stdexcept>
+#include <cstdint>
 
 namespace sdnn {
     enum class dtype {
@@ -215,9 +217,15 @@ namespace sdnn {
 
     constexpr inline dtype promotionOfTypes(dtype a, dtype b) {
         if (is_floating_point(a) || is_floating_point(b)) {
-            return std::max({a, b, dtype::f32}, [](dtype x, dtype y) {
-                return type_rank(x) < type_rank(y);
-            });
+            // Promote to at least f32 if any type is floating point
+            dtype types[] = {a, b, dtype::f32};
+            dtype result = types[0];
+            for (int i = 1; i < 3; i++) {
+                if (type_rank(types[i]) > type_rank(result)) {
+                    result = types[i];
+                }
+            }
+            return result;
         }
 
         if (is_signed(a) == is_signed(b)) {
