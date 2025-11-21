@@ -5,6 +5,7 @@
 #include "smart_dnn/Activation.hpp"
 #include "smart_dnn/Tensor/Tensor.hpp"
 #include <optional>
+#include <memory>
 
 namespace smart_dnn {
 

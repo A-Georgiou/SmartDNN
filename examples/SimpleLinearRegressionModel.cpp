@@ -1,12 +1,12 @@
 #include <iostream>
-#include "smart_dnn/tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/Tensor.hpp"
 #include "smart_dnn/SmartDNN.hpp"
-#include "smart_dnn/activations/ReLU.hpp"
-#include "smart_dnn/loss/MSELoss.hpp"
-#include "smart_dnn/layers/FullyConnectedLayer.hpp"
-#include "smart_dnn/layers/ActivationLayer.hpp"
-#include "smart_dnn/datasets/SampleGenerator.hpp"
-#include "smart_dnn/optimizers/AdamOptimizer.hpp"
+#include "smart_dnn/Activations/ReLU.hpp"
+#include "smart_dnn/Loss/MSELoss.hpp"
+#include "smart_dnn/Layers/FullyConnectedLayer.hpp"
+#include "smart_dnn/Layers/ActivationLayer.hpp"
+#include "smart_dnn/Datasets/SampleGenerator.hpp"
+#include "smart_dnn/Optimizers/AdamOptimizer.hpp"
 
 int main() {
 
