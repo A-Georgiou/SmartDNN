@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        build-type: [Debug, Release]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+
+    - name: Configure CMake (Tests)
+      working-directory: ${{ github.workspace }}/tests
+      run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+
+    - name: Build Tests
+      working-directory: ${{ github.workspace }}/tests
+      run: make -j$(nproc)
+
+    - name: Run Tests
+      working-directory: ${{ github.workspace }}/tests
+      run: ./RunTests --gtest_output=xml:test-results.xml
+
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.build-type }}
+        path: tests/test-results.xml
+
+    - name: Test Report
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: Test Results (${{ matrix.os }}, ${{ matrix.build-type }})
+        path: tests/test-results.xml
+        reporter: java-junit

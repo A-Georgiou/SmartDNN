@@ -56,9 +56,10 @@ TEST(TensorOperationsTest, RandomnFunction_ValidShape) {
     Tensor a = TensorOperations::randomn({2, 3});
     ValidateTensorShape(a, 2, 6, {2, 3});
 
-    for (auto value : a.getData()) {
-        EXPECT_GE(value, -3.0f);
-        EXPECT_LE(value, 3.0f);
+    const float* data = a.getData();
+    for (int i = 0; i < 6; ++i) {
+        EXPECT_GE(data[i], -3.0f);
+        EXPECT_LE(data[i], 3.0f);
     }
 }
 

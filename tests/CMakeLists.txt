@@ -3,6 +3,11 @@ project(SmartDNNTesting)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Include SIMD detection
+include(CheckCXXCompilerFlag)
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake" ${CMAKE_MODULE_PATH})
+include(SIMDDetection)
+
 enable_testing()
 
 include(FetchContent)

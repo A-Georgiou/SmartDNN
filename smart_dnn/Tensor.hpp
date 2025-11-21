@@ -5,6 +5,7 @@
 #include <sstream>
 #include <functional>
 #include <memory>
+#include <vector>
 #include "Shape.hpp"
 #include "RandomEngine.hpp"
 
@@ -20,6 +21,7 @@ public:
     explicit Tensor(Shape dimensions) noexcept;
     Tensor(Shape otherShape, float value) noexcept;
     Tensor(Shape otherShape, const float* data);
+    Tensor(Shape otherShape, const std::vector<float>& data);
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept;
 
@@ -60,7 +62,7 @@ public:
 
     // Shape and size, return a copy so that the user cannot modify the shape.
     const Shape shape() const { return _shape; }
-    inline std::vector<int> size() const noexcept;
+    inline std::vector<int> size() const noexcept { return _shape.getDimensions(); }
     inline int size(int axis) const;
 
     // Tensor manipulations
