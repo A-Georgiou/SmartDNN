@@ -167,6 +167,24 @@ SmartDNN includes several key optimizations:
 - [Simple Linear Regression model](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/SimpleLinearRegressionModel.cpp)
 - [CNN for MNIST Classification](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/MNistModel.cpp)
 
+## Repository Visualization
+
+SmartDNN includes an interactive repository visualization tool that provides:
+
+- **Component Distribution**: Visual breakdown of all library components
+- **Dependency Graph**: Interactive diagram showing relationships between components
+- **Test Results**: Comprehensive test coverage display (105/105 tests passing ✅)
+- **Code Statistics**: Lines of code and file counts
+
+To generate and view the visualization:
+
+```bash
+python3 generate_graph.py
+# Open repository_graph.html in your browser
+```
+
+See [VISUALIZATION.md](VISUALIZATION.md) for detailed documentation.
+
 ## Future Roadmap
 
 - **Extended Layer Support**: Additional layer types including advanced convolutional and recurrent layers

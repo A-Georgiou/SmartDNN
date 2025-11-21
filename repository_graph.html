@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartDNN Repository Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            animation: fadeIn 0.8s ease-in;
+        }
+        
+        header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+            animation: fadeIn 1.2s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+        
+        .stat-value {
+            font-size: 3em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 0.95em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 500;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        .section h2 {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 12px;
+            display: inline-block;
+        }
+        
+        .component-bar-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .component-bar-container:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .component-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .file-count {
+            color: #666;
+            font-size: 0.9em;
+            font-weight: normal;
+        }
+        
+        .bar-wrapper {
+            position: relative;
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 30px;
+            overflow: hidden;
+        }
+        
+        .bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            position: relative;
+            animation: barGrow 1s ease-out;
+        }
+        
+        @keyframes barGrow {
+            from { width: 0 !important; }
+        }
+        
+        .bar-value {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            color: #333;
+            font-size: 0.9em;
+        }
+        
+        .file-list {
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #666;
+            font-style: italic;
+        }
+        
+        #dependency-graph {
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            padding: 20px;
+        }
+        
+        .dep-node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .dep-node:hover circle {
+            r: 35;
+            filter: brightness(1.2);
+        }
+        
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .test-suite {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #28a745;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .test-suite:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .test-suite.failed {
+            border-left-color: #dc3545;
+        }
+        
+        .test-suite h3 {
+            font-size: 1.15em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .test-count {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            animation: progressGrow 1s ease-out;
+        }
+        
+        @keyframes progressGrow {
+            from { width: 0 !important; }
+        }
+        
+        .legend {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-top: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+                padding: 20px;
+            }
+            
+            .stat-value {
+                font-size: 2.2em;
+            }
+            
+            #dependency-graph {
+                height: 400px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 SmartDNN Repository Visualization</h1>
+            <p>High-Performance C++ Deep Learning Library</p>
+        </header>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">5608</div>
+                <div class="stat-label">Lines of Code</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">9</div>
+                <div class="stat-label">Components</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">105</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">105</div>
+                <div class="stat-label">Tests Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">34</div>
+                <div class="stat-label">Total Files</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>📊 Component Distribution</h2>
+                
+        <div class="component-bar-container">
+            <div class="component-label">
+                <strong>Activations</strong>
+                <span class="file-count">7 files</span>
+            </div>
+            <div class="bar-wrapper">
+                <div class="bar" style="width: 70.0%; background: #667eea;"></div>
+                <span class="bar-value">7</span>
+            </div>
+            <div class="file-list">ReLU, Mish, LeakyReLU, Swish, Softmax, ... (+2 more)</div>
+        </div>
+        
+        <div class="component-bar-container">
+            <div class="component-label">
+                <strong>Layers</strong>
+                <span class="file-count">4 files</span>
+            </div>
+            <div class="bar-wrapper">
+                <div class="bar" style="width: 40.0%; background: #f093fb;"></div>
+                <span class="bar-value">4</span>
+            </div>
+            <div class="file-list">FlattenLayer, Conv2DLayer, FullyConnectedLayer, ActivationLayer</div>
+        </div>
+        
+        <div class="component-bar-container">
+            <div class="component-label">
+                <strong>Optimizers</strong>
+                <span class="file-count">3 files</span>
+            </div>
+            <div class="bar-wrapper">
+                <div class="bar" style="width: 30.0%; background: #4facfe;"></div>
+                <span class="bar-value">3</span>
+            </div>
+            <div class="file-list">AdamOptimizer, SGDOptimizer, RMSPropOptimizer</div>
+        </div>
+        
+        <div class="component-bar-container">
+            <div class="component-label">
+                <strong>Loss</strong>
+                <span class="file-count">2 files</span>
+            </div>
+            <div class="bar-wrapper">
+                <div class="bar" style="width: 20.0%; background: #43e97b;"></div>
+                <span class="bar-value">2</span>
+            </div>
+            <div class="file-list">CategoricalCrossEntropyLoss, MSELoss</div>
+        </div>
+        
+        <div class="component-bar-container">
+            <div class="component-label">
+                <strong>Regularisation</strong>
+                <span class="file-count">3 files</span>
+            </div>
+            <div class="bar-wrapper">
+                <div class="bar" style="width: 30.0%; background: #fa709a;"></div>
+                <span class="bar-value">3</span>
+            </div>
+            <div class="file-list">DropoutLayer, MaxPooling2DLayer, BatchNormalizationLayer</div>
+        </div>
+        
+        <div class="component-bar-container">
+            <div class="component-label">
+                <strong>Tensor</strong>
+                <span class="file-count">10 files</span>
+            </div>
+            <div class="bar-wrapper">
+                <div class="bar" style="width: 100.0%; background: #feca57;"></div>
+                <span class="bar-value">10</span>
+            </div>
+            <div class="file-list">TensorFactory, DeviceTypes, BroadcastView, TensorOperations, SliceView, ... (+5 more)</div>
+        </div>
+        
+        <div class="component-bar-container">
+            <div class="component-label">
+                <strong>Datasets</strong>
+                <span class="file-count">2 files</span>
+            </div>
+            <div class="bar-wrapper">
+                <div class="bar" style="width: 20.0%; background: #48dbfb;"></div>
+                <span class="bar-value">2</span>
+            </div>
+            <div class="file-list">SampleGenerator, MNistLoader</div>
+        </div>
+        
+        <div class="component-bar-container">
+            <div class="component-label">
+                <strong>Shape</strong>
+                <span class="file-count">2 files</span>
+            </div>
+            <div class="bar-wrapper">
+                <div class="bar" style="width: 20.0%; background: #ff6b6b;"></div>
+                <span class="bar-value">2</span>
+            </div>
+            <div class="file-list">ShapeOperations, Shape</div>
+        </div>
+        
+        <div class="component-bar-container">
+            <div class="component-label">
+                <strong>Debugging</strong>
+                <span class="file-count">1 files</span>
+            </div>
+            <div class="bar-wrapper">
+                <div class="bar" style="width: 10.0%; background: #ee5a6f;"></div>
+                <span class="bar-value">1</span>
+            </div>
+            <div class="file-list">Logger</div>
+        </div>
+        
+                
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-color" style="background: #667eea;"></div><span>Activations</span></div><div class="legend-item"><div class="legend-color" style="background: #f093fb;"></div><span>Layers</span></div><div class="legend-item"><div class="legend-color" style="background: #4facfe;"></div><span>Optimizers</span></div><div class="legend-item"><div class="legend-color" style="background: #43e97b;"></div><span>Loss</span></div><div class="legend-item"><div class="legend-color" style="background: #fa709a;"></div><span>Regularisation</span></div><div class="legend-item"><div class="legend-color" style="background: #feca57;"></div><span>Tensor</span></div><div class="legend-item"><div class="legend-color" style="background: #48dbfb;"></div><span>Datasets</span></div><div class="legend-item"><div class="legend-color" style="background: #ff6b6b;"></div><span>Shape</span></div><div class="legend-item"><div class="legend-color" style="background: #ee5a6f;"></div><span>Debugging</span></div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🔗 Dependency Graph</h2>
+                <svg id="dependency-graph" viewBox="0 0 800 500">
+                    <line x1="50%" y1="30%" x2="30%" y2="60%" stroke="#ccc" stroke-width="2"/>
+<line x1="50%" y1="30%" x2="50%" y2="60%" stroke="#ccc" stroke-width="2"/>
+<line x1="50%" y1="30%" x2="70%" y2="60%" stroke="#ccc" stroke-width="2"/>
+<line x1="30%" y1="60%" x2="50%" y2="90%" stroke="#ccc" stroke-width="2"/>
+<line x1="30%" y1="60%" x2="20%" y2="80%" stroke="#ccc" stroke-width="2"/>
+<line x1="50%" y1="60%" x2="50%" y2="90%" stroke="#ccc" stroke-width="2"/>
+<line x1="70%" y1="60%" x2="50%" y2="90%" stroke="#ccc" stroke-width="2"/>
+<line x1="80%" y1="80%" x2="50%" y2="90%" stroke="#ccc" stroke-width="2"/>
+
+        <g class="dep-node">
+            <circle cx="50%" cy="30%" r="30" fill="#999"/>
+            <text x="50%" y="30%" text-anchor="middle" dy="0.3em" fill="white" font-size="10" font-weight="bold">SmartDNN</text>
+        </g>
+        
+        <g class="dep-node">
+            <circle cx="30%" cy="60%" r="30" fill="#f093fb"/>
+            <text x="30%" y="60%" text-anchor="middle" dy="0.3em" fill="white" font-size="10" font-weight="bold">Layers</text>
+        </g>
+        
+        <g class="dep-node">
+            <circle cx="50%" cy="60%" r="30" fill="#4facfe"/>
+            <text x="50%" y="60%" text-anchor="middle" dy="0.3em" fill="white" font-size="10" font-weight="bold">Optimizers</text>
+        </g>
+        
+        <g class="dep-node">
+            <circle cx="70%" cy="60%" r="30" fill="#43e97b"/>
+            <text x="70%" y="60%" text-anchor="middle" dy="0.3em" fill="white" font-size="10" font-weight="bold">Loss</text>
+        </g>
+        
+        <g class="dep-node">
+            <circle cx="50%" cy="90%" r="30" fill="#feca57"/>
+            <text x="50%" y="90%" text-anchor="middle" dy="0.3em" fill="white" font-size="10" font-weight="bold">Tensor</text>
+        </g>
+        
+        <g class="dep-node">
+            <circle cx="20%" cy="80%" r="30" fill="#667eea"/>
+            <text x="20%" y="80%" text-anchor="middle" dy="0.3em" fill="white" font-size="10" font-weight="bold">Activations</text>
+        </g>
+        
+        <g class="dep-node">
+            <circle cx="80%" cy="80%" r="30" fill="#fa709a"/>
+            <text x="80%" y="80%" text-anchor="middle" dy="0.3em" fill="white" font-size="10" font-weight="bold">Regularisation</text>
+        </g>
+        
+                </svg>
+            </div>
+            
+            <div class="section">
+                <h2>✅ Test Results Summary</h2>
+                <div class="test-results">
+                    
+        <div class="test-suite passed">
+            <h3>AdvancedTensorOperationsTest</h3>
+            <div class="test-count">
+                <strong>35/35</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>DropoutLayerTest</h3>
+            <div class="test-count">
+                <strong>3/3</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>BatchNormalizationLayerTest</h3>
+            <div class="test-count">
+                <strong>3/3</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>TensorInitialisationTest</h3>
+            <div class="test-count">
+                <strong>3/3</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>TensorOperatorTest</h3>
+            <div class="test-count">
+                <strong>8/8</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>TensorCopyMoveTest</h3>
+            <div class="test-count">
+                <strong>3/3</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>TensorScalarOperatorTest</h3>
+            <div class="test-count">
+                <strong>8/8</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>ActivationTests</h3>
+            <div class="test-count">
+                <strong>15/15</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>FullyConnectedLayerTest</h3>
+            <div class="test-count">
+                <strong>10/10</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>Conv2DLayerTest</h3>
+            <div class="test-count">
+                <strong>7/7</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-suite passed">
+            <h3>OptimizerTests</h3>
+            <div class="test-count">
+                <strong>10/10</strong> tests passed
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100.0%"></div>
+            </div>
+        </div>
+        
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Generated on 2025-11-21 23:55:22 | SmartDNN Repository Analysis</p>
+        </footer>
+    </div>
+</body>
+</html>
