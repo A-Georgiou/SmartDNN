@@ -10,8 +10,15 @@ This implementation adds a complete Eigen backend to the SmartDNN deep neural ne
 - ✅ Element-wise operations: add, sub, mul (cwiseProduct), div (cwiseQuotient)
 - ✅ Matrix multiplication using Eigen's optimized BLAS operations
 - ✅ Scalar operations for all data types (bool, int, float, double, etc.)
-- ✅ Mathematical functions: exp, sqrt, tanh, abs
+- ✅ Mathematical functions: exp, log, sqrt, tanh, abs, power
 - ✅ Tensor creation: zeros, ones, identity matrix
+- ✅ Shape operations: reshape, transpose (2D)
+- ✅ Reduction operations: sum, mean, min, max (full tensor)
+- ✅ Comparison operations: equal, greater/less than (element-wise and boolean)
+- ✅ Selection operations: select, selectMax, clip
+- ✅ Statistical operations: variance
+- ✅ Unary operations: negative, reciprocal
+- ✅ Random generation: rand, uniformRand, randn (using Eigen's setRandom)
 
 ### Architecture
 - **Backend Class**: `EigenTensorBackend` inherits from `TensorBackend`
@@ -105,18 +112,40 @@ The implementation includes comprehensive tests:
 2. **Integration Tests**: Full neural network layer testing
 3. **Performance Tests**: Benchmarking against CPU backend
 
+## Recent Improvements (Latest Update)
+
+### Newly Implemented Operations
+- ✅ **Shape Operations**: reshape, transpose (2D matrices)
+- ✅ **Element-wise Math**: negative, reciprocal, clip
+- ✅ **Reduction Operations**: sum, mean, min, max (full tensor reductions)
+- ✅ **Comparison Operations**: 
+  - Boolean comparisons: equal, greaterThan, lessThan, greaterThanEqual, lessThanEqual
+  - Element-wise comparisons: prodGreaterThan, prodLessThan, prodGreaterThanOrEqual, prodLessThanOrEqual (tensor and scalar versions)
+- ✅ **Selection Operations**: select (conditional), selectMax (max with scalar or tensor)
+- ✅ **Statistical Operations**: variance
+- ✅ **Improved Random Generation**: Using Eigen's setRandom() instead of C's rand()
+
+### Code Quality Improvements
+- ✅ Fixed const qualifier handling with Eigen::Map
+- ✅ Proper type deduction using std::remove_const_t
+- ✅ All operations use Eigen's optimized vectorized implementations
+- ✅ Reduced number of stub functions throwing runtime_error
+
 ## Future Enhancements
 
 ### Immediate Improvements
-- [ ] Implement remaining operations (log, power, variance, etc.)
 - [ ] Add broadcasting support for element-wise operations
+- [ ] Implement axis-specific reductions (sum/mean/min/max along specific axes)
+- [ ] Implement general transpose with arbitrary axis permutations
 - [ ] Optimize memory allocations for temporary objects
+- [ ] Add proper Gaussian distribution for randn()
 
 ### Advanced Features
 - [ ] GPU backend integration via Eigen's CUDA support
 - [ ] Sparse matrix operations for large networks
 - [ ] Custom memory allocators for better performance
 - [ ] Automatic backend selection based on operation characteristics
+- [ ] SIMD optimization hints for specific architectures
 
 ## Compatibility
 

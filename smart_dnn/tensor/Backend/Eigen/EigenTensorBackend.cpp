@@ -33,16 +33,17 @@ Tensor eigenElementWiseOp(const Tensor& a, const Tensor& b, Op operation) {
     const auto& b_cpu = b.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         const T* a_data = a_cpu.typedData<T>();
         const T* b_data = b_cpu.typedData<T>();
         T* result_data = result->typedData<T>();
         const size_t size = a.shape().size();
         
-        // Map to Eigen vectors
-        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> a_vec(a_data, size);
-        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> b_vec(b_data, size);
+        // Map to Eigen vectors - use const_cast for const data pointers
+        // Eigen::Map requires non-const scalar type even for const data
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> a_vec(const_cast<T*>(a_data), size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> b_vec(const_cast<T*>(b_data), size);
         Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
         
         operation(a_vec, b_vec, result_vec);
@@ -58,14 +59,14 @@ Tensor eigenScalarOp(const Tensor& a, const U& scalar, Op operation) {
     const auto& a_cpu = a.getImpl<CPUTensor>();
 
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         const T* a_data = a_cpu.typedData<T>();
         T* result_data = result->typedData<T>();
         const T scalar_t = static_cast<T>(scalar);
         const size_t size = a.shape().size();
 
-        // Map to Eigen vectors
-        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> a_vec(a_data, size);
+        // Map to Eigen vectors - use const_cast for const data pointers
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> a_vec(const_cast<T*>(a_data), size);
         Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
         
         operation(a_vec, scalar_t, result_vec);
@@ -119,15 +120,15 @@ Tensor EigenTensorBackend::matmul(const Tensor& a, const Tensor& b) const {
     const auto& b_cpu = b.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         const T* a_data = a_cpu.typedData<T>();
         const T* b_data = b_cpu.typedData<T>();
         T* result_data = result->typedData<T>();
         
         // Map to Eigen matrices
-        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> a_mat(a_data, a_shape[0], a_shape[1]);
-        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> b_mat(b_data, b_shape[0], b_shape[1]);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> a_mat(const_cast<T*>(a_data), a_shape[0], a_shape[1]);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> b_mat(const_cast<T*>(b_data), b_shape[0], b_shape[1]);
         Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> result_mat(result_data, result_shape[0], result_shape[1]);
         
         result_mat = a_mat * b_mat;
@@ -171,7 +172,7 @@ Tensor EigenTensorBackend::matmul(const Tensor& a, const Tensor& b) const {
     Tensor EigenTensorBackend::fill(const Shape& shape, const TYPE& fillValue, dtype type) const { \
         auto result = std::make_unique<CPUTensor>(shape, type); \
         result->applyTypedOperation([&](auto* type_ptr) { \
-            using T = std::remove_pointer_t<decltype(type_ptr)>; \
+            using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>; \
             T* data = result->typedData<T>(); \
             std::fill_n(data, shape.size(), static_cast<T>(fillValue)); \
         }); \
@@ -207,43 +208,216 @@ void EigenTensorBackend::print(const Tensor& tensor) {
 
 // Stub implementations for other required methods (to be implemented later)
 Tensor EigenTensorBackend::sum(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
-    throw std::runtime_error("sum operation not yet implemented in Eigen backend");
+    if (axes.empty()) {
+        return sumNoAxes(tensor);
+    }
+    
+    // For simple case of summing all elements (1D or when axes covers all dimensions)
+    if (axes.size() == tensor.shape().rank()) {
+        return sumNoAxes(tensor);
+    }
+    
+    // For more complex cases, fall back for now
+    throw std::runtime_error("sum with specific axes not yet fully implemented in Eigen backend");
 }
 
 Tensor EigenTensorBackend::mean(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
-    throw std::runtime_error("mean operation not yet implemented in Eigen backend");
+    if (axes.empty()) {
+        return meanNoAxes(tensor);
+    }
+    
+    // For simple case of computing mean of all elements
+    if (axes.size() == tensor.shape().rank()) {
+        return meanNoAxes(tensor);
+    }
+    
+    // For more complex cases, fall back for now
+    throw std::runtime_error("mean with specific axes not yet fully implemented in Eigen backend");
 }
 
 Tensor EigenTensorBackend::max(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
-    throw std::runtime_error("max operation not yet implemented in Eigen backend");
+    if (axes.empty()) {
+        return maxNoAxes(tensor);
+    }
+    
+    // For simple case
+    if (axes.size() == tensor.shape().rank()) {
+        return maxNoAxes(tensor);
+    }
+    
+    throw std::runtime_error("max with specific axes not yet fully implemented in Eigen backend");
 }
 
 Tensor EigenTensorBackend::selectMax(const Tensor& tensor, const double& min_value) const {
-    throw std::runtime_error("selectMax operation not yet implemented in Eigen backend");
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        const T min_val = static_cast<T>(min_value);
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = input_vec.cwiseMax(min_val);
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::selectMax(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("selectMax operation not yet implemented in Eigen backend");
+    if (a.shape() != b.shape()) {
+        throw std::invalid_argument("Tensors must have the same shape for selectMax");
+    }
+    
+    auto result = std::make_unique<CPUTensor>(a.shape(), a.type());
+    const auto& a_cpu = a.getImpl<CPUTensor>();
+    const auto& b_cpu = b.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* a_data = a_cpu.typedData<T>();
+        const T* b_data = b_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = a.shape().size();
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> a_vec(a_data, size);
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> b_vec(b_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = a_vec.cwiseMax(b_vec);
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::min(const Tensor& tensor, const std::vector<size_t>& axes, bool keepDims) const {
-    throw std::runtime_error("min operation not yet implemented in Eigen backend");
+    if (axes.empty()) {
+        return minNoAxes(tensor);
+    }
+    
+    // For simple case
+    if (axes.size() == tensor.shape().rank()) {
+        return minNoAxes(tensor);
+    }
+    
+    throw std::runtime_error("min with specific axes not yet fully implemented in Eigen backend");
 }
 
 Tensor EigenTensorBackend::clip(const Tensor& tensor, const double& min, const double& max) const {
-    throw std::runtime_error("clip operation not yet implemented in Eigen backend");
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        const T min_val = static_cast<T>(min);
+        const T max_val = static_cast<T>(max);
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = input_vec.cwiseMax(min_val).cwiseMin(max_val);
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::select(const Tensor& condition, const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("select operation not yet implemented in Eigen backend");
+    if (condition.shape() != a.shape() || a.shape() != b.shape()) {
+        throw std::invalid_argument("All tensors must have the same shape for select");
+    }
+    
+    auto result = std::make_unique<CPUTensor>(a.shape(), a.type());
+    const auto& cond_cpu = condition.getImpl<CPUTensor>();
+    const auto& a_cpu = a.getImpl<CPUTensor>();
+    const auto& b_cpu = b.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* a_data = a_cpu.typedData<T>();
+        const T* b_data = b_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = a.shape().size();
+        
+        // Get condition data (assume it's stored as bool or numeric)
+        cond_cpu.applyTypedOperation([&](auto* cond_type_ptr) {
+            using CondT = std::remove_const_t<std::remove_pointer_t<decltype(cond_type_ptr)>>;
+            const CondT* cond_data = cond_cpu.typedData<CondT>();
+            
+            // Perform element-wise selection
+            for (size_t i = 0; i < size; ++i) {
+                result_data[i] = (cond_data[i] != CondT(0)) ? a_data[i] : b_data[i];
+            }
+        });
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::reshape(const Tensor& tensor, const Shape& newShape) const {
-    throw std::runtime_error("reshape operation not yet implemented in Eigen backend");
+    // Reshape doesn't change the data, just the shape interpretation
+    if (tensor.shape().size() != newShape.size()) {
+        throw std::invalid_argument("Cannot reshape tensor: total size mismatch");
+    }
+    
+    auto result = std::make_unique<CPUTensor>(newShape, tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Simple memory copy since reshape only changes the shape metadata
+        std::memcpy(result_data, input_data, size * sizeof(T));
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::transpose(const Tensor& tensor, const std::vector<size_t>& axes) const {
-    throw std::runtime_error("transpose operation not yet implemented in Eigen backend");
+    // For 2D matrices, we can use Eigen's transpose
+    if (tensor.shape().rank() == 2 && axes.empty()) {
+        auto shape = tensor.shape();
+        Shape result_shape({shape[1], shape[0]});
+        auto result = std::make_unique<CPUTensor>(result_shape, tensor.type());
+        const auto& input_cpu = tensor.getImpl<CPUTensor>();
+        
+        result->applyTypedOperation([&](auto* type_ptr) {
+            using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+            
+            const T* input_data = input_cpu.typedData<T>();
+            T* result_data = result->typedData<T>();
+            
+            // Map to Eigen matrices
+            Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> 
+                input_mat(const_cast<T*>(input_data), shape[0], shape[1]);
+            Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> 
+                result_mat(result_data, result_shape[0], result_shape[1]);
+            
+            result_mat = input_mat.transpose();
+        });
+        
+        return Tensor(std::move(result));
+    }
+    
+    // For general case or specified axes, fall back to manual transpose
+    throw std::runtime_error("General transpose with arbitrary axes not yet implemented in Eigen backend");
 }
 
 // Element-wise mathematical operations using Eigen
@@ -257,7 +431,7 @@ Tensor EigenTensorBackend::exp(const Tensor& tensor) const {
     const auto& input_cpu = tensor.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         // Use constexpr if to avoid instantiation for bool
         if constexpr (!std::is_same_v<T, bool>) {
@@ -289,7 +463,7 @@ Tensor EigenTensorBackend::sqrt(const Tensor& tensor) const {
     const auto& input_cpu = tensor.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         // Use constexpr if to avoid instantiation for bool
         if constexpr (!std::is_same_v<T, bool>) {
@@ -316,7 +490,7 @@ Tensor EigenTensorBackend::tanh(const Tensor& tensor) const {
     const auto& input_cpu = tensor.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         const T* input_data = input_cpu.typedData<T>();
         T* result_data = result->typedData<T>();
@@ -337,7 +511,7 @@ Tensor EigenTensorBackend::abs(const Tensor& tensor) const {
     const auto& input_cpu = tensor.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         const T* input_data = input_cpu.typedData<T>();
         T* result_data = result->typedData<T>();
@@ -354,105 +528,168 @@ Tensor EigenTensorBackend::abs(const Tensor& tensor) const {
 }
 
 Tensor EigenTensorBackend::negative(const Tensor& tensor) const {
-    throw std::runtime_error("negative operation not yet implemented in Eigen backend");
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = -input_vec;
+    });
+    
+    return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::variance(const Tensor& tensor, const Tensor& meanTensor, const std::vector<size_t>& axes) const {
-    throw std::runtime_error("variance operation not yet implemented in Eigen backend");
+    // Calculate variance: E[(X - mean)^2] 
+    Tensor diff = sub(tensor, meanTensor);
+    Tensor squaredDiff = mul(diff, diff);
+    Tensor summedSquaredDiff = sum(squaredDiff, axes, false);
+    
+    // Calculate number of elements being summed over
+    double totalElements = 1.0;
+    for (size_t axis : axes) {
+        totalElements *= static_cast<double>(tensor.shape()[axis]);
+    }
+    
+    return div(summedSquaredDiff, totalElements);
 }
 
 Tensor EigenTensorBackend::reciprocal(const Tensor& tensor, double epsilon) const {
-    throw std::runtime_error("reciprocal operation not yet implemented in Eigen backend");
+    auto result = std::make_unique<CPUTensor>(tensor.shape(), tensor.type());
+    const auto& input_cpu = tensor.getImpl<CPUTensor>();
+    
+    result->applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* input_data = input_cpu.typedData<T>();
+        T* result_data = result->typedData<T>();
+        const size_t size = tensor.shape().size();
+        const T eps = static_cast<T>(epsilon);
+        
+        // Map to Eigen vectors
+        Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> input_vec(input_data, size);
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> result_vec(result_data, size);
+        
+        result_vec = (input_vec.array() + eps).inverse();
+    });
+    
+    return Tensor(std::move(result));
 }
 
 bool EigenTensorBackend::equal(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("equal operation not yet implemented in Eigen backend");
+    return a.tensorImpl_->equal(b);
 }
 
 bool EigenTensorBackend::greaterThan(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("greaterThan operation not yet implemented in Eigen backend");
+    return a.tensorImpl_->greaterThan(b);
 }
 
 bool EigenTensorBackend::greaterThanEqual(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("greaterThanEqual operation not yet implemented in Eigen backend");
+    return a.tensorImpl_->greaterThan(b) || a.tensorImpl_->equal(b);
 }
 
 bool EigenTensorBackend::lessThan(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("lessThan operation not yet implemented in Eigen backend");
+    return a.tensorImpl_->lessThan(b);
 }
 
 bool EigenTensorBackend::lessThanEqual(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("lessThanEqual operation not yet implemented in Eigen backend");
+    return a.tensorImpl_->lessThan(b) || a.tensorImpl_->equal(b);
 }
 
 Tensor EigenTensorBackend::prodGreaterThan(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("prodGreaterThan operation not yet implemented in Eigen backend");
+    return eigenElementWiseOp(a, b, [](const auto& a_vec, const auto& b_vec, auto& result_vec) {
+        result_vec = (a_vec.array() > b_vec.array()).template cast<typename std::remove_reference<decltype(result_vec)>::type::Scalar>();
+    });
 }
 
 Tensor EigenTensorBackend::prodLessThan(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("prodLessThan operation not yet implemented in Eigen backend");
+    return eigenElementWiseOp(a, b, [](const auto& a_vec, const auto& b_vec, auto& result_vec) {
+        result_vec = (a_vec.array() < b_vec.array()).template cast<typename std::remove_reference<decltype(result_vec)>::type::Scalar>();
+    });
 }
 
 Tensor EigenTensorBackend::prodGreaterThanOrEqual(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("prodGreaterThanOrEqual operation not yet implemented in Eigen backend");
+    return eigenElementWiseOp(a, b, [](const auto& a_vec, const auto& b_vec, auto& result_vec) {
+        result_vec = (a_vec.array() >= b_vec.array()).template cast<typename std::remove_reference<decltype(result_vec)>::type::Scalar>();
+    });
 }
 
 Tensor EigenTensorBackend::prodLessThanOrEqual(const Tensor& a, const Tensor& b) const {
-    throw std::runtime_error("prodLessThanOrEqual operation not yet implemented in Eigen backend");
+    return eigenElementWiseOp(a, b, [](const auto& a_vec, const auto& b_vec, auto& result_vec) {
+        result_vec = (a_vec.array() <= b_vec.array()).template cast<typename std::remove_reference<decltype(result_vec)>::type::Scalar>();
+    });
 }
 
 Tensor EigenTensorBackend::prodGreaterThan(const Tensor& a, const double& scalar) const {
-    throw std::runtime_error("prodGreaterThan (scalar) operation not yet implemented in Eigen backend");
+    return eigenScalarOp(a, scalar, [](const auto& a_vec, auto scalar_t, auto& result_vec) {
+        result_vec = (a_vec.array() > scalar_t).template cast<typename std::remove_reference<decltype(result_vec)>::type::Scalar>();
+    });
 }
 
 Tensor EigenTensorBackend::prodLessThan(const Tensor& a, const double& scalar) const {
-    throw std::runtime_error("prodLessThan (scalar) operation not yet implemented in Eigen backend");
+    return eigenScalarOp(a, scalar, [](const auto& a_vec, auto scalar_t, auto& result_vec) {
+        result_vec = (a_vec.array() < scalar_t).template cast<typename std::remove_reference<decltype(result_vec)>::type::Scalar>();
+    });
 }
 
 Tensor EigenTensorBackend::prodGreaterThanOrEqual(const Tensor& a, const double& scalar) const {
-    throw std::runtime_error("prodGreaterThanOrEqual (scalar) operation not yet implemented in Eigen backend");
+    return eigenScalarOp(a, scalar, [](const auto& a_vec, auto scalar_t, auto& result_vec) {
+        result_vec = (a_vec.array() >= scalar_t).template cast<typename std::remove_reference<decltype(result_vec)>::type::Scalar>();
+    });
 }
 
 Tensor EigenTensorBackend::prodLessThanOrEqual(const Tensor& a, const double& scalar) const {
-    throw std::runtime_error("prodLessThanOrEqual (scalar) operation not yet implemented in Eigen backend");
+    return eigenScalarOp(a, scalar, [](const auto& a_vec, auto scalar_t, auto& result_vec) {
+        result_vec = (a_vec.array() <= scalar_t).template cast<typename std::remove_reference<decltype(result_vec)>::type::Scalar>();
+    });
 }
 
 Tensor EigenTensorBackend::rand(const Shape& shape, dtype type) const {
     auto result = std::make_unique<CPUTensor>(shape, type);
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         T* result_data = result->typedData<T>();
         const size_t size = shape.size();
         
-        // Simple random initialization using rand()
-        for (size_t i = 0; i < size; ++i) {
-            result_data[i] = static_cast<T>(::rand()) / static_cast<T>(RAND_MAX);
-        }
+        // Use Eigen's random functionality
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> vec(result_data, size);
+        vec.setRandom(); // Generates values in [-1, 1]
+        vec = (vec.array() + T(1)) / T(2); // Scale to [0, 1]
     });
     
     return Tensor(std::move(result));
 }
 
 Tensor EigenTensorBackend::uniformRand(const Shape& shape, dtype type) const {
-    return rand(shape, type);  // Use same implementation for now
+    return rand(shape, type);  // Use same improved implementation
 }
 
 Tensor EigenTensorBackend::randn(const Shape& shape, dtype type, float min, float max) const {
     auto result = std::make_unique<CPUTensor>(shape, type);
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         T* result_data = result->typedData<T>();
         const size_t size = shape.size();
         
-        // Simple normal distribution approximation
-        for (size_t i = 0; i < size; ++i) {
-            float r = static_cast<float>(::rand()) / static_cast<float>(RAND_MAX);
-            result_data[i] = static_cast<T>(min + r * (max - min));
-        }
+        // Use Eigen's random functionality  
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> vec(result_data, size);
+        vec.setRandom(); // Generates values in [-1, 1]
+        
+        // Scale to [min, max]
+        vec = vec.array() * T((max - min) / 2.0f) + T((max + min) / 2.0f);
     });
     
     return Tensor(std::move(result));
@@ -462,7 +699,7 @@ Tensor EigenTensorBackend::randn(const Shape& shape, dtype type, float min, floa
 Tensor EigenTensorBackend::zeros(const Shape& shape, dtype type) const {
     auto result = std::make_unique<CPUTensor>(shape, type);
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         T* data = result->typedData<T>();
         std::fill_n(data, shape.size(), T(0));
     });
@@ -476,7 +713,7 @@ Tensor EigenTensorBackend::zeros(int size, dtype type) const {
 Tensor EigenTensorBackend::ones(const Shape& shape, dtype type) const {
     auto result = std::make_unique<CPUTensor>(shape, type);
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         T* data = result->typedData<T>();
         std::fill_n(data, shape.size(), T(1));
     });
@@ -490,7 +727,7 @@ Tensor EigenTensorBackend::ones(int size, dtype type) const {
 Tensor EigenTensorBackend::identity(int size, dtype type) const {
     auto result = std::make_unique<CPUTensor>(Shape({size, size}), type);
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         T* data = result->typedData<T>();
         
         // Map to Eigen matrix and set identity
@@ -501,19 +738,75 @@ Tensor EigenTensorBackend::identity(int size, dtype type) const {
 }
 
 Tensor EigenTensorBackend::sumNoAxes(const Tensor& tensor) const {
-    throw std::runtime_error("sumNoAxes operation not yet implemented in Eigen backend");
+    double sum = 0.0;
+    const auto& tensor_cpu = tensor.getImpl<CPUTensor>();
+    
+    tensor_cpu.applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* data = tensor_cpu.typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vector for efficient summation
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> vec(const_cast<T*>(data), size);
+        sum = static_cast<double>(vec.sum());
+    });
+    
+    return Tensor({1}, sum);
 }
 
 Tensor EigenTensorBackend::meanNoAxes(const Tensor& tensor) const {
-    throw std::runtime_error("meanNoAxes operation not yet implemented in Eigen backend");
+    double mean = 0.0;
+    const auto& tensor_cpu = tensor.getImpl<CPUTensor>();
+    
+    tensor_cpu.applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* data = tensor_cpu.typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vector for efficient mean computation
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> vec(const_cast<T*>(data), size);
+        mean = static_cast<double>(vec.mean());
+    });
+    
+    return Tensor({1}, mean);
 }
 
 Tensor EigenTensorBackend::minNoAxes(const Tensor& tensor) const {
-    throw std::runtime_error("minNoAxes operation not yet implemented in Eigen backend");
+    double min_val = 0.0;
+    const auto& tensor_cpu = tensor.getImpl<CPUTensor>();
+    
+    tensor_cpu.applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* data = tensor_cpu.typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vector for efficient min computation
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> vec(const_cast<T*>(data), size);
+        min_val = static_cast<double>(vec.minCoeff());
+    });
+    
+    return Tensor({1}, min_val);
 }
 
 Tensor EigenTensorBackend::maxNoAxes(const Tensor& tensor) const {
-    throw std::runtime_error("maxNoAxes operation not yet implemented in Eigen backend");
+    double max_val = 0.0;
+    const auto& tensor_cpu = tensor.getImpl<CPUTensor>();
+    
+    tensor_cpu.applyTypedOperation([&](auto* type_ptr) {
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
+        
+        const T* data = tensor_cpu.typedData<T>();
+        const size_t size = tensor.shape().size();
+        
+        // Map to Eigen vector for efficient max computation
+        Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> vec(const_cast<T*>(data), size);
+        max_val = static_cast<double>(vec.maxCoeff());
+    });
+    
+    return Tensor({1}, max_val);
 }
 
 Tensor EigenTensorBackend::log(const Tensor& tensor) const {
@@ -526,7 +819,7 @@ Tensor EigenTensorBackend::log(const Tensor& tensor) const {
     const auto& input_cpu = tensor.getImpl<CPUTensor>();
     
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         // Use constexpr if to avoid instantiation for bool
         if constexpr (!std::is_same_v<T, bool>) {
@@ -559,7 +852,7 @@ Tensor EigenTensorBackend::power(const Tensor& tensor, double exponent) const {
     
     // Use a conditional template to avoid instantiating pow for bool
     result->applyTypedOperation([&](auto* type_ptr) {
-        using T = std::remove_pointer_t<decltype(type_ptr)>;
+        using T = std::remove_const_t<std::remove_pointer_t<decltype(type_ptr)>>;
         
         // This should never be reached for bool due to the guard above,
         // but we need to handle it at compile time to avoid template errors
