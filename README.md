@@ -56,6 +56,44 @@ To install the library, follow these steps:
 
 4. Run the program with command `./SmartDNN`
 
+## Testing
+
+SmartDNN includes a comprehensive test suite using Google Test framework.
+
+### Running Tests
+
+```bash
+cd tests
+./run_tests.sh
+```
+
+Or manually:
+
+```bash
+cd tests
+cmake .
+make -j$(nproc)
+./RunTests
+```
+
+### Test Options
+
+```bash
+# Run specific tests
+./run_tests.sh -t "Tensor*"
+
+# Clean build
+./run_tests.sh -c
+
+# Release build
+./run_tests.sh -r
+
+# Verbose output
+./run_tests.sh -v
+```
+
+For more details, see [tests/README.md](tests/README.md).
+
 ## Running your models (With Docker)
 
 To create your first model and run using docker, follow these steps:

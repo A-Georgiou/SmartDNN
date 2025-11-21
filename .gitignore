@@ -19,3 +19,5 @@ build/
 generated/
 external/
 external/OpenBLAS
+test-results.xml
+*.xml
