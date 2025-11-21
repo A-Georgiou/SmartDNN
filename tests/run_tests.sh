@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -r, --release         Build in Release mode (default: Debug)"
             echo "  -t, --test FILTER     Run specific test(s) matching FILTER"
             echo "  -v, --verbose         Verbose test output"
-            echo "  -j, --jobs N          Number of parallel build jobs (default: $(nproc))"
+            echo "  -j, --jobs N          Number of parallel build jobs (default: auto-detected, fallback to 4)"
             echo "  -h, --help            Show this help message"
             echo ""
             echo "Examples:"
