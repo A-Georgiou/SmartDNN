@@ -50,7 +50,9 @@ TENSOR_DATA_CPU::TensorData(Shape dimensions, const std::vector<T>& values)
 TEMPLATE_TENSOR
 TENSOR_DATA_CPU::TensorData(Shape dimensions, std::vector<T>&& values) noexcept
     : shape_(dimensions), data_(std::make_unique<T[]>(dimensions.size())) {
-    std::move(values.begin(), values.end(), data_.get());
+    for (size_t i = 0; i < values.size(); ++i) {
+        data_[i] = std::move(values[i]);
+    }
 }
 
 TEMPLATE_TENSOR
