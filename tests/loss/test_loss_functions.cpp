@@ -142,8 +142,9 @@ TEST(CategoricalCrossEntropyLossTest, ComputeLossWorstPrediction) {
     
     Tensor<float> result = loss.compute(prediction, target);
     
-    // Loss = -log(epsilon) where epsilon = 1e-7
-    float expected = -std::log(1e-7f);
+    // Loss = -log(epsilon) where epsilon = 1e-7 (matches CategoricalCrossEntropyLoss implementation)
+    constexpr float epsilon = 1e-7f;
+    float expected = -std::log(epsilon);
     EXPECT_NEAR(result.getData()[0], expected, 1e-3f);
 }
 

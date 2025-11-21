@@ -23,6 +23,7 @@ TEST(FlattenLayerTest, Flatten3DTo2D) {
     
     // Output should be (batch_size, flattened_size) = (2, 3*4*5) = (2, 60)
     EXPECT_EQ(output.getShape(), Shape({2, 60}));
+    // Total number of elements should be preserved
     EXPECT_EQ(output.getShape().size(), input.getShape().size());
 }
 
