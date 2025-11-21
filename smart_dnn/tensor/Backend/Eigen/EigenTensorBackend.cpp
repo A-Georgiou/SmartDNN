@@ -354,7 +354,7 @@ Tensor EigenTensorBackend::select(const Tensor& condition, const Tensor& a, cons
         
         // Get condition data (assume it's stored as bool or numeric)
         cond_cpu.applyTypedOperation([&](auto* cond_type_ptr) {
-            using CondT = std::remove_pointer_t<decltype(cond_type_ptr)>;
+            using CondT = std::remove_const_t<std::remove_pointer_t<decltype(cond_type_ptr)>>;
             const CondT* cond_data = cond_cpu.typedData<CondT>();
             
             // Perform element-wise selection
@@ -555,9 +555,9 @@ Tensor EigenTensorBackend::variance(const Tensor& tensor, const Tensor& meanTens
     Tensor summedSquaredDiff = sum(squaredDiff, axes, false);
     
     // Calculate number of elements being summed over
-    float totalElements = 1.0f;
+    double totalElements = 1.0;
     for (size_t axis : axes) {
-        totalElements *= static_cast<float>(tensor.shape()[axis]);
+        totalElements *= static_cast<double>(tensor.shape()[axis]);
     }
     
     return div(summedSquaredDiff, totalElements);
