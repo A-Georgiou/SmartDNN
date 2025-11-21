@@ -116,11 +116,12 @@ def generate_html_graph(data):
         if len(comp_data["files"]) > 5:
             files_list += f", ... (+{len(comp_data['files']) - 5} more)"
         
+        file_word = "file" if comp_data["count"] == 1 else "files"
         component_bars += f"""
         <div class="component-bar-container">
             <div class="component-label">
                 <strong>{comp_name}</strong>
-                <span class="file-count">{comp_data["count"]} files</span>
+                <span class="file-count">{comp_data["count"]} {file_word}</span>
             </div>
             <div class="bar-wrapper">
                 <div class="bar" style="width: {percentage}%; background: {color};"></div>

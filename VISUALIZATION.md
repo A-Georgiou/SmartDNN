@@ -6,7 +6,7 @@ This directory contains a responsive, interactive visualization of the SmartDNN 
 
 The visualization provides:
 
-- **Component Distribution**: Visual representation of all components (Activations, Layers, Optimizers, Loss Functions, Regularization, Tensor operations, etc.)
+- **Component Distribution**: Visual representation of all components (Activations, Layers, Optimizers, Loss Functions, Regularisation, Tensor operations, etc.)
 - **Dependency Graph**: Interactive graph showing relationships between major components
 - **Test Results Summary**: Comprehensive overview of all 105 tests across 11 test suites
 - **Code Statistics**: Lines of code breakdown across headers, tests, and examples
@@ -68,7 +68,7 @@ The visualization organizes code into the following categories:
 - **Layers** (Pink): FullyConnectedLayer, Conv2DLayer, ActivationLayer, FlattenLayer
 - **Optimizers** (Blue): AdamOptimizer, SGDOptimizer, RMSPropOptimizer
 - **Loss Functions** (Green): MSELoss, CategoricalCrossEntropyLoss
-- **Regularization** (Red): DropoutLayer, BatchNormalizationLayer, MaxPooling2DLayer
+- **Regularisation** (Red): DropoutLayer, BatchNormalizationLayer, MaxPooling2DLayer
 - **Tensor** (Yellow): Core tensor operations and data structures
 - **Datasets** (Cyan): Data loading utilities
 - **Shape** (Orange): Shape manipulation utilities
