@@ -70,6 +70,11 @@ namespace smart_dnn {
         return testing::AssertionSuccess();
     }
 
+    // Helper function for approximate floating point equality
+    inline bool approxEqual(float a, float b, float epsilon = 1e-5f) {
+        return std::abs(a - b) < epsilon;
+    }
+
 } // namespace smart_dnn
 
 #endif // TENSOR_HELPERS_HPP

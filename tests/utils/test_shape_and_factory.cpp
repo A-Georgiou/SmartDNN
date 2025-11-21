@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include "../../smart_dnn/Shape/Shape.hpp"
 #include "../../smart_dnn/Shape/ShapeOperations.hpp"
-#include "../utils/tensor_helpers.hpp"
+#include "tensor_helpers.hpp"
 
 namespace smart_dnn {
 

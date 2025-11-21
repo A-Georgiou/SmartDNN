@@ -7,11 +7,6 @@
 
 namespace smart_dnn {
 
-// Helper function for approximate equality
-static bool approxEqual(float a, float b, float epsilon = 1e-5f) {
-    return std::abs(a - b) < epsilon;
-}
-
 // Test basic Adam optimization without any special features
 TEST(AdamOptimizerTest, BasicAdamUpdate) {
     AdamOptions<float> options;
