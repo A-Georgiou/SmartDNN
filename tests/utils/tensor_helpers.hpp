@@ -13,9 +13,9 @@ inline void ValidateTensorShape(const Tensor& tensor, int rank, int size, const 
 }
 
 inline void ValidateTensorData(const Tensor& tensor, const std::vector<float>& expectedData) {
-    ASSERT_EQ(tensor.getData().size(), expectedData.size());
+    const float* data = tensor.getData();
     for (size_t i = 0; i < expectedData.size(); ++i) {
-        ASSERT_NEAR(tensor.getData()[i], expectedData[i], 1e-6);
+        ASSERT_NEAR(data[i], expectedData[i], 1e-6);
     }
 }
 

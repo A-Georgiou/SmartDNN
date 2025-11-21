@@ -24,6 +24,14 @@ Tensor::Tensor(Shape otherShape, const float* inputData)
     std::copy_n(inputData, _shape.size(), _data.get());
 }
 
+Tensor::Tensor(Shape otherShape, const std::vector<float>& inputData)
+    : _shape(std::move(otherShape)), _data(new float[_shape.size()]), d_data(nullptr), onGPU(false) {
+    if (inputData.size() != static_cast<size_t>(_shape.size())) {
+        throw std::invalid_argument("Data size must match tensor size");
+    }
+    std::copy_n(inputData.data(), _shape.size(), _data.get());
+}
+
 Tensor::Tensor(const Tensor& other)
     : _shape(other._shape), _data(new float[other._shape.size()]), d_data(nullptr), onGPU(false) {
     std::copy_n(other._data.get(), _shape.size(), _data.get());
@@ -78,10 +86,6 @@ float& Tensor::operator()(std::initializer_list<int> indices) {
 
 const float& Tensor::operator()(std::initializer_list<int> indices) const {
     return _data[TensorOperations::flattenIndex(indices, _shape)];
-}
-
-inline std::vector<int> Tensor::size() const noexcept {
-    return _shape.getDimensions();
 }
 
 inline int Tensor::size(int axis) const {
