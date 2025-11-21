@@ -79,12 +79,12 @@ TEST(SmartDNNModelTest, BinaryClassificationModel) {
     std::vector<Tensor<float>> targets;
     
     // Class 0: points in lower-left quadrant
-    inputs.push_back(Tensor<float>({2}, {-1.0f, -1.0f}));
-    targets.push_back(Tensor<float>({2}, {1.0f, 0.0f}));
+    inputs.push_back(Tensor<float>({1, 2}, {-1.0f, -1.0f}));
+    targets.push_back(Tensor<float>({1, 2}, {1.0f, 0.0f}));
     
     // Class 1: points in upper-right quadrant
-    inputs.push_back(Tensor<float>({2}, {1.0f, 1.0f}));
-    targets.push_back(Tensor<float>({2}, {0.0f, 1.0f}));
+    inputs.push_back(Tensor<float>({1, 2}, {1.0f, 1.0f}));
+    targets.push_back(Tensor<float>({1, 2}, {0.0f, 1.0f}));
     
     // Train for a few epochs
     model.train(inputs, targets, 3);
@@ -92,11 +92,11 @@ TEST(SmartDNNModelTest, BinaryClassificationModel) {
     // Verify training completed
     
     // Make predictions
-    Tensor<float> testInput1({2}, {-1.5f, -1.5f});
+    Tensor<float> testInput1({1, 2}, {-1.5f, -1.5f});
     Tensor<float> prediction1 = model.predict(testInput1);
     
     // Prediction should be a probability distribution
-    ASSERT_EQ(prediction1.getShape(), Shape({2}));
+    ASSERT_EQ(prediction1.getShape(), Shape({1, 2}));
     
     // Probabilities should sum to approximately 1 (softmax output)
     float sum = prediction1.getData()[0] + prediction1.getData()[1];

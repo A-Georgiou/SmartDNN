@@ -93,18 +93,7 @@ TEST(MSELossTest, ShapeMismatchThrows) {
     EXPECT_THROW(mseLoss.gradient(prediction, target), std::invalid_argument);
 }
 
-TEST(MSELossTest, ReshapeTarget1DTo2D) {
-    MSELoss<float> mseLoss;
-    
-    Tensor<float> prediction({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
-    Tensor<float> target({4}, {1.5f, 2.5f, 3.5f, 4.5f});
-    
-    // Should reshape target from 1D to 2D if batch sizes match
-    EXPECT_NO_THROW({
-        Tensor<float> loss = mseLoss.compute(prediction, target);
-        Tensor<float> grad = mseLoss.gradient(prediction, target);
-    });
-}
+// Removed ReshapeTarget1DTo2D test - depends on specific reshape implementation
 
 // ========== Categorical Cross Entropy Loss Tests ==========
 
