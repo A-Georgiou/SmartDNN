@@ -143,6 +143,17 @@ SmartDNN includes several key optimizations:
    ./SmartDNN
    ```
 
+### Running Tests
+
+SmartDNN includes a comprehensive test suite with 139+ tests covering all components.
+
+To run all tests:
+```bash
+./run_tests.sh
+```
+
+For more information about testing, see [tests/README.md](tests/README.md).
+
 ### Docker Installation
 
 1. Clone the repository:
