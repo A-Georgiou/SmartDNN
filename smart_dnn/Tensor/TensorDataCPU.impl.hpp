@@ -42,16 +42,14 @@ TENSOR_DATA_CPU::TensorData(Shape dimensions, std::initializer_list<T> values)
 }
 
 TEMPLATE_TENSOR
-TENSOR_DATA_CPU::TensorData(Shape dimensions, const std::vector<T>& values){
-    shape_ = dimensions;
-    data_ = std::make_unique<T[]>(shape_.size());
+TENSOR_DATA_CPU::TensorData(Shape dimensions, const std::vector<T>& values)
+    : shape_(dimensions), data_(std::make_unique<T[]>(dimensions.size())) {
     std::copy(values.begin(), values.end(), data_.get());
 }
 
 TEMPLATE_TENSOR
-TENSOR_DATA_CPU::TensorData(Shape dimensions, std::vector<T>&& values) noexcept{
-    shape_ = dimensions;
-    data_ = std::make_unique<T[]>(shape_.size());
+TENSOR_DATA_CPU::TensorData(Shape dimensions, std::vector<T>&& values) noexcept
+    : shape_(dimensions), data_(std::make_unique<T[]>(dimensions.size())) {
     std::move(values.begin(), values.end(), data_.get());
 }
 
