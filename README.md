@@ -167,16 +167,41 @@ SmartDNN includes several key optimizations:
 - [Simple Linear Regression model](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/SimpleLinearRegressionModel.cpp)
 - [CNN for MNIST Classification](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/MNistModel.cpp)
 
+## Documentation
+
+SmartDNN comes with comprehensive documentation to help you get started and master the library:
+
+- **[📖 Documentation Home](docs/index.md)** - Start here for an overview of all documentation
+- **[📚 API Reference](docs/API_REFERENCE.md)** - Complete API documentation for all classes and functions
+- **[🏗️ Architecture Guide](docs/ARCHITECTURE.md)** - In-depth guide to SmartDNN's internal architecture
+- **[🎓 Tutorials](docs/TUTORIALS.md)** - Step-by-step tutorials from beginner to advanced
+- **[🤝 Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute to SmartDNN
+- **[⚡ Performance Guide](docs/PERFORMANCE.md)** - Optimization techniques and best practices
+
+### Quick Links
+
+- **Getting Started**: See the [tutorials](docs/TUTORIALS.md) for hands-on examples
+- **API Details**: Check the [API reference](docs/API_REFERENCE.md) for specific functions
+- **Performance Tips**: Read the [performance guide](docs/PERFORMANCE.md) for optimization strategies
+- **Want to Contribute?**: Start with the [contributing guide](docs/CONTRIBUTING.md)
+
 ## Future Roadmap
 
 - **Extended Layer Support**: Additional layer types including advanced convolutional and recurrent layers
 - **Advanced Network Architectures**: More flexible and customizable network structures
 - **GPU Acceleration**: CUDA integration for GPU-based training and inference
-- **Comprehensive Documentation**: Detailed guides and examples
+- **Model Zoo**: Pre-trained models for common tasks
+- **ONNX Export**: Interoperability with other frameworks
 
 ## Contributing
 
-Contributions are welcome! If you would like to contribute to the project, please reach out via the contact information below.
+Contributions are welcome! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for detailed information on:
+- Development setup
+- Coding standards
+- Pull request process
+- Testing guidelines
+
+For quick questions or inquiries, please contact [AndrewGeorgiou98@outlook.com](mailto:andrewgeorgiou98@outlook.com).
 
 ## License
 
