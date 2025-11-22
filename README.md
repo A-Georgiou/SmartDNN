@@ -167,6 +167,22 @@ SmartDNN includes several key optimizations:
 - [Simple Linear Regression model](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/SimpleLinearRegressionModel.cpp)
 - [CNN for MNIST Classification](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/MNistModel.cpp)
 
+## Testing
+
+SmartDNN includes a comprehensive test suite built with Google Test. To run all tests:
+
+```bash
+./run_tests.sh
+```
+
+The test script will:
+- Configure the test suite with CMake
+- Build all tests using parallel compilation
+- Run the complete test suite (105+ tests covering tensor operations, layers, activations, and optimizers)
+- Report results with clear success/failure indicators
+
+All tests must pass before submitting contributions.
+
 ## Future Roadmap
 
 - **Extended Layer Support**: Additional layer types including advanced convolutional and recurrent layers
