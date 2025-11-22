@@ -143,6 +143,31 @@ SmartDNN includes several key optimizations:
    ./SmartDNN
    ```
 
+### Running Tests
+
+SmartDNN includes a comprehensive test suite to verify functionality:
+
+```bash
+# Run all tests
+./run_tests.sh
+
+# Clean and rebuild before testing
+./run_tests.sh --clean
+
+# Run tests with verbose output
+./run_tests.sh --verbose
+
+# Get help
+./run_tests.sh --help
+```
+
+The test suite uses Google Test framework and includes 105+ tests covering:
+- Tensor operations and manipulations
+- Neural network layers (fully connected, convolutional, dropout, batch normalization)
+- Activation functions (ReLU, Sigmoid, Softmax, Tanh, Leaky ReLU, Swish, Mish)
+- Optimizers (SGD, RMSprop)
+- Advanced tensor operations (transpose, reshape, matrix multiplication)
+
 ### Docker Installation
 
 1. Clone the repository:
