@@ -213,16 +213,16 @@ Creates a tensor filled with random values from uniform distribution.
 
 #### randn
 ```cpp
-static Tensor<T> randn(Shape dimensions, T mean = 0, T stddev = 1)
+static Tensor<T> randn(Shape dimensions, T min, T max)
 ```
-Creates a tensor filled with random values from normal distribution.
+Creates a tensor filled with random values from a uniform distribution in the range [min, max].
 
 **Example:**
 ```cpp
 auto zeros = Tensor<float>::zeros(Shape{3, 3});
 auto ones = Tensor<float>::ones(Shape{2, 2});
 auto random = Tensor<float>::rand(Shape{5, 5});
-auto normal = Tensor<float>::randn(Shape{10, 10}, 0.0f, 0.1f);
+auto randn = Tensor<float>::randn(Shape{10, 10}, -1.0f, 1.0f);
 ```
 
 **Operators:**
@@ -875,15 +875,22 @@ Utility for generating synthetic datasets for testing.
 **Functions:**
 
 ```cpp
-std::pair<std::vector<Tensor<T>>, std::vector<Tensor<T>>> 
-    generateLinearDataset(int numSamples, T slope = 2.0, T intercept = 3.0)
+std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> 
+    generateLinearDataset(int numSamples, float noise = 1.0)
 ```
 
-Generates linear regression dataset: `y = slope * x + intercept + noise`
+Generates linear regression dataset: `y = 2.0 * x + 3.0 + noise`
+
+The slope (2.0) and intercept (3.0) are hardcoded. The noise parameter controls the standard deviation of Gaussian noise added to the targets.
+
+**Parameters:**
+- `numSamples` - Number of samples to generate
+- `noise` - Standard deviation of Gaussian noise (default: 1.0)
 
 **Example:**
 ```cpp
-auto [inputs, targets] = generateLinearDataset(1000, 2.0f, 3.0f);
+auto [inputs, targets] = generateLinearDataset(1000);  // Default noise
+auto [inputs, targets] = generateLinearDataset(1000, 0.5f);  // Less noise
 ```
 
 ---

@@ -238,6 +238,7 @@ int main() {
     constexpr float LEARNING_RATE = 0.01f;
     
     // Generate linear dataset: y = 2x + 3 + noise
+    // The slope and intercept are hardcoded in the function
     auto [inputs, targets] = generateLinearDataset(BATCH_SIZE);
     
     std::cout << "Generated " << inputs.size() 
