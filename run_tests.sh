@@ -60,7 +60,16 @@ fi
 
 # Build the tests
 print_header "Building Tests"
-if make -j$(nproc) ; then
+# Determine number of processors for parallel build (cross-platform)
+if command -v nproc > /dev/null 2>&1; then
+    NUM_PROCS=$(nproc)
+elif command -v sysctl > /dev/null 2>&1; then
+    NUM_PROCS=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+else
+    NUM_PROCS=4
+fi
+
+if make -j${NUM_PROCS} ; then
     print_message "$GREEN" "✓ Build successful"
 else
     print_message "$RED" "✗ Build failed"
