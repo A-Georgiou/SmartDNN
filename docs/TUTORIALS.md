@@ -237,8 +237,8 @@ int main() {
     constexpr int EPOCHS = 100;
     constexpr float LEARNING_RATE = 0.01f;
     
-    // Generate linear dataset: y = 2.0 * x + 3.0 + noise
-    // BATCH_SIZE is the number of samples, noise defaults to 1.0
+    // Generate linear dataset: y = 2.0 * x + 3.0 + gaussian_noise
+    // Note: BATCH_SIZE here means total number of samples in the dataset
     auto [inputs, targets] = generateLinearDataset(BATCH_SIZE);
     
     std::cout << "Generated " << inputs.size() 

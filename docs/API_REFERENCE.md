@@ -217,6 +217,8 @@ static Tensor<T> randn(Shape dimensions, T min, T max)
 ```
 Creates a tensor filled with random values from a uniform distribution in the range [min, max].
 
+**Note:** Despite the name "randn" (which typically suggests normal distribution), this function actually generates uniformly distributed random values.
+
 **Example:**
 ```cpp
 auto zeros = Tensor<float>::zeros(Shape{3, 3});
@@ -879,13 +881,13 @@ std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>>
     generateLinearDataset(int num_samples, float noise = 1.0)
 ```
 
-Generates linear regression dataset: `y = 2.0 * x + 3.0 + noise`
+Generates linear regression dataset: `y = 2.0 * x + 3.0 + gaussian_noise`
 
-The slope (2.0) and intercept (3.0) are hardcoded. The noise parameter controls the standard deviation of Gaussian noise added to the targets.
+The slope (2.0) and intercept (3.0) are hardcoded. The noise parameter controls the standard deviation of Gaussian (normal) noise added to the targets.
 
 **Parameters:**
-- `num_samples` - Number of samples to generate
-- `noise` - Standard deviation of Gaussian noise (default: 1.0)
+- `num_samples` - Total number of samples to generate in the dataset
+- `noise` - Standard deviation of Gaussian noise added to targets (default: 1.0)
 
 **Example:**
 ```cpp
