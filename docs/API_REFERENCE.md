@@ -876,7 +876,7 @@ Utility for generating synthetic datasets for testing.
 
 ```cpp
 std::pair<std::vector<Tensor<float>>, std::vector<Tensor<float>>> 
-    generateLinearDataset(int numSamples, float noise = 1.0)
+    generateLinearDataset(int num_samples, float noise = 1.0)
 ```
 
 Generates linear regression dataset: `y = 2.0 * x + 3.0 + noise`
@@ -884,7 +884,7 @@ Generates linear regression dataset: `y = 2.0 * x + 3.0 + noise`
 The slope (2.0) and intercept (3.0) are hardcoded. The noise parameter controls the standard deviation of Gaussian noise added to the targets.
 
 **Parameters:**
-- `numSamples` - Number of samples to generate
+- `num_samples` - Number of samples to generate
 - `noise` - Standard deviation of Gaussian noise (default: 1.0)
 
 **Example:**

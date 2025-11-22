@@ -276,7 +276,9 @@ options.learningRate = 0.001f;  // Usually works well
 options.learningRate = 0.01f;   // First 50 epochs
 model.train(inputs, targets, 50);
 
+// Reduce learning rate and recompile
 options.learningRate = 0.001f;  // Next 50 epochs
+model.compile(MSELoss(), AdamOptimizer(options));  // Recompile with new settings
 model.train(inputs, targets, 50);
 ```
 

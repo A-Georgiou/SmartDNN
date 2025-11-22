@@ -149,6 +149,7 @@ Multi-dimensional arrays that hold your data. All operations in SmartDNN work wi
 Tensor<float> tensor(Shape{3, 3}, 1.0f);  // 3x3 tensor filled with 1.0
 auto zeros = Tensor<float>::zeros(Shape{2, 2});
 auto random = Tensor<float>::rand(Shape{5, 5});
+auto randn = Tensor<float>::randn(Shape{5, 5}, -1.0f, 1.0f);  // Random values in [-1, 1]
 ```
 
 ### Layers
