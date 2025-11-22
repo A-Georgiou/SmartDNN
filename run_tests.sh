@@ -16,6 +16,12 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TESTS_DIR="${SCRIPT_DIR}/tests"
 
+# Check if tests directory exists
+if [ ! -d "${TESTS_DIR}" ]; then
+    echo -e "${RED}Error: Tests directory not found at ${TESTS_DIR}${NC}"
+    exit 1
+fi
+
 # Parse command line arguments
 CLEAN=false
 VERBOSE=false
@@ -71,9 +77,25 @@ if [ "$CLEAN" = true ]; then
     echo -e "${YELLOW}Cleaning build artifacts...${NC}"
     cd "${TESTS_DIR}"
     
-    # Remove CMake generated files and build artifacts
-    rm -rf CMakeFiles/ CMakeCache.txt cmake_install.cmake Makefile
-    rm -rf _deps/ lib/ Testing/ RunTests CTestTestfile.cmake
+    # Files and directories to clean
+    CLEAN_TARGETS=(
+        "CMakeFiles/"
+        "CMakeCache.txt"
+        "cmake_install.cmake"
+        "Makefile"
+        "_deps/"
+        "lib/"
+        "Testing/"
+        "RunTests"
+        "CTestTestfile.cmake"
+    )
+    
+    # Remove each target if it exists
+    for target in "${CLEAN_TARGETS[@]}"; do
+        if [ -e "$target" ]; then
+            rm -rf "$target"
+        fi
+    done
     
     echo -e "${GREEN}✓ Clean complete${NC}"
     echo ""
@@ -81,6 +103,13 @@ fi
 
 # Navigate to tests directory
 cd "${TESTS_DIR}"
+
+# Check for cmake
+if ! command -v cmake &> /dev/null; then
+    echo -e "${RED}Error: cmake is not installed or not in PATH${NC}"
+    echo -e "${YELLOW}Please install cmake to build the tests${NC}"
+    exit 1
+fi
 
 # Configure the build
 echo -e "${YELLOW}Configuring test build with CMake...${NC}"
