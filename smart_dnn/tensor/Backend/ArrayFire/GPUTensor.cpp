@@ -161,53 +161,50 @@ void GPUTensor::div(const Tensor& other) {
             throw std::runtime_error("ArrayFire does not support bool scalar extraction on this platform."); \
         } \
         \
-        switch(type_) { \
-            case dtype::f32: { \
+        af::dtype arrayType = data_->type(); \
+        \
+        switch(arrayType) { \
+            case af::dtype::f32: { \
                 float temp = (*data_)(flat_index).scalar<float>(); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
-            case dtype::f64: { \
+            case af::dtype::f64: { \
                 double temp = (*data_)(flat_index).scalar<double>(); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
-            case dtype::s32: { \
+            case af::dtype::s32: { \
                 int temp = (*data_)(flat_index).scalar<int>(); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
-            case dtype::s64: { \
+            case af::dtype::s64: { \
                 long long temp = (*data_)(flat_index).scalar<long long>(); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
-            case dtype::u8: { \
+            case af::dtype::u8: { \
                 unsigned char temp = (*data_)(flat_index).scalar<unsigned char>(); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
-            case dtype::u32: { \
+            case af::dtype::u32: { \
                 unsigned int temp = (*data_)(flat_index).scalar<unsigned int>(); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
-            case dtype::u64: { \
+            case af::dtype::u64: { \
                 unsigned long long temp = (*data_)(flat_index).scalar<unsigned long long>(); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
-            case dtype::s8: { \
-                char temp = (*data_)(flat_index).scalar<char>(); \
-                value = static_cast<TYPE>(temp); \
-                break; \
-            } \
-            case dtype::s16: { \
+            case af::dtype::s16: { \
                 short temp = (*data_)(flat_index).scalar<short>(); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
-            case dtype::u16: { \
+            case af::dtype::u16: { \
                 unsigned short temp = (*data_)(flat_index).scalar<unsigned short>(); \
                 value = static_cast<TYPE>(temp); \
                 break; \
