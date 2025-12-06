@@ -25,8 +25,8 @@ GPUTensor::GPUTensor(const Shape& shape, dtype type)
                   af_dims.size() > 2 ? af_dims[2] : 1,
                   af_dims.size() > 3 ? af_dims[3] : 1);
 
-    // Use the af::dim4 object in the af::array constructor
-    data_ = std::make_shared<af::array>(dims, utils::sdnnToAfType(type));
+    // Initialize the array with zeros
+    data_ = std::make_shared<af::array>(af::constant(0, dims, utils::sdnnToAfType(type)));
 }
 
 GPUTensor::GPUTensor(const Shape& shape, const af::array& data, dtype type)
@@ -147,7 +147,8 @@ void GPUTensor::div(const Tensor& other) {
     } \
     void GPUTensor::set(const std::vector<size_t>& indices, TYPE value) { \
         size_t flatIndex = computeFlatIndex(shape_, indices); \
-        (*data_)(flatIndex) = value; \
+        size_t colMajorIndex = getFlatIndex(flatIndex); \
+        (*data_)(colMajorIndex) = value; \
     } \
     void GPUTensor::fill(TYPE value) { \
         af::dim4 dims = utils::shapeToAfDim(shape_); \
@@ -158,12 +159,61 @@ void GPUTensor::div(const Tensor& other) {
         size_t flat_index = getFlatIndex(index); \
         if (std::is_same<TYPE, bool>::value) { \
             throw std::runtime_error("ArrayFire does not support bool scalar extraction on this platform."); \
-        } else if (std::is_same<TYPE, long>::value) { \
-            value = static_cast<long>((*data_)(flat_index).scalar<int64_t>()); \
-        } else if (std::is_same<TYPE, unsigned long>::value) { \
-            value = static_cast<unsigned long>((*data_)(flat_index).scalar<uint64_t>()); \
-        } else { \
-            value = (*data_)(flat_index).scalar<TYPE>(); \
+        } \
+        \
+        switch(type_) { \
+            case dtype::f32: { \
+                float temp = (*data_)(flat_index).scalar<float>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case dtype::f64: { \
+                double temp = (*data_)(flat_index).scalar<double>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case dtype::s32: { \
+                int temp = (*data_)(flat_index).scalar<int>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case dtype::s64: { \
+                long long temp = (*data_)(flat_index).scalar<long long>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case dtype::u8: { \
+                unsigned char temp = (*data_)(flat_index).scalar<unsigned char>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case dtype::u32: { \
+                unsigned int temp = (*data_)(flat_index).scalar<unsigned int>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case dtype::u64: { \
+                unsigned long long temp = (*data_)(flat_index).scalar<unsigned long long>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case dtype::s8: { \
+                char temp = (*data_)(flat_index).scalar<char>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case dtype::s16: { \
+                short temp = (*data_)(flat_index).scalar<short>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case dtype::u16: { \
+                unsigned short temp = (*data_)(flat_index).scalar<unsigned short>(); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            default: \
+                throw std::runtime_error("Unsupported data type for ArrayFire scalar extraction"); \
         } \
     } \
 
@@ -220,6 +270,8 @@ void GPUTensor::reshape(const Shape& newShape) {
         throw std::runtime_error("Number of elements must remain constant during reshape");
     }
     shape_ = newShape;
+    af::dim4 newDims = utils::shapeToAfDim(newShape);
+    *data_ = af::moddims(*data_, newDims);
 }
 
 std::unique_ptr<TensorAdapter> GPUTensor::clone() const {
@@ -232,11 +284,13 @@ TensorBackend& GPUTensor::backend() const {
 }
 
 double GPUTensor::getValueAsDouble(size_t index) const {
-    return utils::getElementAsDouble(*data_, index);
+    size_t colMajorIndex = getFlatIndex(index);
+    return utils::getElementAsDouble(*data_, colMajorIndex);
 }
 
 void GPUTensor::setValueFromDouble(size_t index, double value) {
-    (*data_)(index) = value;
+    size_t colMajorIndex = getFlatIndex(index);
+    (*data_)(colMajorIndex) = value;
 }
 
 size_t GPUTensor::getFlatIndex(size_t index) const {
