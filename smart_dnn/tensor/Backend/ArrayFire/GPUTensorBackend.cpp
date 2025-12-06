@@ -245,6 +245,13 @@ namespace sdnn {
         return Tensor(std::make_unique<GPUTensor>(shape, result, tensor.type()));
     }
 
+    Tensor GPUTensorBackend::reshapeConv2DOutput(const Tensor& tensor, int batchSize, int channels, int height, int width) const {
+        Shape newShape({channels, height, width, batchSize});
+        Tensor temp = reshape(tensor, newShape);
+        return transpose(temp, {3, 0, 1, 2});
+    }
+
+
     Tensor GPUTensorBackend::clip(const Tensor& tensor, const double& min, const double& max) const {
         GPUTensor tensor_cpu = tensor.getImpl<GPUTensor>();
         af::array result = tensor_cpu.getArray();

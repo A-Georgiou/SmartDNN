@@ -64,6 +64,7 @@ public:
 
     Tensor reshape(const Tensor& tensor, const Shape& newShape) const override;
     Tensor transpose(const Tensor& tensor, const std::vector<size_t>& axes) const override;
+    Tensor reshapeConv2DOutput(const Tensor& tensor, int batchSize, int channels, int height, int width) const override;
     Tensor reciprocal(const Tensor& tensor, double epsilon) const override;
 
     Tensor exp(const Tensor& tensor) const override;

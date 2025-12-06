@@ -221,6 +221,15 @@ namespace sdnn {
         output->reshape(newShape);
         return Tensor(std::move(output));
     }
+    
+    Tensor CPUTensorBackend::reshapeConv2DOutput(const Tensor& tensor, int batchSize, int channels, int height, int width) const {
+        // CPU backend uses row-major layout
+        // im2col output is (channels, batch*height*width) in row-major
+        // Reshape to (channels, batch, height, width) then transpose to (batch, channels, height, width)
+        Shape newShape({channels, batchSize, height, width});
+        Tensor temp = reshape(tensor, newShape);
+        return transpose(temp, {1, 0, 2, 3});
+    }
 
     Tensor CPUTensorBackend::transpose(const Tensor& tensor, const std::vector<size_t>& axes) const {
         const auto& shape = tensor.shape();

@@ -63,6 +63,9 @@ public:
     // Shape operations
     virtual Tensor reshape(const Tensor& tensor, const Shape& newShape) const = 0;
     virtual Tensor transpose(const Tensor& tensor, const std::vector<size_t>& axes) const = 0;
+    
+    // Layout-aware reshape (makes up for row-major vs column-major differences)
+    virtual Tensor reshapeConv2DOutput(const Tensor& tensor, int batchSize, int channels, int height, int width) const = 0;
 
     // Element-wise operations
     virtual Tensor exp(const Tensor& tensor) const = 0;
