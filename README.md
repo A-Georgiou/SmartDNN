@@ -152,16 +152,3 @@ This project is licensed under the [MIT License](LICENSE).
 ## Contact
 
 For any questions or inquiries, please contact [AndrewGeorgiou98@outlook.com](mailto:andrewgeorgiou98@outlook.com).
-
-## A Brief Note From Our Discussion
-
-Life can feel like a balance between routine, uncertainty, connection, and purpose. Our discussion highlighted that many people are simply trying to do their best while navigating stress, relationships, ambition, contentment, and the search for meaning.
-
-Some helpful questions that came out of that reflection were:
-
-- What gives life meaning and purpose?
-- How do we balance ambition with contentment?
-- How do we handle stress, burnout, and fear of failure?
-- What makes a genuinely good life?
-
-Sometimes the most valuable starting point is simply making space to talk honestly about those questions.
