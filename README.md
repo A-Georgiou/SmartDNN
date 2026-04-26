@@ -97,6 +97,7 @@ model.train(inputs, targets, epochs);
 - **Activation Layers**: ReLU, Sigmoid, Tanh, Softmax, Leaky ReLU
 - **Regularization Layers**: Dropout, Batch Normalization
 - **Pooling Layers**: Max Pooling 2D
+- **Data Augmentation Layers**: Random Flip 2D, Random Rotation 90, Random Crop 2D
 - **Utility Layers**: Flatten
 
 ### Optimizers
