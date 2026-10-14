@@ -27,12 +27,12 @@ public:
     */
     
     Tensor forward(const Tensor& input) override {
-        this->input = input;
         Tensor reshapedInput = input;
 
         if (input.shape().rank() == 1) {
             reshapedInput = reshape(input, {1, input.shape()[0]});
         }
+        this->input = reshapedInput;
 
         Tensor output = matmul(reshapedInput, *weights);
         output = output + *biases;

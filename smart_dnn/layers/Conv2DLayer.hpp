@@ -48,7 +48,8 @@ public:
 
         Tensor biasesMat = outputMat + reshape((*biases), {outputChannels, 1});
         
-        return reshape(biasesMat, {batchSize, outputChannels, outputHeight, outputWidth});
+        // Use reshape that handles row-major vs column-major layout differences
+        return biasesMat.backend().reshapeConv2DOutput(biasesMat, batchSize, outputChannels, outputHeight, outputWidth);
     }
 
     Tensor backward(const Tensor& gradOutput) override {
@@ -65,7 +66,6 @@ public:
 
         // Compute weight gradients
         Tensor cols = im2col(inputTensor, kernelHeight, kernelWidth, stride, padding);
-        // Transpose cols with axes {1, 0}
         Tensor colsTransposed = transpose(cols, {1, 0});
         weightGradients = reshape(matmul(gradOutputMat, colsTransposed), weights->shape());
 
@@ -75,6 +75,7 @@ public:
         Tensor weightsMat = reshape((*weights), {outputChannels, inputChannels * kernelHeight * kernelWidth});
         Tensor weightsMatTransposed = transpose(weightsMat, {1, 0});
         Tensor gradCols = matmul(weightsMatTransposed, gradOutputMat);
+        
         Tensor gradInput = col2im(gradCols, inputTensor.shape(), kernelHeight, kernelWidth, stride, padding);
 
         return gradInput;

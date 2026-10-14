@@ -25,8 +25,8 @@ GPUTensor::GPUTensor(const Shape& shape, dtype type)
                   af_dims.size() > 2 ? af_dims[2] : 1,
                   af_dims.size() > 3 ? af_dims[3] : 1);
 
-    // Use the af::dim4 object in the af::array constructor
-    data_ = std::make_shared<af::array>(dims, utils::sdnnToAfType(type));
+    // Initialize the array with zeros
+    data_ = std::make_shared<af::array>(af::constant(0, dims, utils::sdnnToAfType(type)));
 }
 
 GPUTensor::GPUTensor(const Shape& shape, const af::array& data, dtype type)
@@ -147,7 +147,8 @@ void GPUTensor::div(const Tensor& other) {
     } \
     void GPUTensor::set(const std::vector<size_t>& indices, TYPE value) { \
         size_t flatIndex = computeFlatIndex(shape_, indices); \
-        (*data_)(flatIndex) = value; \
+        size_t colMajorIndex = getFlatIndex(flatIndex); \
+        (*data_)(colMajorIndex) = value; \
     } \
     void GPUTensor::fill(TYPE value) { \
         af::dim4 dims = utils::shapeToAfDim(shape_); \
@@ -158,24 +159,68 @@ void GPUTensor::div(const Tensor& other) {
         size_t flat_index = getFlatIndex(index); \
         if (std::is_same<TYPE, bool>::value) { \
             throw std::runtime_error("ArrayFire does not support bool scalar extraction on this platform."); \
-        } else if (std::is_same<TYPE, long>::value && sizeof(long) == sizeof(long long)) { \
-            /* On 64-bit, long is same as long long */ \
-            af::array elem = (*data_)(flat_index); \
-            long long* host_ptr = elem.host<long long>(); \
-            value = static_cast<TYPE>(*host_ptr); \
-            af::freeHost(host_ptr); \
-        } else if (std::is_same<TYPE, unsigned long>::value && sizeof(unsigned long) == sizeof(unsigned long long)) { \
-            /* On 64-bit, unsigned long is same as unsigned long long */ \
-            af::array elem = (*data_)(flat_index); \
-            unsigned long long* host_ptr = elem.host<unsigned long long>(); \
-            value = static_cast<TYPE>(*host_ptr); \
-            af::freeHost(host_ptr); \
-        } else { \
-            /* Use host() which copies to CPU and extracts value */ \
-            af::array elem = (*data_)(flat_index); \
-            TYPE* host_ptr = elem.host<TYPE>(); \
-            value = *host_ptr; \
-            af::freeHost(host_ptr); \
+        } \
+        \
+        af::dtype arrayType = data_->type(); \
+        af::array elem = (*data_)(flat_index); \
+        \
+        switch(arrayType) { \
+            case af::dtype::f32: { \
+                float temp; \
+                elem.host(&temp); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case af::dtype::f64: { \
+                double temp; \
+                elem.host(&temp); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case af::dtype::s32: { \
+                int temp; \
+                elem.host(&temp); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case af::dtype::s64: { \
+                long long temp; \
+                elem.host(&temp); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case af::dtype::u8: { \
+                unsigned char temp; \
+                elem.host(&temp); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case af::dtype::u32: { \
+                unsigned int temp; \
+                elem.host(&temp); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case af::dtype::u64: { \
+                unsigned long long temp; \
+                elem.host(&temp); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case af::dtype::s16: { \
+                short temp; \
+                elem.host(&temp); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            case af::dtype::u16: { \
+                unsigned short temp; \
+                elem.host(&temp); \
+                value = static_cast<TYPE>(temp); \
+                break; \
+            } \
+            default: \
+                throw std::runtime_error("Unsupported data type for ArrayFire scalar extraction"); \
         } \
     } \
 
@@ -232,6 +277,8 @@ void GPUTensor::reshape(const Shape& newShape) {
         throw std::runtime_error("Number of elements must remain constant during reshape");
     }
     shape_ = newShape;
+    af::dim4 newDims = utils::shapeToAfDim(newShape);
+    *data_ = af::moddims(*data_, newDims);
 }
 
 std::unique_ptr<TensorAdapter> GPUTensor::clone() const {
@@ -244,11 +291,13 @@ TensorBackend& GPUTensor::backend() const {
 }
 
 double GPUTensor::getValueAsDouble(size_t index) const {
-    return utils::getElementAsDouble(*data_, index);
+    size_t colMajorIndex = getFlatIndex(index);
+    return utils::getElementAsDouble(*data_, colMajorIndex);
 }
 
 void GPUTensor::setValueFromDouble(size_t index, double value) {
-    (*data_)(index) = value;
+    size_t colMajorIndex = getFlatIndex(index);
+    (*data_)(colMajorIndex) = value;
 }
 
 size_t GPUTensor::getFlatIndex(size_t index) const {

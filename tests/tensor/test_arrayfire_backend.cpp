@@ -20,6 +20,18 @@ TEST_F(ArrayFireBackendTest, BasicTensorCreation) {
     EXPECT_EQ(a.shape().size(), 4);
 }
 
+TEST_F(ArrayFireBackendTest, ScalarExtractionConvertsStoredType) {
+    Tensor floats = createTensor({2}, {1.75f, -2.5f});
+    EXPECT_DOUBLE_EQ(floats.at<double>(0), 1.75);
+    EXPECT_EQ(floats.at<long>(1), -2L);
+    EXPECT_EQ(floats.at<unsigned long>(0), 1UL);
+
+    Tensor signedValues(Shape({1}), std::vector<long long>{4294967297LL});
+    EXPECT_EQ(signedValues.at<long long>(0), 4294967297LL);
+    Tensor unsignedValues(Shape({1}), std::vector<unsigned long long>{8589934593ULL});
+    EXPECT_EQ(unsignedValues.at<unsigned long long>(0), 8589934593ULL);
+}
+
 TEST_F(ArrayFireBackendTest, TensorAddition) {
     Tensor a = createTensor({2, 2}, {1.0f, 2.0f, 3.0f, 4.0f});
     Tensor b = createTensor({2, 2}, {5.0f, 6.0f, 7.0f, 8.0f});

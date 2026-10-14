@@ -13,11 +13,12 @@ int main() {
     using namespace sdnn;
     
     constexpr int BATCH_SIZE = 100;
+    constexpr int NUM_SAMPLES = 100;
     constexpr int EPOCHS = 100;
     constexpr float LEARNING_RATE = 0.01f;
 
-    // Generate a linear dataset with 100 samples (x, y) where y = 2x + 3 + noise[0, 1]
-    auto [inputs, targets] = generateLinearDataset(BATCH_SIZE);
+    // Generate a batched linear dataset with 100 samples
+    auto [inputs, targets] = generateBatchedLinearDataset(NUM_SAMPLES, BATCH_SIZE);
 
     SmartDNN model;
     model.addLayer(new FullyConnectedLayer(1, 10));
@@ -35,7 +36,7 @@ int main() {
     model.evalMode();
 
     // Predict the output of the model for an input of 10.0f.
-    Tensor input(Shape{1}, 10.0f);
+    Tensor input(Shape{1, 1}, 10.0f);
 
     // Print the prediction.
     Tensor prediction = model.predict(input);
