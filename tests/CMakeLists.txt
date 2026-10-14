@@ -59,7 +59,7 @@ endif()
 add_executable(RunTests ${TEST_SOURCES} ${COMMON_SOURCES} ${TENSOR_SOURCES})
 
 if (USE_ARRAYFIRE_TENSORS)
-    target_link_libraries(RunTests ArrayFire::af)
+    target_link_libraries(RunTests afcpu)
 endif()
 
 target_link_libraries(RunTests GTest::gtest GTest::gtest_main)

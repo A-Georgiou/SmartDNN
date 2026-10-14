@@ -162,50 +162,60 @@ void GPUTensor::div(const Tensor& other) {
         } \
         \
         af::dtype arrayType = data_->type(); \
+        af::array elem = (*data_)(flat_index); \
         \
         switch(arrayType) { \
             case af::dtype::f32: { \
-                float temp = (*data_)(flat_index).scalar<float>(); \
+                float temp; \
+                elem.host(&temp); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
             case af::dtype::f64: { \
-                double temp = (*data_)(flat_index).scalar<double>(); \
+                double temp; \
+                elem.host(&temp); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
             case af::dtype::s32: { \
-                int temp = (*data_)(flat_index).scalar<int>(); \
+                int temp; \
+                elem.host(&temp); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
             case af::dtype::s64: { \
-                long long temp = (*data_)(flat_index).scalar<long long>(); \
+                long long temp; \
+                elem.host(&temp); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
             case af::dtype::u8: { \
-                unsigned char temp = (*data_)(flat_index).scalar<unsigned char>(); \
+                unsigned char temp; \
+                elem.host(&temp); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
             case af::dtype::u32: { \
-                unsigned int temp = (*data_)(flat_index).scalar<unsigned int>(); \
+                unsigned int temp; \
+                elem.host(&temp); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
             case af::dtype::u64: { \
-                unsigned long long temp = (*data_)(flat_index).scalar<unsigned long long>(); \
+                unsigned long long temp; \
+                elem.host(&temp); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
             case af::dtype::s16: { \
-                short temp = (*data_)(flat_index).scalar<short>(); \
+                short temp; \
+                elem.host(&temp); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \
             case af::dtype::u16: { \
-                unsigned short temp = (*data_)(flat_index).scalar<unsigned short>(); \
+                unsigned short temp; \
+                elem.host(&temp); \
                 value = static_cast<TYPE>(temp); \
                 break; \
             } \

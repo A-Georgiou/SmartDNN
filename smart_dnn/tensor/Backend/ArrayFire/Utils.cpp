@@ -7,7 +7,8 @@ namespace sdnn {
     
         af::dtype sdnnToAfType(const sdnn::dtype type){
             static const std::unordered_map<sdnn::dtype, af::dtype> sdnnToAfTypeMap = {
-                {sdnn::dtype::f16, af::dtype::f16},
+                // Note: ArrayFire doesn't support f16, so we map it to f32
+                {sdnn::dtype::f16, af::dtype::f32},
                 {sdnn::dtype::f32, af::dtype::f32},
                 {sdnn::dtype::f64, af::dtype::f64},
                 {sdnn::dtype::s16, af::dtype::s16},
@@ -23,7 +24,6 @@ namespace sdnn {
 
         sdnn::dtype afToSdnnType(const af::dtype type){
             static const std::unordered_map<af::dtype, sdnn::dtype> afToSdnnTypeMap = {
-                {af::dtype::f16, sdnn::dtype::f16},
                 {af::dtype::f32, sdnn::dtype::f32},
                 {af::dtype::f64, sdnn::dtype::f64},
                 {af::dtype::s16, sdnn::dtype::s16},
