@@ -1,0 +1,133 @@
+name: Automation merge queue
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Evaluate and test the next pull request without merging or writing to it
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: automation-merge-queue
+
+env:
+  REPO: ${{ github.repository }}
+  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+
+jobs:
+  select:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      pr: ${{ steps.pick.outputs.pr }}
+      head: ${{ steps.pick.outputs.head }}
+      base: ${{ steps.pick.outputs.base }}
+      base_sha: ${{ steps.pick.outputs.base_sha }}
+      method: ${{ steps.pick.outputs.method }}
+      mode: ${{ steps.pick.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - id: pick
+        name: Pick the next pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/merge-queue.sh select
+
+  test:
+    needs: select
+    if: needs.select.outputs.mode == 'test'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      verdict: ${{ steps.result.outputs.verdict }}
+      log: ${{ steps.result.outputs.log }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.base_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: merge
+        name: Merge the pull request head onto the base
+        env:
+          HEAD_SHA: ${{ needs.select.outputs.head }}
+        run: |
+          if ! git cat-file -e "$HEAD_SHA^{commit}" 2>/dev/null; then echo "verdict=stale" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git -c user.name=merge-queue -c user.email=merge-queue@users.noreply.github.com merge --no-ff --no-edit "$HEAD_SHA" || echo "verdict=conflict" >> "$GITHUB_OUTPUT"
+      - name: Build the tool image
+        if: steps.merge.outputs.verdict == ''
+        run: |
+          docker build -q -t merge-queue-tools - <<'EOF'
+          FROM ubuntu:24.04
+          RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates cmake g++ make && rm -rf /var/lib/apt/lists/*
+          EOF
+      # Pull request code runs only inside this container, without the runner's environment or tokens.
+      - id: tests
+        name: Build and run the unit tests
+        if: steps.merge.outputs.verdict == ''
+        run: |
+          set +e
+          docker run --rm -v "$PWD:/src:ro" merge-queue-tools timeout 35m bash -c '
+            cmake -S /src/tests -B /tmp/build -DCMAKE_BUILD_TYPE=Release || { sleep 30; rm -rf /tmp/build; cmake -S /src/tests -B /tmp/build -DCMAKE_BUILD_TYPE=Release; } || exit 1
+            cmake --build /tmp/build -j"$(nproc)" && /tmp/build/RunTests' 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - id: result
+        name: Record the verdict
+        env:
+          MERGE_VERDICT: ${{ steps.merge.outputs.verdict }}
+          CODE: ${{ steps.tests.outputs.code }}
+        run: |
+          case "$MERGE_VERDICT:$CODE" in
+            ?*:*) verdict=$MERGE_VERDICT ;;
+            :0) verdict=pass ;;
+            :124) verdict=timeout ;;
+            :125|:) echo "::error::The test container did not run."; exit 1 ;;
+            *) verdict=fail ;;
+          esac
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+          if [[ -f $RUNNER_TEMP/tests.log ]]; then echo "log=$(tail -n 80 "$RUNNER_TEMP/tests.log" | cut -c1-300 | base64 -w0)" >> "$GITHUB_OUTPUT"; fi
+
+  merge:
+    needs: [select, test]
+    if: ${{ !cancelled() && needs.select.result == 'success' && needs.select.outputs.pr != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - name: Merge or report the result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MERGE_TOKEN: ${{ secrets.MERGE_QUEUE_TOKEN }}
+          PR: ${{ needs.select.outputs.pr }}
+          HEAD_SHA: ${{ needs.select.outputs.head }}
+          BASE: ${{ needs.select.outputs.base }}
+          BASE_SHA: ${{ needs.select.outputs.base_sha }}
+          METHOD: ${{ needs.select.outputs.method }}
+          MODE: ${{ needs.select.outputs.mode }}
+          TEST_RESULT: ${{ needs.test.result }}
+          VERDICT: ${{ needs.select.outputs.mode == 'evidence' && 'pass' || needs.test.outputs.verdict }}
+          LOG_B64: ${{ needs.test.outputs.log }}
+        run: bash .github/scripts/merge-queue.sh finish
