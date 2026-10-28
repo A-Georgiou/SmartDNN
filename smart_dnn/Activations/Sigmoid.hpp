@@ -20,7 +20,7 @@ class Sigmoid : public Activation<T> {
     using TensorType = Tensor<T>;
 public:
     TensorType forward(const TensorType& input) const override {
-        return AdvancedTensorOperations<T>::apply(input, [](float x) { return T(1) / (T(1) + std::exp(-x)); });
+        return AdvancedTensorOperations<T>::apply(input, [](T x) { return T(1) / (T(1) + std::exp(-x)); });
     }
 
     TensorType backward(const TensorType& input, const TensorType& gradOutput) const override {
