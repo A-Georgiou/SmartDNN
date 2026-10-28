@@ -50,6 +50,39 @@ TEST(TensorOperatorTest, ExpectValidElementWiseAddition) {
     ValidateTensorData(c, std::vector<float>(6, 10.0f));
 }
 
+TEST(TensorOperatorTest, EqualShapeAdditionPreservesValuesAndIndependentStorage) {
+    Tensor<float> a({2, 2}, std::vector<float>{1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor<float> sum = a + a;
+
+    ValidateTensorShape(sum, 2, 4, {2, 2});
+    ValidateTensorData(sum, std::vector<float>{2.0f, 4.0f, 6.0f, 8.0f});
+    EXPECT_NE(sum.getData().data(), a.getData().data());
+
+    sum[0] = 100.0f;
+    EXPECT_EQ(a[0], 1.0f);
+}
+
+TEST(TensorOperatorTest, EqualShapeAdditionSupportsDoubleAndIntegerTensors) {
+    Tensor<double> doubles({2}, std::vector<double>{1.5, 2.5});
+    Tensor<double> doubleSum = doubles + doubles;
+    ValidateTensorShape(doubleSum, 1, 2, {2});
+    ValidateTensorData(doubleSum, std::vector<double>{3.0, 5.0});
+
+    Tensor<int> integers({1, 2, 2}, std::vector<int>{1, 2, 3, 4});
+    Tensor<int> integerSum = integers + integers;
+    ValidateTensorShape(integerSum, 3, 4, {1, 2, 2});
+    ValidateTensorData(integerSum, std::vector<int>{2, 4, 6, 8});
+}
+
+TEST(TensorOperatorTest, EqualElementCountsWithDifferentShapesStillBroadcast) {
+    Tensor<float> row({1, 2}, std::vector<float>{1.0f, 2.0f});
+    Tensor<float> column({2, 1}, std::vector<float>{10.0f, 20.0f});
+    Tensor<float> sum = row + column;
+
+    ValidateTensorShape(sum, 2, 4, {2, 2});
+    ValidateTensorData(sum, std::vector<float>{11.0f, 12.0f, 21.0f, 22.0f});
+}
+
 TEST(TensorOperatorTest, ExpectValidElementWiseSubtraction) {
     Tensor a({1, 2, 3}, 5.0f);
     Tensor b({2, 3}, 5.0f);
