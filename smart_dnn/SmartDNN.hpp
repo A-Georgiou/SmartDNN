@@ -5,6 +5,7 @@
 #include "smart_dnn/Loss.hpp"
 #include "smart_dnn/Optimizer.hpp"
 #include "smart_dnn/Tensor/Tensor.hpp"
+#include <memory>
 #include <vector>
 
 namespace smart_dnn {
