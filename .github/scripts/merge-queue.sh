@@ -8,7 +8,7 @@ DRY_RUN=${DRY_RUN:-true}
 MARK='<!-- smartdnn-merge-queue-status -->'
 SYNC_MARK='<!-- smartdnn-pr: sync -->'
 BLOCKING_LABELS='hold do-not-merge tests-failing review-feedback needs-test needs-research needs-human'
-MAX_CANDIDATES=${MAX_CANDIDATES:-10}
+MAX_CANDIDATES=${MAX_CANDIDATES:-25}
 MAX_FAILURES=2
 THREADS_QUERY='query($owner:String!,$name:String!,$n:Int!){repository(owner:$owner,name:$name){pullRequest(number:$n){reviewThreads(first:100){nodes{isResolved comments(first:1){nodes{author{__typename} body}}}}}}}'
 
@@ -17,6 +17,20 @@ default_branch() { gh api "repos/$REPO" --jq .default_branch; }
 branch_sha() { gh api "repos/$REPO/git/ref/heads/$1" --jq .object.sha; }
 closing_refs() {
   grep -oiE '(^|[^[:alnum:]_])(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+#[0-9]+' <<< "$1" | grep -oE '[0-9]+$' | sort -un || true
+}
+
+# load_freeze: sets default, blockers (open merge-blocker issues) and allowed (blockers plus their sub-issues).
+load_freeze() {
+  local b
+  default=$(default_branch)
+  blockers=$(gh api "repos/$REPO/issues?state=open&labels=merge-blocker&per_page=100" --jq '.[] | select(.pull_request | not) | .number')
+  allowed=$blockers
+  for b in $blockers; do allowed+=$'\n'$(gh api --paginate "repos/$REPO/issues/$b/sub_issues?per_page=100" --jq '.[].number'); done
+}
+fixes_blocker() {
+  local r
+  for r in $(closing_refs "$1"); do grep -qxF "$r" <<< "$allowed" && return 0; done
+  return 1
 }
 
 # Loads "<kind>\t<comment id>\t<base64 body>" rows for queue status and Branch Tester comments.
@@ -52,7 +66,7 @@ set_status() {
 
 # evaluate PR: returns 0 when eligible (sets head, base, base_sha, method, mode); else sets reason ("" means skip quietly).
 evaluate() {
-  local n=$1 pr labels l tester reviews threads files body refs r hit behind
+  local n=$1 pr labels l tester reviews threads files body behind
   reason=""; mode=""
   pr=$(gh api "repos/$REPO/pulls/$n")
   head=$(jq -r .head.sha <<< "$pr"); base=$(jq -r .base.ref <<< "$pr"); body=$(jq -r '.body // ""' <<< "$pr")
@@ -62,6 +76,9 @@ evaluate() {
     if [[ $labels == *" $l "* ]]; then reason="the $l label is set"; return 1; fi
   done
   if [[ $(jq -r .title <<< "$pr") == "[WIP]"* ]]; then reason="the title is marked [WIP]"; return 1; fi
+  if [[ $base == "$default" && -n $blockers ]] && ! fixes_blocker "$body"; then
+    reason="$default is frozen by merge-blocker issue(s) ${blockers//$'\n'/ } and this PR closes none of them or their sub-issues"; return 1
+  fi
   case $(jq -r .mergeable <<< "$pr") in
     true) ;;
     false) reason="it has a merge conflict with $base"; return 1 ;;
@@ -80,11 +97,6 @@ evaluate() {
   if (( threads > 0 )); then reason="it has $threads unresolved human or Blocking review thread(s)"; return 1; fi
   files=$(gh api --paginate "repos/$REPO/pulls/$n/files?per_page=100" --jq '.[] | .filename, (.previous_filename // empty)')
   if grep -q '^\.github/' <<< "$files"; then reason="it changes files under .github/, which the queue never merges"; return 1; fi
-  if [[ $base == "$default" && -n $blockers ]]; then
-    refs=$(closing_refs "$body"); hit=false
-    for r in $refs; do grep -qxF "$r" <<< "$allowed" && hit=true; done
-    if ! $hit; then reason="$default is frozen by merge-blocker issue(s) ${blockers//$'\n'/ } and this PR closes none of them or their sub-issues"; return 1; fi
-  fi
   base_sha=$(branch_sha "$base")
   method=squash; [[ $body == *"$SYNC_MARK"* ]] && method=merge
   if [[ $base == "$default" ]]; then mode="test"; return 0; fi
@@ -94,17 +106,18 @@ evaluate() {
 }
 
 cmd_select() {
-  local n b cand
-  default=$(default_branch)
-  blockers=$(gh api "repos/$REPO/issues?state=open&labels=merge-blocker&per_page=100" --jq '.[] | select(.pull_request | not) | .number')
-  allowed=$blockers
-  for b in $blockers; do allowed+=$'\n'$(gh api --paginate "repos/$REPO/issues/$b/sub_issues?per_page=100" --jq '.[].number'); done
+  local n rank b body cand
+  load_freeze
   cand=$(mktemp)
   gh api --paginate "repos/$REPO/pulls?state=open&per_page=100" --jq '.[]
     | select(.user.login == "Copilot" and .user.type == "Bot" and .head.repo.full_name == .base.repo.full_name and (.head.ref | startswith("copilot/")))
     | ([.labels[].name]) as $l | select(($l | index("automation-pr")) and ($l | index("tests-passing")))
-    | [(if ($l | index("P1")) then 1 elif ($l | index("P2")) then 2 elif ($l | index("P3")) then 3 else 4 end), .number] | @tsv' \
-    | sort -n -k1,1 -k2,2 | awk -v m="$MAX_CANDIDATES" 'NR <= m {print $2}' > "$cand"
+    | [(if ($l | index("P1")) then 1 elif ($l | index("P2")) then 2 elif ($l | index("P3")) then 3 else 4 end), .number, .base.ref, ((.body // "") | @base64)] | @tsv' \
+    | while IFS=$'\t' read -r rank n b body; do
+        # Merge-blocker fixes go first so a frozen default branch can recover.
+        if [[ $b == "$default" && -n $blockers ]] && fixes_blocker "$(base64 -d <<< "$body")"; then rank=0; fi
+        printf '%s\t%s\n' "$rank" "$n"
+      done | sort -n -k1,1 -k2,2 | awk -v m="$MAX_CANDIDATES" 'NR <= m {print $2}' > "$cand"
   while read -r n <&3; do
     if ! evaluate "$n"; then
       [[ -n $reason ]] && set_status "$n" "Waiting: $reason."
@@ -139,6 +152,10 @@ after_merge() {
 
 merge_pr() {
   local result
+  load_freeze
+  if ! evaluate "$PR"; then
+    set_status "$PR" "Did not merge: when rechecked after testing, ${reason:-GitHub had not computed mergeability yet}."; return 0
+  fi
   if [[ $DRY_RUN == true ]]; then echo "Dry run: would merge #$PR ($METHOD) at $HEAD_SHA into $BASE"; return 0; fi
   if [[ $(jq -r .draft <<< "$pr") == true ]] && ! gh pr ready "$PR" -R "$REPO"; then
     set_status "$PR" "Did not merge: could not mark the pull request ready for review." "$HEAD_SHA"; return 0
