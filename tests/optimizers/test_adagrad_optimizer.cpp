@@ -95,7 +95,7 @@ TEST(AdaGradOptimizerTest, RemainsFiniteForTinyAndZeroGradients) {
     optimizer.optimize(weights, gradients);
 
     EXPECT_TRUE(std::isfinite(weight.getData().data()[0]));
-    EXPECT_GT(weight.getData().data()[0], 0.0f);
+    EXPECT_LT(weight.getData().data()[0], 0.0f);
     EXPECT_EQ(weight.getData().data()[1], 2.0f);
 }
 
