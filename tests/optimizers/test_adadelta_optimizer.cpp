@@ -1,5 +1,5 @@
-#ifndef TEST_ADELTA_OPTIMIZER_CPP
-#define TEST_ADELTA_OPTIMIZER_CPP
+#ifndef TEST_ADADELTA_OPTIMIZER_CPP
+#define TEST_ADADELTA_OPTIMIZER_CPP
 
 #include <cmath>
 #include <gtest/gtest.h>
@@ -113,4 +113,4 @@ TEST(AdaDeltaOptimizerTest, RemainsFiniteForSmallAndZeroGradients) {
 
 } // namespace smart_dnn
 
-#endif // TEST_ADELTA_OPTIMIZER_CPP
+#endif // TEST_ADADELTA_OPTIMIZER_CPP
