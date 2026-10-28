@@ -31,6 +31,12 @@ public:
             throw std::invalid_argument("Weights and gradients size mismatch!");
         }
 
+        for (size_t i = 0; i < weights.size(); ++i) {
+            if (weights[i].get().getShape() != gradients[i].get().getShape()) {
+                throw std::invalid_argument("Weight and gradient shape mismatch!");
+            }
+        }
+
         T currentLR = (learningRateOverride > T(0)) ? learningRateOverride : learningRate;
         for (size_t i = 0; i < weights.size(); ++i) {
             updateTensor(weights[i].get(), gradients[i].get(), currentLR);
@@ -49,6 +55,9 @@ private:
 
     void updateTensor(Tensor<T>& weight, const Tensor<T>& gradient, T currentLR) {
         auto state = states.try_emplace(&weight, weight.getShape()).first;
+        if (state->second.squaredGradients.getShape() != weight.getShape()) {
+            state->second = TensorState(weight.getShape());
+        }
         auto& weightData = weight.getData();
         const auto& gradientData = gradient.getData();
         auto& squaredGradients = state->second.squaredGradients.getData();

@@ -96,6 +96,43 @@ TEST(AdaDeltaOptimizerTest, RejectsMismatchedWeightAndGradientCounts) {
     EXPECT_THROW(optimizer.optimize(weights, {}), std::invalid_argument);
 }
 
+TEST(AdaDeltaOptimizerTest, RejectsMismatchedWeightAndGradientShapes) {
+    AdaDeltaOptimizer<float> optimizer;
+    Tensor<float> weight({1, 2}, {1.0f, 2.0f});
+    Tensor<float> gradient({1, 1}, {1.0f});
+    std::vector<std::reference_wrapper<Tensor<float>>> weights = {std::ref(weight)};
+    std::vector<std::reference_wrapper<Tensor<float>>> gradients = {std::ref(gradient)};
+
+    EXPECT_THROW(optimizer.optimize(weights, gradients), std::invalid_argument);
+    EXPECT_FLOAT_EQ(weight.getData()[0], 1.0f);
+    EXPECT_FLOAT_EQ(weight.getData()[1], 2.0f);
+}
+
+TEST(AdaDeltaOptimizerTest, ResetsStateWhenWeightShapeChanges) {
+    AdaDeltaOptions<float> options;
+    options.decay = 0.5f;
+    options.epsilon = 0.5f;
+    AdaDeltaOptimizer<float> reusedOptimizer(options);
+    AdaDeltaOptimizer<float> freshOptimizer(options);
+
+    Tensor<float> reusedWeight({1, 1}, {10.0f});
+    Tensor<float> initialGradient({1, 1}, {1.0f});
+    auto reusedWeights = std::vector<std::reference_wrapper<Tensor<float>>>{std::ref(reusedWeight)};
+    auto initialGradients = std::vector<std::reference_wrapper<Tensor<float>>>{std::ref(initialGradient)};
+    reusedOptimizer.optimize(reusedWeights, initialGradients);
+
+    reusedWeight = Tensor<float>({1, 2}, {10.0f, 10.0f});
+    Tensor<float> freshWeight({1, 2}, {10.0f, 10.0f});
+    Tensor<float> gradient({1, 2}, {1.0f, 2.0f});
+    auto freshWeights = std::vector<std::reference_wrapper<Tensor<float>>>{std::ref(freshWeight)};
+    auto gradients = std::vector<std::reference_wrapper<Tensor<float>>>{std::ref(gradient)};
+    reusedOptimizer.optimize(reusedWeights, gradients);
+    freshOptimizer.optimize(freshWeights, gradients);
+
+    EXPECT_FLOAT_EQ(reusedWeight.getData()[0], freshWeight.getData()[0]);
+    EXPECT_FLOAT_EQ(reusedWeight.getData()[1], freshWeight.getData()[1]);
+}
+
 TEST(AdaDeltaOptimizerTest, RemainsFiniteForSmallAndZeroGradients) {
     AdaDeltaOptimizer<float> optimizer;
     Tensor<float> weight({1, 2}, {0.0f, 1.0f});
