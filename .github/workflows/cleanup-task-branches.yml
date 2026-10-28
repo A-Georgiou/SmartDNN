@@ -1,0 +1,77 @@
+name: Clean up Copilot task branches
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: List branches that would be deleted without deleting them
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: cleanup-task-branches
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+      MIN_AGE_HOURS: 6
+      MAX_DELETE: 50
+      SEEN_FILE: seen.tsv
+    steps:
+      # Branch creation time is not exposed for these branches, so empty ones must be seen empty for MIN_AGE_HOURS first.
+      - name: Restore first-seen times
+        uses: actions/cache/restore@v4
+        with:
+          path: seen.tsv
+          key: task-branch-seen-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: task-branch-seen-
+      - name: Delete stale task branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=$(gh api "repos/$REPO" --jq .default_branch)
+          now=$(date -u +%s); cutoff=$(( now - MIN_AGE_HOURS * 3600 ))
+          touch "$SEEN_FILE"; seen_next=$(mktemp)
+          open_bases=$(gh api --paginate "repos/$REPO/pulls?state=open&per_page=100" --jq '.[].base.ref')
+          # shellcheck disable=SC2016
+          query='query($owner:String!,$name:String!,$endCursor:String){repository(owner:$owner,name:$name){refs(refPrefix:"refs/heads/copilot/",first:100,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{name associatedPullRequests(first:20){nodes{state closedAt}}}}}}'
+          gh api graphql --paginate -f owner="${REPO%/*}" -f name="${REPO#*/}" -f query="$query" \
+            --jq '.data.repository.refs.nodes[] | select(.name | startswith("task-")) | ["copilot/" + .name, ([.associatedPullRequests.nodes[].state] | join(",")), ([.associatedPullRequests.nodes[].closedAt // empty] | max // "")] | @tsv' > refs.tsv
+          deleted=0
+          while IFS=$'\t' read -r branch prs closed; do
+            [[ "$branch" =~ ^copilot/task-[A-Za-z0-9-]+$ ]] || continue
+            if [[ ",$prs," == *",OPEN,"* ]] || grep -qxF "$branch" <<< "$open_bases"; then echo "keep $branch: open PR"; continue; fi
+            if [[ -n "$prs" ]]; then
+              if (( $(date -u -d "$closed" +%s) > cutoff )); then echo "keep $branch: PR closed $closed"; continue; fi
+              reason="PR $prs, closed $closed"
+            else
+              ahead=$(gh api "repos/$REPO/compare/$base...$branch" --jq .ahead_by) || { echo "keep $branch: compare failed"; continue; }
+              if (( ahead > 0 )); then echo "keep $branch: $ahead commits without a PR"; continue; fi
+              first=$(awk -F'\t' -v b="$branch" '$1 == b {print $2; exit}' "$SEEN_FILE"); first=${first:-$now}
+              printf '%s\t%s\n' "$branch" "$first" >> "$seen_next"
+              if (( first > cutoff )); then echo "keep $branch: empty, first seen $(date -u -d "@$first" +%FT%TZ)"; continue; fi
+              reason="empty since $(date -u -d "@$first" +%FT%TZ)"
+            fi
+            if [[ "$DRY_RUN" == "true" ]]; then echo "would delete $branch ($reason)"
+            elif (( deleted >= MAX_DELETE )); then echo "keep $branch: deletion cap reached"
+            elif gh api -X DELETE "repos/$REPO/git/refs/heads/$branch" > /dev/null; then echo "deleted $branch ($reason)"; deleted=$(( deleted + 1 ))
+            else echo "::warning::failed to delete $branch"; fi
+          done < refs.tsv
+          mv "$seen_next" "$SEEN_FILE"
+      - name: Save first-seen times
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: seen.tsv
+          key: task-branch-seen-${{ github.run_id }}-${{ github.run_attempt }}
