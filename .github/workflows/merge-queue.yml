@@ -104,7 +104,7 @@ jobs:
 
   merge:
     needs: [select, test]
-    if: ${{ !cancelled() && needs.select.outputs.pr != '' && (needs.test.result == 'success' || (needs.select.outputs.mode == 'evidence' && needs.test.result == 'skipped')) }}
+    if: ${{ !cancelled() && needs.select.result == 'success' && needs.select.outputs.pr != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -126,6 +126,8 @@ jobs:
           BASE: ${{ needs.select.outputs.base }}
           BASE_SHA: ${{ needs.select.outputs.base_sha }}
           METHOD: ${{ needs.select.outputs.method }}
+          MODE: ${{ needs.select.outputs.mode }}
+          TEST_RESULT: ${{ needs.test.result }}
           VERDICT: ${{ needs.select.outputs.mode == 'evidence' && 'pass' || needs.test.outputs.verdict }}
           LOG_B64: ${{ needs.test.outputs.log }}
         run: bash .github/scripts/merge-queue.sh finish

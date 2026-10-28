@@ -7,7 +7,7 @@ set -euo pipefail
 DRY_RUN=${DRY_RUN:-true}
 MARK='<!-- smartdnn-merge-queue-status -->'
 SYNC_MARK='<!-- smartdnn-pr: sync -->'
-BLOCKING_LABELS='hold do-not-merge tests-failing review-feedback needs-test needs-research needs-human'
+BLOCKING_LABELS='hold do-not-merge deferred tests-failing review-feedback needs-test needs-research needs-human'
 MAX_CANDIDATES=${MAX_CANDIDATES:-25}
 MAX_FAILURES=2
 THREADS_QUERY='query($owner:String!,$name:String!,$n:Int!){repository(owner:$owner,name:$name){pullRequest(number:$n){reviewThreads(first:100){nodes{isResolved comments(first:1){nodes{author{__typename} body}}}}}}}'
@@ -19,11 +19,11 @@ closing_refs() {
   grep -oiE '(^|[^[:alnum:]_])(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+#[0-9]+' <<< "$1" | grep -oE '[0-9]+$' | sort -un || true
 }
 
-# load_freeze: sets default, blockers (open merge-blocker issues) and allowed (blockers plus their sub-issues).
+# load_freeze: sets default, blockers (open merge-blocker issues not deferred) and allowed (blockers plus their sub-issues).
 load_freeze() {
   local b
   default=$(default_branch)
-  blockers=$(gh api "repos/$REPO/issues?state=open&labels=merge-blocker&per_page=100" --jq '.[] | select(.pull_request | not) | .number')
+  blockers=$(gh api "repos/$REPO/issues?state=open&labels=merge-blocker&per_page=100" --jq '.[] | select(.pull_request | not) | select(all(.labels[]?; .name != "deferred")) | .number')
   allowed=$blockers
   for b in $blockers; do allowed+=$'\n'$(gh api --paginate "repos/$REPO/issues/$b/sub_issues?per_page=100" --jq '.[].number'); done
 }
@@ -90,8 +90,8 @@ evaluate() {
   fi
   tester=$(latest tester 3)
   if [[ -z $tester || $(base64 -d <<< "$tester") != *"$head"* ]]; then reason="the latest Branch Tester result is not for head $head"; return 1; fi
-  reviews=$(gh api --paginate "repos/$REPO/pulls/$n/reviews?per_page=100" --jq '.[] | select(.user.login == "copilot-swe-agent[bot]" or .user.login == "Copilot") | .id' | wc -l)
-  if (( reviews == 0 )); then reason="it has no PR Reviewer review yet"; return 1; fi
+  reviews=$(gh api --paginate "repos/$REPO/pulls/$n/reviews?per_page=100" --jq '.[] | select(.user.login == "copilot-swe-agent[bot]" or .user.login == "Copilot") | .commit_id')
+  if ! grep -qxF "$head" <<< "$reviews"; then reason="it has no PR Reviewer review of head $head yet"; return 1; fi
   threads=$(gh api graphql -f owner="${REPO%/*}" -f name="${REPO#*/}" -F n="$n" -f query="$THREADS_QUERY" \
     --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not) | .comments.nodes[0] | select(.author.__typename == "User" or (.body | startswith("Blocking:")))] | length')
   if (( threads > 0 )); then reason="it has $threads unresolved human or Blocking review thread(s)"; return 1; fi
@@ -190,7 +190,7 @@ $log
 }
 
 cmd_finish() {
-  : "${PR:?}" "${HEAD_SHA:?}" "${BASE:?}" "${BASE_SHA:?}" "${METHOD:?}" "${VERDICT:?}"
+  : "${PR:?}" "${HEAD_SHA:?}" "${BASE:?}" "${BASE_SHA:?}" "${METHOD:?}" "${VERDICT:=}" "${MODE:=test}" "${TEST_RESULT:=success}"
   local labels l
   pr=$(gh api "repos/$REPO/pulls/$PR")
   if [[ $(jq -r .state <<< "$pr") != open ]]; then echo "#$PR is no longer open."; return 0; fi
@@ -201,6 +201,9 @@ cmd_finish() {
     if [[ $labels == *" $l "* ]]; then set_status "$PR" "Did not merge: the $l label was added during testing."; return 0; fi
   done
   if [[ $labels != *" tests-passing "* ]]; then set_status "$PR" "Did not merge: the tests-passing label was removed during testing."; return 0; fi
+  if [[ $MODE == test && $TEST_RESULT != success ]]; then
+    set_status "$PR" "Did not merge: the test job ended without a result ($TEST_RESULT) in $RUN_URL." "$HEAD_SHA"; return 0
+  fi
   case $VERDICT in
     pass) merge_pr ;;
     fail|timeout) fail_pr ;;
