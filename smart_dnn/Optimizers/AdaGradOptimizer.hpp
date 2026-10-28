@@ -28,6 +28,12 @@ public:
             throw std::invalid_argument("Weights and gradients size mismatch!");
         }
 
+        for (size_t i = 0; i < weights.size(); ++i) {
+            if (weights[i].get().getShape().size() != gradients[i].get().getShape().size()) {
+                throw std::invalid_argument("Weight and gradient tensor sizes mismatch!");
+            }
+        }
+
         const T currentLR = learningRateOverride > T(0) ? learningRateOverride : learningRate;
         for (size_t i = 0; i < weights.size(); ++i) {
             updateTensor(weights[i].get(), gradients[i].get(), currentLR);

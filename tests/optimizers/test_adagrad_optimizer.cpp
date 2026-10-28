@@ -81,6 +81,18 @@ TEST(AdaGradOptimizerTest, RejectsMismatchedWeightAndGradientCounts) {
     EXPECT_THROW(optimizer.optimize(weights, gradients), std::invalid_argument);
 }
 
+TEST(AdaGradOptimizerTest, RejectsMismatchedTensorSizesWithoutUpdatingWeights) {
+    AdaGradOptimizer<float> optimizer;
+    Tensor<float> weight({2, 1}, {1.0f, 2.0f});
+    Tensor<float> gradient({1, 1}, {0.5f});
+    std::vector<std::reference_wrapper<Tensor<float>>> weights = {std::ref(weight)};
+    std::vector<std::reference_wrapper<Tensor<float>>> gradients = {std::ref(gradient)};
+
+    EXPECT_THROW(optimizer.optimize(weights, gradients), std::invalid_argument);
+    EXPECT_EQ(weight.getData().data()[0], 1.0f);
+    EXPECT_EQ(weight.getData().data()[1], 2.0f);
+}
+
 TEST(AdaGradOptimizerTest, RemainsFiniteForTinyAndZeroGradients) {
     AdaGradOptions<float> options;
     options.learningRate = 0.1f;
