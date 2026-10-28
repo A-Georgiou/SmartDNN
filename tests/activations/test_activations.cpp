@@ -9,7 +9,10 @@
 #include "../../smart_dnn/Activations/Tanh.hpp"
 #include "../../smart_dnn/Activations/Swish.hpp"
 #include "../../smart_dnn/Activations/Mish.hpp"
+#include <algorithm>
 #include <cmath>
+#include <limits>
+#include <stdexcept>
 
 namespace smart_dnn {
 
@@ -17,6 +20,52 @@ namespace smart_dnn {
 bool approxEqual(float a, float b, float epsilon = 1e-5f) {
     return std::abs(a - b) < epsilon;
 }
+
+namespace {
+
+long double mishReference(long double x) {
+    long double softplus = std::max(x, 0.0L) + std::log1p(std::exp(-std::abs(x)));
+    return x * std::tanh(softplus);
+}
+
+long double mishDerivativeReference(long double x) {
+    long double exp_neg_abs_x = std::exp(-std::abs(x));
+    long double sigmoid = x >= 0.0L
+        ? 1.0L / (1.0L + exp_neg_abs_x)
+        : exp_neg_abs_x / (1.0L + exp_neg_abs_x);
+    long double softplus = std::max(x, 0.0L) + std::log1p(exp_neg_abs_x);
+    long double tanh_softplus = std::tanh(softplus);
+    return tanh_softplus + x * (1.0L - tanh_softplus * tanh_softplus) * sigmoid;
+}
+
+template <typename T>
+bool mishReferenceClose(T actual, long double expected) {
+    T roundedExpected = static_cast<T>(expected);
+    long double tolerance = 1e-4L * std::abs(static_cast<long double>(roundedExpected))
+        + 8.0L * std::numeric_limits<T>::denorm_min();
+    return std::isfinite(actual)
+        && std::abs(static_cast<long double>(actual) - roundedExpected) <= tolerance;
+}
+
+template <typename T>
+void expectMishFiniteDifference(const Mish<T>& mish, T x, T h) {
+    T xPlus = x + h;
+    T xMinus = x - h;
+    long double actualStep = static_cast<long double>(xPlus) - xMinus;
+    Tensor<T> plusInput(Shape{1}, {xPlus});
+    Tensor<T> minusInput(Shape{1}, {xMinus});
+    Tensor<T> input(Shape{1}, {x});
+    Tensor<T> gradOutput(Shape{1}, {T(1)});
+    long double numerical = (static_cast<long double>(mish.forward(plusInput)[0])
+        - mish.forward(minusInput)[0]) / actualStep;
+    long double analytical = mish.backward(input, gradOutput)[0];
+    long double symmetricRelativeError = std::abs(numerical - analytical)
+        / (std::abs(numerical) + std::abs(analytical));
+    EXPECT_GT(std::abs(numerical) + std::abs(analytical), 0.0L);
+    EXPECT_LT(symmetricRelativeError, 1e-4L);
+}
+
+} // namespace
 
 TEST(LeakyReLUTest, ForwardPass) {
     LeakyReLU<float> leakyRelu(0.1f);
@@ -200,38 +249,92 @@ TEST(SwishTest, BackwardPass) {
 
 TEST(MishTest, ForwardPass) {
     Mish<float> mish;
-    Tensor<float> input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
+    Tensor<float> input({2, 4}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f, 10.0f, 1000.0f});
     Tensor<float> output = mish.forward(input);
 
     ASSERT_EQ(output.getShape(), input.getShape());
-    
-    // Test expected values: f(x) = x * tanh(softplus(x))
     for (size_t i = 0; i < input.getShape().size(); ++i) {
-        float x = input.getData()[i];
-        float softplus_x = std::log(1.0f + std::exp(x));
-        float expected = x * std::tanh(softplus_x);
-        EXPECT_TRUE(approxEqual(output.getData()[i], expected));
+        long double expected = mishReference(input.getData()[i]);
+        EXPECT_TRUE(mishReferenceClose(output[i], expected));
     }
 }
 
 TEST(MishTest, BackwardPass) {
     Mish<float> mish;
-    Tensor<float> input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
-    Tensor<float> gradOutput({2, 3}, {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f});
+    Tensor<float> input({2, 4}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f, 10.0f, 1000.0f});
+    Tensor<float> gradOutput({2, 4}, {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f});
     Tensor<float> gradInput = mish.backward(input, gradOutput);
 
     ASSERT_EQ(gradInput.getShape(), input.getShape());
-    
-    // Test expected derivative
     for (size_t i = 0; i < input.getShape().size(); ++i) {
-        float x = input.getData()[i];
-        float softplus_x = std::log(1.0f + std::exp(x));
-        float tanh_softplus = std::tanh(softplus_x);
-        float sigmoid_x = 1.0f / (1.0f + std::exp(-x));
-        float sech_squared = 1.0f - tanh_softplus * tanh_softplus;
-        float expected = tanh_softplus + x * sech_squared * sigmoid_x;
-        EXPECT_TRUE(approxEqual(gradInput.getData()[i], expected));
+        long double expected = mishDerivativeReference(input.getData()[i]);
+        EXPECT_TRUE(mishReferenceClose(gradInput[i], expected));
     }
+}
+
+TEST(MishTest, NegativeTailMatchesStableReference) {
+    Mish<float> floatMish;
+    for (float x : {-17.0f, -15.0f, -90.0f}) {
+        Tensor<float> input(Shape{1}, {x});
+        Tensor<float> gradOutput(Shape{1}, {1.0f});
+        float output = floatMish.forward(input)[0];
+        float gradient = floatMish.backward(input, gradOutput)[0];
+        long double expectedOutput = mishReference(x);
+        long double expectedGradient = mishDerivativeReference(x);
+
+        EXPECT_NE(output, 0.0f);
+        EXPECT_NE(gradient, 0.0f);
+        EXPECT_EQ(std::signbit(output), std::signbit(expectedOutput));
+        EXPECT_EQ(std::signbit(gradient), std::signbit(expectedGradient));
+        EXPECT_TRUE(mishReferenceClose(output, expectedOutput));
+        EXPECT_TRUE(mishReferenceClose(gradient, expectedGradient));
+    }
+
+    Mish<double> doubleMish;
+    double x = -37.0;
+    Tensor<double> input(Shape{1}, {x});
+    Tensor<double> gradOutput(Shape{1}, {1.0});
+    double output = doubleMish.forward(input)[0];
+    double gradient = doubleMish.backward(input, gradOutput)[0];
+    long double expectedOutput = mishReference(x);
+    long double expectedGradient = mishDerivativeReference(x);
+
+    EXPECT_NE(output, 0.0);
+    EXPECT_NE(gradient, 0.0);
+    EXPECT_EQ(std::signbit(output), std::signbit(expectedOutput));
+    EXPECT_EQ(std::signbit(gradient), std::signbit(expectedGradient));
+    EXPECT_TRUE(mishReferenceClose(output, expectedOutput));
+    EXPECT_TRUE(mishReferenceClose(gradient, expectedGradient));
+}
+
+TEST(MishTest, CentralDifferencesMatchBackward) {
+    Mish<float> floatMish;
+    for (float x : {-2.0f, -1.0f, -0.001f, 0.0f, 0.001f, 1.0f, 2.0f, 10.0f, -17.0f, -15.0f}) {
+        expectMishFiniteDifference(floatMish, x, 0.01f);
+    }
+
+    Mish<double> doubleMish;
+    for (double x : {-2.0, -1.0, -0.001, 0.0, 0.001, 1.0, 2.0, 10.0}) {
+        expectMishFiniteDifference(doubleMish, x, 1e-5);
+    }
+    expectMishFiniteDifference(doubleMish, -37.0, 1e-4);
+}
+
+TEST(MishTest, BackwardScalingAndShapeValidation) {
+    Mish<float> mish;
+    Tensor<float> input(Shape{2, 2}, {-2.0f, 0.0f, 2.0f, 1000.0f});
+    Tensor<float> gradOutput(Shape{2, 2}, {-2.0f, 0.0f, 0.5f, -3.0f});
+    Tensor<float> gradients = mish.backward(input, gradOutput);
+
+    ASSERT_EQ(gradients.getShape(), input.getShape());
+    for (size_t i = 0; i < input.getShape().size(); ++i) {
+        long double expected = gradOutput[i] * mishDerivativeReference(input[i]);
+        EXPECT_TRUE(mishReferenceClose(gradients[i], expected));
+    }
+    EXPECT_THROW(
+        mish.backward(Tensor<float>(Shape{2}, {1.0f, 2.0f}),
+                     Tensor<float>(Shape{1}, {1.0f})),
+        std::invalid_argument);
 }
 
 } // namespace smart_dnn
