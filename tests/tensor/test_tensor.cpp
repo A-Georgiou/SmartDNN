@@ -51,7 +51,11 @@ TEST(TensorOperatorTest, ExpectValidElementWiseAddition) {
 }
 
 TEST(TensorOperatorTest, EqualShapeAdditionPreservesValuesAndIndependentStorage) {
-    Tensor<float> a({2, 2}, std::vector<float>{1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor<float> a({2, 2}, 0.0f);
+    a[0] = 1.0f;
+    a[1] = 2.0f;
+    a[2] = 3.0f;
+    a[3] = 4.0f;
     Tensor<float> sum = a + a;
 
     ValidateTensorShape(sum, 2, 4, {2, 2});
@@ -63,20 +67,30 @@ TEST(TensorOperatorTest, EqualShapeAdditionPreservesValuesAndIndependentStorage)
 }
 
 TEST(TensorOperatorTest, EqualShapeAdditionSupportsDoubleAndIntegerTensors) {
-    Tensor<double> doubles({2}, std::vector<double>{1.5, 2.5});
+    Tensor<double> doubles({2}, 0.0);
+    doubles[0] = 1.5;
+    doubles[1] = 2.5;
     Tensor<double> doubleSum = doubles + doubles;
     ValidateTensorShape(doubleSum, 1, 2, {2});
     ValidateTensorData(doubleSum, std::vector<double>{3.0, 5.0});
 
-    Tensor<int> integers({1, 2, 2}, std::vector<int>{1, 2, 3, 4});
+    Tensor<int> integers({1, 2, 2}, 0);
+    integers[0] = 1;
+    integers[1] = 2;
+    integers[2] = 3;
+    integers[3] = 4;
     Tensor<int> integerSum = integers + integers;
     ValidateTensorShape(integerSum, 3, 4, {1, 2, 2});
     ValidateTensorData(integerSum, std::vector<int>{2, 4, 6, 8});
 }
 
 TEST(TensorOperatorTest, EqualElementCountsWithDifferentShapesStillBroadcast) {
-    Tensor<float> row({1, 2}, std::vector<float>{1.0f, 2.0f});
-    Tensor<float> column({2, 1}, std::vector<float>{10.0f, 20.0f});
+    Tensor<float> row({1, 2}, 0.0f);
+    row[0] = 1.0f;
+    row[1] = 2.0f;
+    Tensor<float> column({2, 1}, 0.0f);
+    column[0] = 10.0f;
+    column[1] = 20.0f;
     Tensor<float> sum = row + column;
 
     ValidateTensorShape(sum, 2, 4, {2, 2});
