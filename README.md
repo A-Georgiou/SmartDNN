@@ -13,14 +13,18 @@ SmartDNN is a modern C++ deep learning framework that offers a clean, intuitive 
 ### Key Features
 
 - **Flexible Architecture**: Easily build and customize neural network architectures
-- **High Performance**: Optimized C++ implementation with significant runtime improvements
+- **C++17 Implementation**: Templated tensor operations with CPU storage
 - **Comprehensive Layer Support**: Full suite of essential neural network layers
 - **Customizable Training**: Multiple loss functions and optimization methods
 - **Clean API**: Intuitive interface for model building and training
 
 ## Performance Highlights
 
-SmartDNN leverages templated C++ to deliver exceptional performance gains:
+The numbers below are historical reports, not a reproducible current benchmark.
+Their original machine, compiler and measurement date were not recorded here.
+The 2026-10-29 e2e audit at `bce6ecb` could not compile either example on
+case-sensitive Linux, so it provides no current training or performance baseline.
+Do not treat these figures as verified for the current code.
 
 ### Linear Regression Model (1000 samples, 1000 epochs)
 - **Non-templated runtime**: ~17680ms
@@ -34,7 +38,10 @@ SmartDNN leverages templated C++ to deliver exceptional performance gains:
 
 ## Getting Started
 
-Creating your first neural network with SmartDNN is straightforward:
+The following is a model-building fragment, not a standalone program. It assumes
+`using namespace smart_dnn;`, the corresponding public headers, and caller-defined
+`std::vector<Tensor<float>> inputs, targets` and an integer `epochs`.
+See [example models](#example-models) for sources and current build limitations.
 
 ```cpp
 // Initialize the model
@@ -54,6 +61,12 @@ model.train(inputs, targets, epochs);
 ```
 
 ## Advanced Example: MNIST CNN Model
+
+This fragment has the same namespace and data requirements as the first example
+and additionally assumes a float `learningRate`. Image batches use shape
+`{batch, 1, 28, 28}` and one-hot targets use `{batch, 10}`.
+Call `model.evalMode()` before inference with dropout or batch normalization;
+`predict` does not switch modes automatically.
 
 ```cpp
 // Initialize the SmartDNN MNIST model
@@ -94,13 +107,43 @@ model.train(inputs, targets, epochs);
 ### Available Layers
 - **Fully Connected Layer**: Dense neural network layers
 - **Convolutional 2D Layer**: For image processing tasks
-- **Activation Layers**: ReLU, Sigmoid, Tanh, Softmax, Leaky ReLU
+- **Activation Layers**: ReLU, Sigmoid, Tanh, Softmax, LeakyReLU, Swish, Mish
 - **Regularization Layers**: Dropout, Batch Normalization
 - **Pooling Layers**: Max Pooling 2D
 - **Utility Layers**: Flatten
 
 ### Optimizers
 - **Adam**: Adaptive Moment Estimation optimizer with configurable parameters
+- **SGD**: Momentum, dampening, weight decay and optional Nesterov momentum
+- **RMSProp**: Moving squared-gradient average, optional momentum and centered mode
+- **AdaGrad**: Cumulative squared gradients with configurable learning rate and epsilon
+
+Optimizer headers live in `smart_dnn/Optimizers/`. For example, this standalone
+program applies one AdaGrad update:
+
+```cpp
+#include <functional>
+#include <memory>
+#include <vector>
+#include "smart_dnn/Optimizers/AdaGradOptimizer.hpp"
+
+int main() {
+    using namespace smart_dnn;
+    Tensor<float> weight(Shape({2}), 1.0f);
+    Tensor<float> gradient(Shape({2}), 0.5f);
+    AdaGradOptions<float> options;
+    options.learningRate = 0.01f;
+    AdaGradOptimizer<float> optimizer(options);
+    std::vector<std::reference_wrapper<Tensor<float>>> weights{weight};
+    std::vector<std::reference_wrapper<Tensor<float>>> gradients{gradient};
+    optimizer.optimize(weights, gradients);
+}
+```
+
+`optimize(weights, gradients, learningRateOverride)` uses an override only when
+positive. AdaGrad rejects unequal vector lengths or paired tensor element counts.
+Its state persists per Tensor object address, so keep parameter objects alive
+and stable while reusing the optimizer.
 
 ### Loss Functions
 - **Mean Squared Error (MSE)**: For regression tasks
@@ -115,33 +158,55 @@ SmartDNN includes several key optimizations:
 - **Transforms**: Iterator-based transforms for compiler optimizations
 - **Clean Architecture**: Single responsibility principle for better code organization
 - **Template Specialization**: Type-specific optimizations
-- **Parallel Directives**: Optimized parallelization for computationally expensive operations
+- **Parallel Directives**: Random tensor generation contains an OpenMP pragma; the supplied CMake projects do not enable OpenMP
 
 ## Installation
 
 ### Standard Installation
+
+Requirements: a C++17 compiler and CMake 3.20 or newer for the commands below
+(the project declares a 3.10 minimum). The root CMake project
+builds an application named `SmartDNN`, not an installable library target.
+Public headers are included relative to the repository root.
 
 1. Clone the repository:
    ```bash
    git clone https://github.com/A-Georgiou/SmartDNN.git
    ```
 
-2. Build the library:
+2. Enter the checkout and create `src/main.cpp` with your application code
+   **before** configuring CMake:
    ```bash
-   cmake .
+   cd SmartDNN
+   mkdir -p src
    ```
 
-3. Create a `src/main.cpp` file for your neural network code
-
-4. Build your project:
+3. Configure and build your application:
    ```bash
-   make
+   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+   cmake --build build -j2
    ```
 
-5. Run the program:
+4. Run the program:
    ```bash
-   ./SmartDNN
+   ./build/SmartDNN
    ```
+
+### Unit Tests
+
+The tests are a separate CMake project and do not require `src/main.cpp`.
+Configuration downloads GoogleTest, so network access is required.
+From the repository root:
+
+```bash
+cmake -S tests -B build-tests -DCMAKE_BUILD_TYPE=Release
+cmake --build build-tests -j2
+ctest --test-dir build-tests --output-on-failure
+```
+
+CTest registers one test named `TensorTests` that runs the GoogleTest suite.
+CI also builds this project and runs `RunTests` on main pushes and pull requests,
+or through manual dispatch. This does not validate example training.
 
 ### Docker Installation
 
@@ -150,7 +215,8 @@ SmartDNN includes several key optimizations:
    git clone https://github.com/A-Georgiou/SmartDNN.git
    ```
 
-2. Create a `src/main.cpp` file (or copy from the `Examples/` folder)
+2. Enter the checkout and create `src/main.cpp` before building the image.
+   The same example build limitations below apply inside Docker.
 
 3. Build the Docker image:
    ```bash
@@ -164,8 +230,21 @@ SmartDNN includes several key optimizations:
 
 ## Example Models
 
-- [Simple Linear Regression model](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/SimpleLinearRegressionModel.cpp)
-- [CNN for MNIST Classification](https://github.com/A-Georgiou/SmartDNN/blob/main/Examples/MNistModel.cpp)
+- [Simple Linear Regression model](examples/SimpleLinearRegressionModel.cpp)
+- [CNN for MNIST Classification](examples/MNistModel.cpp)
+
+Known limitation at `bce6ecb` (2026-10-29): the linear example includes lowercase
+module paths, and `SmartDNN.impl.hpp` includes `smart_dnn/debugging/Logger.hpp`
+instead of the existing `smart_dnn/Debugging/Logger.hpp`. Both examples fail to
+compile on case-sensitive Linux, including model fragments using `SmartDNN.hpp`;
+see [#103](https://github.com/A-Georgiou/SmartDNN/issues/103).
+The standalone AdaGrad example above does not include that model header.
+MNIST additionally expects uncompressed IDX image and label files at the paths
+specified in its source. No current training accuracy is established.
+
+Current tensor storage is CPU-only. GPU marker types do not provide a GPU backend,
+and model `saveModel`/`loadModel` declarations have no implementation.
+See [CHANGELOG.md](CHANGELOG.md) for merged changes.
 
 ## Future Roadmap
 
