@@ -5,6 +5,7 @@
 #include "../Tensor/AdvancedTensorOperations.hpp"
 #include "../Optimizer.hpp"
 #include "../Layer.hpp"
+#include "../RandomEngine.hpp"
 #include <vector>
 #include <optional>
 
@@ -15,7 +16,8 @@ class FullyConnectedLayer : public Layer<T> {
     using TensorType = Tensor<T>;
 public:
     FullyConnectedLayer(int inputSize, int outputSize) {
-        weights.emplace(TensorType::rand(Shape({inputSize, outputSize})));
+        weights.emplace(Shape({inputSize, outputSize}));
+        for (T& w : weights->getData()) w = static_cast<T>(RandomEngine::getHeInit(inputSize));
         biases.emplace(TensorType::zeros(Shape({1, outputSize})));
     }
     

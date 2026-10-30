@@ -68,10 +68,15 @@ TEST(Conv2DLayerTest, WeightInitialization) {
         ASSERT_LE(weights.getData()[i], 3 * stddev);
     }
 
-    // Check biases initialized to 0.01
+    // Check biases initialized to 0
     for (int i = 0; i < biases.getData().size(); ++i) {
-        ASSERT_NEAR(biases.getData()[i], 0.01f, 1e-5);
+        ASSERT_NEAR(biases.getData()[i], 0.0f, 1e-5);
     }
+}
+
+TEST(Conv2DLayerTest, HeNormalInitialization) {
+    Conv2DLayer<float> convLayer(16, 32, 3);
+    ExpectHeNormal(convLayer.getWeights(), 16 * 3 * 3);
 }
 
 TEST(Conv2DLayerTest, WeightUpdate) {
@@ -206,23 +211,24 @@ TEST(FullyConnectedLayerTest, WeightUpdate) {
 TEST(DropoutLayerTest, ForwardPassTraining) {
     DropoutLayer<float> dropoutLayer(0.5);  // 50% dropout
 
-    // Input tensor: batchSize=2, features=4 (2D shape)
-    Tensor<float> input({2, 4}, 1.0f);
+    // Input tensor: batchSize=10, features=100 (enough samples for a stable drop rate)
+    Tensor<float> input({10, 100}, 1.0f);
 
     // Set training mode and perform forward pass
     dropoutLayer.setTrainingMode(true);
     Tensor<float> output = dropoutLayer.forward(input);
 
     // Check that the output shape is correct
-    ValidateTensorShape(output, 2, 8, {2, 4});
-    
+    ValidateTensorShape(output, 2, 1000, {10, 100});
+
     // The output should have 0s in approximately 50% of the elements
-    float zeroCount = 0;
-    for (int i = 0; i < output.getData().size(); ++i) {
-        if (output.getData().data()[i] == 0) zeroCount++;
+    int zeroCount = 0;
+    for (float value : output.getData()) {
+        if (value == 0.0f) zeroCount++;
     }
 
-    ASSERT_GT(zeroCount, 2);  // Ensure some elements are dropped
+    ASSERT_GT(zeroCount, 400);
+    ASSERT_LT(zeroCount, 600);
 }
 
 TEST(DropoutLayerTest, ForwardPassInference) {
