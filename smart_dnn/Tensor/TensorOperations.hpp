@@ -78,6 +78,11 @@ public:
     TensorOperations() = delete; // Prevent instantiation
 
     static TensorData<T, CPUDevice> add(const TensorData<T, CPUDevice>& lhs, const TensorData<T, CPUDevice>& rhs){
+        if (lhs.shape() == rhs.shape()) {
+            TensorData<T, CPUDevice> result(lhs.shape());
+            addImpl(lhs, rhs, result);
+            return result;
+        }
         Shape result_shape = ShapeOperations::broadcastShapes(lhs.shape(), rhs.shape());
         TensorData<T, CPUDevice> result(result_shape);
 
