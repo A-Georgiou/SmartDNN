@@ -2,6 +2,7 @@
 #define TEST_TENSOR_CPP
 
 #include "../utils/tensor_helpers.hpp"
+#include "../smart_dnn/Tensor/AdvancedTensorOperations.hpp"
 
 /*
 
@@ -269,6 +270,26 @@ TEST(TensorScalarOperatorTest, ExpectValidScalarDivisionInverse) {
 
     ValidateTensorShape(b, 3, 6, {1, 2, 3});
     ValidateTensorData(b, std::vector<float>(6, 2.0f));
+}
+
+/*
+
+    TRANSPOSE TESTS
+
+*/
+
+TEST(TensorTransposeTest, Transpose2DMovesData) {
+    Tensor<float> a({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor<float> t = AdvancedTensorOperations<float>::transpose(a, 0, 1);
+    ValidateTensorShape(t, 2, 6, {3, 2});
+    ValidateTensorData(t, std::vector<float>{1.0f, 4.0f, 2.0f, 5.0f, 3.0f, 6.0f});
+}
+
+TEST(TensorTransposeTest, Transpose3DSwapsInnerAxes) {
+    Tensor<float> a({2, 2, 3}, {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f});
+    Tensor<float> t = AdvancedTensorOperations<float>::transpose(a, 1, 2);
+    ValidateTensorShape(t, 3, 12, {2, 3, 2});
+    ValidateTensorData(t, std::vector<float>{0.0f, 3.0f, 1.0f, 4.0f, 2.0f, 5.0f, 6.0f, 9.0f, 7.0f, 10.0f, 8.0f, 11.0f});
 }
 
 } // namespace smart_dnn

@@ -181,8 +181,8 @@ class AdvancedTensorOperations<T, CPUDevice> {
     }
 
     static Tensor<T> transpose(const Tensor<T>& tensor, int dim0, int dim1) {
-        auto shape = tensor.getShape();
-        auto rank = shape.rank();
+        const Shape& shape = tensor.getShape();
+        const int rank = shape.rank();
 
         if (dim0 >= rank || dim1 >= rank || dim0 < 0 || dim1 < 0) {
             throw std::invalid_argument("Invalid dimensions for transpose.");
@@ -191,10 +191,26 @@ class AdvancedTensorOperations<T, CPUDevice> {
         std::vector<int> newDimensions = shape.getDimensions();
         std::swap(newDimensions[dim0], newDimensions[dim1]);
         Shape newShape(newDimensions);
+        Tensor<T> result(newShape);
 
-        TensorData<T, CPUDevice> resultData = tensor.getData();
-        resultData.reshape(newShape);
-        return resultData;
+        // Input element at index (.., i, .., j, ..) lands at output index (.., j, .., i, ..).
+        std::vector<int> outStride = newShape.getStride();
+        std::swap(outStride[dim0], outStride[dim1]);
+
+        const T* in = tensor.getData().begin();
+        T* out = result.getData().begin();
+        std::vector<int> index(rank, 0);
+        for (size_t i = 0; i < shape.size(); ++i) {
+            size_t offset = 0;
+            for (int d = 0; d < rank; ++d) {
+                offset += static_cast<size_t>(index[d]) * outStride[d];
+            }
+            out[offset] = in[i];
+            for (int d = rank - 1; d >= 0 && ++index[d] == shape[d]; --d) {
+                index[d] = 0;
+            }
+        }
+        return result;
     }
 
     static Tensor<T> matmul(const Tensor<T>& a, const Tensor<T>& b) {

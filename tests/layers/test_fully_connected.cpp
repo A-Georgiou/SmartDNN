@@ -59,13 +59,8 @@ TEST(FullyConnectedLayerTest, BackwardPassHardcoded) {
     Tensor<float> gradInput = fcLayer.backward(gradOutput);
 
     // Expected input gradient = gradOutput * weights.T
-    // Weights: [[1, 2, 3], [4, 5, 6]]
-    // Grad output: [[1, 1, 1], [1, 1, 1]]
-    // Grad input: [sum([1,1,1]*[1,4]), sum([1,1,1]*[2,5]), ...]
-    // For each sample:
-    // First row: [1*(1+4+6), 1*(2+5+6)] => [11, 13]
-    // Second row: Same => [9, 18]
-    std::vector<float> expectedGradInput = {9.0f, 18.0f, 9.0f, 18.0f};
+    // Each row: [1 + 2 + 3, 4 + 5 + 6] = [6, 15]
+    std::vector<float> expectedGradInput = {6.0f, 15.0f, 6.0f, 15.0f};
 
     for (size_t i = 0; i < expectedGradInput.size(); ++i) {
         ASSERT_NEAR(gradInput.getData()[i], expectedGradInput[i], 1e-5);
