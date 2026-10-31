@@ -2,6 +2,7 @@
 #define TENSOR_HELPERS_HPP
 
 #include <gtest/gtest.h>
+#include <cmath>
 #include "../smart_dnn/Tensor/Tensor.hpp"
 #include "../smart_dnn/Tensor/TensorData.hpp"
 
@@ -35,6 +36,20 @@ namespace smart_dnn {
             ASSERT_GE(value, min);
             ASSERT_LE(value, max);
         }
+    }
+
+    // Expects zero-mean weights with the He standard deviation sqrt(2 / fanIn).
+    template <typename T>
+    inline void ExpectHeNormal(const Tensor<T>& weights, int fanIn) {
+        double sum = 0.0, sumSq = 0.0;
+        for (T value : weights.getData()) {
+            sum += value;
+            sumSq += static_cast<double>(value) * value;
+        }
+        const double n = static_cast<double>(weights.getData().size());
+        const double mean = sum / n, stddev = std::sqrt(sumSq / n - mean * mean), expected = std::sqrt(2.0 / fanIn);
+        EXPECT_NEAR(mean, 0.0, 0.1 * expected);
+        EXPECT_NEAR(stddev, expected, 0.1 * expected);
     }
 
 } // namespace smart_dnn
