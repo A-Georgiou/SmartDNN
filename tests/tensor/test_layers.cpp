@@ -110,6 +110,56 @@ TEST(Conv2DLayerTest, WeightUpdate) {
 }
 
 
+TEST(Conv2DLayerTest, MatchesDirectConvolutionForBatchAndChannels) {
+    const int N = 2, OC = 2, H = 4, W = 4, K = 3, OH = H - K + 1, OW = W - K + 1;
+    Conv2DLayer<float> convLayer(1, OC, K);
+
+    std::vector<float> x(N * H * W), w(OC * K * K), b = {0.5f, -0.25f}, g(N * OC * OH * OW);
+    for (size_t i = 0; i < x.size(); ++i) x[i] = 0.1f * (i % 7) - 0.3f;
+    for (size_t i = 0; i < w.size(); ++i) w[i] = 0.05f * (i % 5) - 0.1f;
+    for (size_t i = 0; i < g.size(); ++i) g[i] = 0.01f * (i % 11) + 0.5f;
+    convLayer.setWeights(Tensor<float>({OC, 1, K, K}, w));
+    convLayer.setBiases(Tensor<float>({OC, 1}, b));
+
+    auto in = [&](int n, int y, int xx) { return x[(n * H + y) * W + xx]; };
+    auto grad = [&](int n, int oc, int y, int xx) { return g[((n * OC + oc) * OH + y) * OW + xx]; };
+
+    // Forward: out[n][oc][y][x] = b[oc] + sum_k w[oc][ky][kx] * in[n][y + ky][x + kx]
+    Tensor<float> output = convLayer.forward(Tensor<float>({N, 1, H, W}, x));
+    ValidateTensorShape(output, 4, N * OC * OH * OW, {N, OC, OH, OW});
+    for (int n = 0; n < N; ++n)
+        for (int oc = 0; oc < OC; ++oc)
+            for (int y = 0; y < OH; ++y)
+                for (int xx = 0; xx < OW; ++xx) {
+                    float expected = b[oc];
+                    for (int ky = 0; ky < K; ++ky)
+                        for (int kx = 0; kx < K; ++kx) expected += w[(oc * K + ky) * K + kx] * in(n, y + ky, xx + kx);
+                    ASSERT_NEAR(output.at({n, oc, y, xx}), expected, 1e-5);
+                }
+
+    // Backward: dB[oc] = sum grad, dW[oc][ky][kx] = sum grad * in[n][y + ky][x + kx]
+    convLayer.backward(Tensor<float>({N, OC, OH, OW}, g));
+    Tensor<float> weightGradients = convLayer.getWeightGradients();
+    Tensor<float> biasGradients = convLayer.getBiasGradients();
+    for (int oc = 0; oc < OC; ++oc) {
+        float expectedBias = 0.0f;
+        for (int n = 0; n < N; ++n)
+            for (int y = 0; y < OH; ++y)
+                for (int xx = 0; xx < OW; ++xx) expectedBias += grad(n, oc, y, xx);
+        ASSERT_NEAR(biasGradients.at({oc, 0}), expectedBias, 1e-4);
+
+        for (int ky = 0; ky < K; ++ky)
+            for (int kx = 0; kx < K; ++kx) {
+                float expectedWeight = 0.0f;
+                for (int n = 0; n < N; ++n)
+                    for (int y = 0; y < OH; ++y)
+                        for (int xx = 0; xx < OW; ++xx) expectedWeight += grad(n, oc, y, xx) * in(n, y + ky, xx + kx);
+                ASSERT_NEAR(weightGradients.at({oc, 0, ky, kx}), expectedWeight, 1e-4);
+            }
+    }
+}
+
+
 /*
 
     FULLY CONNECTED LAYER TESTS

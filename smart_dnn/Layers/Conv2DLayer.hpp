@@ -2,6 +2,8 @@
 #define CONV2D_LAYER_HPP
 
 #include <vector>
+#include <algorithm>
+#include <numeric>
 #include <cmath>
 #include <iostream>
 #include <cassert>
@@ -52,28 +54,20 @@ public:
         // Reshape colMatrix
         colMatrix = AdvancedTensorOperations<T>::reshape(colMatrix, {inputChannels * kernelHeight * kernelWidth, outputHeight * outputWidth * batchSize});
 
-        // Matrix multiplication
+        // Rows are output channels, columns are (batch, y, x) positions.
         TensorType output = AdvancedTensorOperations<T>::matmul(weightMatrix, colMatrix);
 
-        // Reshape back to (batchSize, outputChannels, outputHeight, outputWidth)
-        output = AdvancedTensorOperations<T>::reshape(output, {batchSize, outputChannels, outputHeight, outputWidth});
-
-        // Add biases
-        /*
-        for (int n = 0; n < batchSize; ++n) {
-            for (int oc = 0; oc < outputChannels; ++oc) {
-                TensorType slice = output.slice(0, n).slice(1, oc);
-                slice += (*biases).at({oc, 0});
+        const int positions = outputHeight * outputWidth;
+        const size_t rowSize = static_cast<size_t>(batchSize) * positions;
+        T* out = output.getData().begin();
+        for (int oc = 0; oc < outputChannels; ++oc) {
+            const T bias = (*biases).at({oc, 0});
+            for (size_t j = 0; j < rowSize; ++j) {
+                out[oc * rowSize + j] += bias;
             }
         }
-        */
 
-       // Add biases by broadcasting
-        for (int oc = 0; oc < outputChannels; ++oc) {
-            output.slice(1, oc) += (*biases).at({oc, 0});
-        }
-
-        return output;
+        return swapLeadingAxes(output, outputChannels, batchSize, positions, Shape({batchSize, outputChannels, outputHeight, outputWidth}));
     }
 
     /*
@@ -100,26 +94,17 @@ public:
         weightGradients = TensorType::rand(weightsShape);
         biasGradients = TensorType::zeros((*biases).getShape());
 
-        /*
-        
-        TEMPORARY: Compute bias gradients
-        
-        
-        for (int oc = 0; oc < outputChannels; ++oc) {
-            for (int n = 0; n < batchSize; ++n) {
-                for (int oh = 0; oh < outputHeight; ++oh) {
-                    for (int ow = 0; ow < outputWidth; ++ow) {
-                        biasGradients->at({oc, 0}) += gradOutput.at({n, oc, oh, ow});
-                    }
-                }
-            }
-        }
-        */
-
         TensorType gradInput(inputShape);
 
-        // Reshape gradOutput for matrix multiplication
-        TensorType gradOutput_reshaped = AdvancedTensorOperations<T>::reshape(gradOutput, {outputChannels, batchSize * outputHeight * outputWidth});
+        // Match the forward GEMM layout: rows are output channels, columns are (batch, y, x).
+        const int positions = outputHeight * outputWidth;
+        TensorType gradOutput_reshaped = swapLeadingAxes(gradOutput, batchSize, outputChannels, positions, Shape({outputChannels, batchSize * positions}));
+
+        const T* grad = gradOutput_reshaped.getData().begin();
+        const size_t rowSize = static_cast<size_t>(batchSize) * positions;
+        for (int oc = 0; oc < outputChannels; ++oc) {
+            biasGradients->at({oc, 0}) = std::accumulate(grad + oc * rowSize, grad + (oc + 1) * rowSize, T(0));
+        }
 
         // Compute dW (weight gradients) using im2col
         TensorType colMatrix = im2col(inputTensor, kernelHeight, kernelWidth, stride, padding, dilation);
@@ -154,6 +139,22 @@ public:
 
     TensorType getBiases() const {
         return *biases;
+    }
+
+    TensorType getWeightGradients() const {
+        return *weightGradients;
+    }
+
+    TensorType getBiasGradients() const {
+        return *biasGradients;
+    }
+
+    void setWeights(const TensorType& newWeights) {
+        weights = newWeights;
+    }
+
+    void setBiases(const TensorType& newBiases) {
+        biases = newBiases;
     }
 
 private:
@@ -258,6 +259,19 @@ private:
         }
 
         return output;
+    }
+
+    // Reorders contiguous [a, b, inner] data into [b, a, inner].
+    static TensorType swapLeadingAxes(const TensorType& tensor, int a, int b, int inner, const Shape& resultShape) {
+        TensorType result(resultShape);
+        const T* src = tensor.getData().begin();
+        T* dst = result.getData().begin();
+        for (int i = 0; i < a; ++i) {
+            for (int j = 0; j < b; ++j) {
+                std::copy_n(src + (static_cast<size_t>(i) * b + j) * inner, inner, dst + (static_cast<size_t>(j) * a + i) * inner);
+            }
+        }
+        return result;
     }
 };
 
