@@ -9,6 +9,7 @@
 #include "../Tensor/Tensor.hpp"
 #include "../Optimizer.hpp"
 #include "../Tensor/AdvancedTensorOperations.hpp"
+#include "../RandomEngine.hpp"
 
 namespace smart_dnn {
 
@@ -172,8 +173,8 @@ private:
     int dilation;
 
     void initializeWeights() {
-        T stddev = std::sqrt(T(2) / (inputChannels * kernelHeight * kernelWidth));
-        weights = TensorType::randn({outputChannels, inputChannels, kernelHeight, kernelWidth}, T(0), stddev);
+        weights.emplace(Shape({outputChannels, inputChannels, kernelHeight, kernelWidth}));
+        for (T& w : weights->getData()) w = static_cast<T>(RandomEngine::getHeInit(inputChannels * kernelHeight * kernelWidth));
         biases = TensorType::zeros({outputChannels, 1});
     }
 
