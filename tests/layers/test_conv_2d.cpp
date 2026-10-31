@@ -177,6 +177,79 @@ TEST(Conv2DLayerTest, WeightUpdateWithOptimizer) {
     ASSERT_FALSE(TensorEquals(initialBiases, updatedBiases));
 }
 
+// Checks forward and all gradients against a direct cross-correlation over every batch item and channel.
+void ExpectMatchesDirectConvolution(int stride, int padding, int dilation) {
+    const int N = 2, C = 3, OC = 4, H = 7, W = 6, KH = 3, KW = 2;
+    const int OH = (H + 2 * padding - dilation * (KH - 1) - 1) / stride + 1;
+    const int OW = (W + 2 * padding - dilation * (KW - 1) - 1) / stride + 1;
+    Conv2DLayer<float> convLayer(C, OC, KH, KW, stride, padding, dilation);
+
+    std::vector<float> x(N * C * H * W), w(OC * C * KH * KW), b(OC), g(N * OC * OH * OW);
+    for (size_t i = 0; i < x.size(); ++i) x[i] = 0.1f * (i % 7) - 0.3f;
+    for (size_t i = 0; i < w.size(); ++i) w[i] = 0.05f * (i % 5) - 0.1f;
+    for (int o = 0; o < OC; ++o) b[o] = 0.25f * o - 0.5f;
+    for (size_t i = 0; i < g.size(); ++i) g[i] = 0.01f * (i % 11) + 0.5f;
+    convLayer.setWeights(Tensor<float>({OC, C, KH, KW}, w.data()));
+    convLayer.setBiases(Tensor<float>({OC, 1}, b.data()));
+
+    Tensor<float> output = convLayer.forward(Tensor<float>({N, C, H, W}, x.data()));
+    ASSERT_EQ(output.getShape(), Shape({N, OC, OH, OW}));
+    Tensor<float> gradInput = convLayer.backward(Tensor<float>({N, OC, OH, OW}, g.data()));
+
+    std::vector<float> y(g.size()), dx(x.size()), dw(w.size()), db(OC);
+    for (int n = 0; n < N; ++n)
+        for (int o = 0; o < OC; ++o)
+            for (int oy = 0; oy < OH; ++oy)
+                for (int ox = 0; ox < OW; ++ox) {
+                    const int yi = ((n * OC + o) * OH + oy) * OW + ox;
+                    y[yi] = b[o];
+                    db[o] += g[yi];
+                    for (int c = 0; c < C; ++c)
+                        for (int ky = 0; ky < KH; ++ky)
+                            for (int kx = 0; kx < KW; ++kx) {
+                                const int iy = oy * stride + ky * dilation - padding, ix = ox * stride + kx * dilation - padding;
+                                if (iy < 0 || iy >= H || ix < 0 || ix >= W) continue;
+                                const int xi = ((n * C + c) * H + iy) * W + ix, wi = ((o * C + c) * KH + ky) * KW + kx;
+                                y[yi] += w[wi] * x[xi];
+                                dx[xi] += g[yi] * w[wi];
+                                dw[wi] += g[yi] * x[xi];
+                            }
+                }
+
+    auto expectNear = [](const Tensor<float>& actual, const std::vector<float>& expected) {
+        ASSERT_EQ(actual.getShape().size(), expected.size());
+        for (size_t i = 0; i < expected.size(); ++i) {
+            ASSERT_NEAR(actual.getData()[i], expected[i], 1e-4) << "at flat index " << i;
+        }
+    };
+    expectNear(output, y);
+    expectNear(gradInput, dx);
+    expectNear(convLayer.getWeightGradients(), dw);
+    expectNear(convLayer.getBiasGradients(), db);
+}
+
+TEST(Conv2DLayerTest, MatchesDirectConvolutionAcrossBatchAndChannels) {
+    ExpectMatchesDirectConvolution(1, 0, 1);
+}
+
+TEST(Conv2DLayerTest, MatchesDirectConvolutionWithStridePaddingAndDilation) {
+    ExpectMatchesDirectConvolution(2, 1, 2);
+}
+
+TEST(Conv2DLayerTest, KeepsDoublePrecision) {
+    // In float, 1.00000001 rounds to 1, 1e-100 underflows and 1e100 overflows.
+    const double bias = 1e-10;
+    Conv2DLayer<double> convLayer(1, 1, 1);
+    convLayer.setWeights(Tensor<double>({1, 1, 1, 1}, {1.0}));
+    convLayer.setBiases(Tensor<double>({1, 1}, {bias}));
+    for (double value : {1.00000001, 1e-100, 1e100}) {
+        Tensor<double> output = convLayer.forward(Tensor<double>({1, 1, 1, 1}, {value}));
+        convLayer.backward(Tensor<double>({1, 1, 1, 1}, {1.0}));
+        EXPECT_EQ(output[0], value + bias);
+        EXPECT_EQ(convLayer.getWeightGradients()[0], value);
+    }
+}
+
 } // namespace smart_dnn
 
 #endif // TEST_CONV_2D_CPP

@@ -5,6 +5,8 @@
 #include <cmath>
 #include <iostream>
 #include <cassert>
+#include <algorithm>
+#include <numeric>
 #include "smart_dnn/Layer.hpp"
 #include "smart_dnn/Tensor/Tensor.hpp"
 #include "smart_dnn/Optimizer.hpp"
@@ -43,36 +45,26 @@ public:
         int inputHeight = input.getShape()[2];
         int inputWidth = input.getShape()[3];
         
-        int outputHeight = inputHeight - kernelHeight + 1;
-        int outputWidth = inputWidth - kernelWidth + 1;
+        int outputHeight = (inputHeight + 2 * padding - dilation * (kernelHeight - 1) - 1) / stride + 1;
+        int outputWidth = (inputWidth + 2 * padding - dilation * (kernelWidth - 1) - 1) / stride + 1;
+        const int positions = outputHeight * outputWidth;
 
-        TensorType output({batchSize, outputChannels, outputHeight, outputWidth});
+        TensorType colMatrix = im2col(input, kernelHeight, kernelWidth, stride, padding, dilation);
+        TensorType weightMatrix = AdvancedTensorOperations<T>::reshape(*weights, {outputChannels, inputChannels * kernelHeight * kernelWidth});
 
-        const auto& weightData = weights->getData();
-        const auto& biasData = biases->getData();
-        const auto& inputData = input.getData();
+        // Rows are output channels, columns are (batch, y, x) positions.
+        TensorType output = AdvancedTensorOperations<T>::matmul(weightMatrix, colMatrix);
 
-        for (int b = 0; b < batchSize; ++b) {
-            for (int oc = 0; oc < outputChannels; ++oc) {
-                for (int oh = 0; oh < outputHeight; ++oh) {
-                    for (int ow = 0; ow < outputWidth; ++ow) {
-                        float sum = 0.0f;
-                        for (int kh = 0; kh < kernelHeight; ++kh) {
-                            for (int kw = 0; kw < kernelWidth; ++kw) {
-                                int ih = oh + kh;
-                                int iw = ow + kw;
-                                sum += inputData.at({b, 0, ih, iw}) * 
-                                    weightData.at({oc, 0, kh, kw});
-                            }
-                        }
-                        sum += biasData.at({oc, 0});
-                        output.at({b, oc, oh, ow}) = sum;
-                    }
-                }
+        const size_t rowSize = static_cast<size_t>(batchSize) * positions;
+        T* out = output.getData().begin();
+        for (int oc = 0; oc < outputChannels; ++oc) {
+            const T bias = (*biases).at({oc, 0});
+            for (size_t j = 0; j < rowSize; ++j) {
+                out[oc * rowSize + j] += bias;
             }
         }
 
-        return output;
+        return swapLeadingAxes(output, outputChannels, batchSize, positions, Shape({batchSize, outputChannels, outputHeight, outputWidth}));
     }
 
     /*
@@ -87,51 +79,27 @@ public:
         }
 
         const TensorType& inputTensor = input.value();
-        const TensorType& weightsTensor = *weights;
+        const Shape& inputShape = inputTensor.getShape();
+        const int batchSize = inputShape[0];
+        const int positions = gradOutput.getShape()[2] * gradOutput.getShape()[3];
 
-        Shape inputShape = inputTensor.getShape();
-        Shape weightsShape = weightsTensor.getShape();
-        Shape gradOutputShape = gradOutput.getShape();
+        // Match the forward GEMM layout: rows are output channels, columns are (batch, y, x).
+        TensorType gradOutput2D = swapLeadingAxes(gradOutput, batchSize, outputChannels, positions, Shape({outputChannels, batchSize * positions}));
 
-        // Initialize gradients
-        this->weightGradients = TensorType::zeros(weightsShape);
         this->biasGradients = TensorType::zeros((*biases).getShape());
-
-        // Compute bias gradients
-        for (int oh = 0; oh < gradOutputShape[2]; ++oh) {
-            for (int ow = 0; ow < gradOutputShape[3]; ++ow) {
-                biasGradients->getData()[0] += gradOutput.at({0, 0, oh, ow});
-            }
+        const T* grad = gradOutput2D.getData().begin();
+        const size_t rowSize = static_cast<size_t>(batchSize) * positions;
+        for (int oc = 0; oc < outputChannels; ++oc) {
+            biasGradients->at({oc, 0}) = std::accumulate(grad + oc * rowSize, grad + (oc + 1) * rowSize, T(0));
         }
 
-        // Compute weight gradients
-        for (int kh = 0; kh < kernelHeight; ++kh) {
-            for (int kw = 0; kw < kernelWidth; ++kw) {
-                float sum = 0.0f;
-                for (int oh = 0; oh < gradOutputShape[2]; ++oh) {
-                    for (int ow = 0; ow < gradOutputShape[3]; ++ow) {
-                        sum += inputTensor.at({0, 0, oh+kh, ow+kw}) * gradOutput.at({0, 0, oh, ow});
-                    }
-                }
-                weightGradients->at({0, 0, kh, kw}) = sum;
-            }
-        }
+        TensorType colMatrix = im2col(inputTensor, kernelHeight, kernelWidth, stride, padding, dilation);
+        TensorType weightGradients2D = AdvancedTensorOperations<T>::matmul(gradOutput2D, AdvancedTensorOperations<T>::transpose(colMatrix, 1, 0));
+        this->weightGradients = AdvancedTensorOperations<T>::reshape(weightGradients2D, (*weights).getShape());
 
-        // Compute input gradients
-        TensorType gradInput(inputShape, 0.0f);
-        for (int oh = 0; oh < gradOutputShape[2]; ++oh) {
-            for (int ow = 0; ow < gradOutputShape[3]; ++ow) {
-                for (int kh = 0; kh < kernelHeight; ++kh) {
-                    for (int kw = 0; kw < kernelWidth; ++kw) {
-                        int ih = oh + kh;
-                        int iw = ow + kw;
-                        gradInput.at({0, 0, ih, iw}) += weightsTensor.at({0, 0, kh, kw}) * gradOutput.at({0, 0, oh, ow});
-                    }
-                }
-            }
-        }
-
-        return gradInput;
+        TensorType weightMatrix = AdvancedTensorOperations<T>::reshape(*weights, {outputChannels, inputChannels * kernelHeight * kernelWidth});
+        TensorType gradCols = AdvancedTensorOperations<T>::matmul(AdvancedTensorOperations<T>::transpose(weightMatrix, 1, 0), gradOutput2D);
+        return col2im(gradCols, inputShape, kernelHeight, kernelWidth, stride, padding, dilation);
     }
 
     void updateWeights(Optimizer<T>& optimizer) override {
@@ -205,6 +173,9 @@ private:
         TensorType colMatrix({inputChannels * kernelHeight * kernelWidth, outputHeight * outputWidth * batchSize});
 
         const std::vector<size_t>& inputStrides = input.getShape().getStride();
+        const size_t cols = colMatrix.getShape()[1];
+        const T* in = input.getData().begin();
+        T* col = colMatrix.getData().begin();
 
         #pragma omp parallel for collapse(2)
         for (int n = 0; n < batchSize; ++n) {
@@ -221,9 +192,9 @@ private:
                                 if (ih >= 0 && ih < inputHeight && iw >= 0 && iw < inputWidth) {
                                     size_t flatIndex = n * inputStrides[0] + c * inputStrides[1] + 
                                                        ih * inputStrides[2] + iw * inputStrides[3];
-                                    colMatrix.at({w_row, w_col}) = input.getData()[flatIndex];
+                                    col[w_row * cols + w_col] = in[flatIndex];
                                 } else {
-                                    colMatrix.at({w_row, w_col}) = 0;
+                                    col[w_row * cols + w_col] = 0;
                                 }
                             }
                         }
@@ -248,6 +219,9 @@ private:
         output.getData().fill(T(0));
 
         const std::vector<size_t>& outputStrides = output.getShape().getStride();
+        const size_t cols = colMatrix.getShape()[1];
+        const T* col = colMatrix.getData().begin();
+        T* out = output.getData().begin();
 
         #pragma omp parallel for collapse(2)
         for (int n = 0; n < batchSize; ++n) {
@@ -264,7 +238,7 @@ private:
                                 if (ih >= 0 && ih < inputHeight && iw >= 0 && iw < inputWidth) {
                                     size_t flatIndex = n * outputStrides[0] + c * outputStrides[1] +
                                                        ih * outputStrides[2] + iw * outputStrides[3];
-                                    output.getData()[flatIndex] += colMatrix.at({w_row, w_col});
+                                    out[flatIndex] += col[w_row * cols + w_col];
                                 }
                             }
                         }
@@ -274,6 +248,19 @@ private:
         }
 
         return output;
+    }
+
+    // Reorders contiguous [a, b, inner] data into [b, a, inner].
+    static TensorType swapLeadingAxes(const TensorType& tensor, int a, int b, int inner, const Shape& resultShape) {
+        TensorType result(resultShape);
+        const T* src = tensor.getData().begin();
+        T* dst = result.getData().begin();
+        for (int i = 0; i < a; ++i) {
+            for (int j = 0; j < b; ++j) {
+                std::copy_n(src + (static_cast<size_t>(i) * b + j) * inner, inner, dst + (static_cast<size_t>(j) * a + i) * inner);
+            }
+        }
+        return result;
     }
 };
 
