@@ -104,10 +104,6 @@ public:
     }
 
     std::vector<Parameter<T>> parameters() override {
-        if (!weights || !biases || !weightGradients || !biasGradients) {
-            throw std::runtime_error("Weights or gradients are not initialized!");
-        }
-
         return {{*weights, *weightGradients}, {*biases, *biasGradients}};
     }
 
@@ -170,6 +166,8 @@ private:
         weights.emplace(Shape({outputChannels, inputChannels, kernelHeight, kernelWidth}));
         for (T& w : weights->getData()) w = static_cast<T>(RandomEngine::getHeInit(inputChannels * kernelHeight * kernelWidth));
         biases = TensorType::zeros({outputChannels, 1});
+        weightGradients.emplace(weights->getShape(), T(0));
+        biasGradients.emplace(biases->getShape(), T(0));
     }
 
     TensorType im2col(const TensorType& input, int kernelHeight, int kernelWidth, int stride, int padding, int dilation) {

@@ -19,6 +19,8 @@ public:
         weights.emplace(Shape({inputSize, outputSize}));
         for (T& w : weights->getData()) w = static_cast<T>(RandomEngine::getHeInit(inputSize));
         biases.emplace(TensorType::zeros(Shape({1, outputSize})));
+        weightGradients.emplace(Shape({inputSize, outputSize}), T(0));
+        biasGradients.emplace(Shape({1, outputSize}), T(0));
     }
 
     /*
@@ -78,10 +80,6 @@ public:
     }
 
     std::vector<Parameter<T>> parameters() override {
-        if (!weights || !biases || !weightGradients || !biasGradients) {
-            throw std::runtime_error("Weights or gradients are not initialized!");
-        }
-
         return {{*weights, *weightGradients}, {*biases, *biasGradients}};
     }
 
