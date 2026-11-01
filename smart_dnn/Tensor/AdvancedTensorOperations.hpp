@@ -375,6 +375,18 @@ private:
         const T* bData = b.getData().data();
         T* resultData = result.getData().data();
 
+        // A single output column is m dot products; accumulating each in a register beats the row loop.
+        if (n == 1) {
+            for (int i = 0; i < m; i++) {
+                T sum = 0;
+                for (int p = 0; p < k; p++) {
+                    sum += aData[static_cast<size_t>(i) * k + p] * bData[p];
+                }
+                resultData[i] = sum;
+            }
+            return result;
+        }
+
         #pragma omp parallel for
         for (int i = 0; i < m; i++) {
             T* resultRow = resultData + static_cast<size_t>(i) * n;

@@ -310,6 +310,14 @@ TEST(AdvancedTensorOperationsTest, TestMatrixMatrixMulRectangular) {
     ASSERT_TRUE(TensorEquals(result, expected));
 }
 
+TEST(AdvancedTensorOperationsTest, TestMatrixMatrixMulSingleColumn) {
+    Tensor<float> a(Shape({2, 3}), {1, 2, 3, 4, 5, 6});
+    Tensor<float> b(Shape({3, 1}), {7, 8, 9});
+    Tensor<float> result = AdvancedTensorOperations<float>::matmul(a, b);
+    Tensor<float> expected(Shape({2, 1}), {50, 122});
+    ASSERT_TRUE(TensorEquals(result, expected));
+}
+
 TEST(AdvancedTensorOperationsTest, TestMatrixMatrixMulWithMismatchedDimensions) {
     Tensor<float> a(Shape({2, 3}), {1, 2, 3, 4, 5, 6});
     Tensor<float> b(Shape({2, 2}), {7, 8, 9, 10});
