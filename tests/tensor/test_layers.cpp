@@ -234,25 +234,26 @@ TEST(FullyConnectedLayerTest, WeightUpdate) {
 
 
 TEST(DropoutLayerTest, ForwardPassTraining) {
-    DropoutLayer<float> dropoutLayer(0.75);  // 70% dropout
+    DropoutLayer<float> dropoutLayer(0.75);  // 75% dropout
 
-    // Input tensor: batchSize=2, features=4 (2D shape)
-    Tensor<float> input({2, 4}, 1.0f);
+    // Input tensor: batchSize=10, features=100 (enough samples for a stable drop rate)
+    Tensor<float> input({10, 100}, 1.0f);
 
     // Set training mode and perform forward pass
     dropoutLayer.setTrainingMode(true);
     Tensor<float> output = dropoutLayer.forward(input);
 
     // Check that the output shape is correct
-    ValidateTensorShape(output, 2, 8, {2, 4});
-    
-    // The output should have 0s in approximately 70% of the elements
-    float zeroCount = 0;
-    for (int i = 0; i < output.getData().size(); ++i) {
-        if (output.getData().data()[i] == 0) zeroCount++;
-    }
+    ValidateTensorShape(output, 2, 1000, {10, 100});
 
-    ASSERT_GT(zeroCount, 2);  // Ensure some elements are dropped
+    // About 75% of elements are dropped and the rest are scaled by 1 / (1 - 0.75)
+    int zeroCount = 0;
+    for (float value : output.getData()) {
+        if (value == 0.0f) zeroCount++;
+        else ASSERT_FLOAT_EQ(value, 4.0f);
+    }
+    ASSERT_GT(zeroCount, 650);
+    ASSERT_LT(zeroCount, 850);
 }
 
 TEST(DropoutLayerTest, ForwardPassInference) {
@@ -275,21 +276,24 @@ TEST(DropoutLayerTest, ForwardPassInference) {
 TEST(DropoutLayerTest, BackwardPass) {
     DropoutLayer<float> dropoutLayer(0.5);  // 50% dropout
 
-    // Input tensor: batchSize=2, features=4 (2D shape)
-    Tensor<float> input({2, 4}, 1.0f);
+    // Input tensor: batchSize=10, features=100 so some elements are kept
+    Tensor<float> input({10, 100}, 1.0f);
 
     // Set training mode and perform forward pass
     dropoutLayer.setTrainingMode(true);
     Tensor<float> output = dropoutLayer.forward(input);
 
     // Simulate gradient output (same shape as input)
-    Tensor<float> gradOutput({2, 4}, 1.0f);
+    Tensor<float> gradOutput({10, 100}, 1.0f);
 
     // Perform backward pass
     Tensor<float> gradInput = dropoutLayer.backward(gradOutput);
 
     // Check gradient input shape
-    ValidateTensorShape(gradInput, 2, 8, {2, 4});
+    ValidateTensorShape(gradInput, 2, 1000, {10, 100});
+
+    // For an all-ones input, d(output)/d(input) equals the output, including the 1 / (1 - rate) scale
+    ASSERT_TRUE(TensorEquals(gradInput, output));
 }
 
 TEST(FullyConnectedLayerTest, ForwardPassHardcoded) {
