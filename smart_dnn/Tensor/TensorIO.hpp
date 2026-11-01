@@ -40,7 +40,11 @@ void saveTensor(std::ostream& os, const Tensor<T>& tensor) {
         const size_t count = std::min(int8BlockSize, size - start);
         float largest = 0.0f;
         for (size_t i = 0; i < count; ++i) {
-            largest = std::max(largest, std::abs(static_cast<float>(values[start + i])));
+            const float value = static_cast<float>(values[start + i]);
+            if (!std::isfinite(value)) {
+                throw std::runtime_error("8-bit storage needs finite values that fit in a float");
+            }
+            largest = std::max(largest, std::abs(value));
         }
         const float scale = largest / 127.0f;
         int8_t quantized[int8BlockSize] = {};

@@ -36,6 +36,13 @@ TEST(TensorIOTest, Int8StorageKeepsEachValueWithinHalfAStepOfItsBlock) {
     EXPECT_EQ(restored[3], 0.0f);
 }
 
+TEST(TensorIOTest, Int8StorageRejectsNonFiniteValues) {
+    std::stringstream stream;
+    int8TensorStorage(stream) = 1;
+
+    EXPECT_THROW(saveTensor(stream, Tensor<float>({2}, {1.0f, std::nanf("")})), std::runtime_error);
+}
+
 } // namespace smart_dnn
 
 #endif // TEST_TENSOR_IO_CPP
