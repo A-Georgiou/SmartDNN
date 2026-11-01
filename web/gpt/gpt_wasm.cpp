@@ -1,8 +1,8 @@
 // WebAssembly entry points for the Shakespeare GPT demo: load the embedded model, start from a prompt and sample characters.
 #include "char_gpt.hpp"
-#include "smart_dnn/Loss/SoftmaxCrossEntropyLoss.hpp"
 #include <emscripten/emscripten.h>
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iterator>
 #include <random>
@@ -62,24 +62,20 @@ EMSCRIPTEN_KEEPALIVE int gpt_next(float temperature) {
     return static_cast<unsigned char>(vocabulary[id]);
 }
 
-// Average negative log-likelihood per character of the text, predicting each from up to CHAR_GPT_CONTEXT earlier ones.
+// Average negative log-likelihood per character of the text, each predicted from all earlier characters up to CHAR_GPT_CONTEXT.
 EMSCRIPTEN_KEEPALIVE float gpt_score(const char* text) {
     const std::vector<int> ids = encode(text);
-    SoftmaxCrossEntropyLoss<float> loss;
-    float total = 0.0f;
-    size_t count = 0;
-    for (size_t start = 0; start + 1 < ids.size(); start += CHAR_GPT_CONTEXT) {
-        const int length = static_cast<int>(std::min<size_t>(CHAR_GPT_CONTEXT, ids.size() - 1 - start));
-        Tensor<float> inputs(Shape({1, length}), 0.0f);
-        Tensor<float> targets(Shape({1, length}), 0.0f);
-        for (int t = 0; t < length; ++t) {
-            inputs[t] = static_cast<float>(ids[start + t]);
-            targets[t] = static_cast<float>(ids[start + t + 1]);
+    double total = 0.0;
+    for (size_t target = 1; target < ids.size(); ++target) {
+        const std::vector<float> logits = nextCharacterLogits(model, ids, target, static_cast<int>(vocabulary.size()));
+        const float maxLogit = *std::max_element(logits.begin(), logits.end());
+        double sum = 0.0;
+        for (float logit : logits) {
+            sum += std::exp(logit - maxLogit);
         }
-        total += loss.compute(model.predict(inputs), targets)[0] * static_cast<float>(length);
-        count += static_cast<size_t>(length);
+        total += std::log(sum) - (logits[ids[target]] - maxLogit);
     }
-    return count > 0 ? total / static_cast<float>(count) : 0.0f;
+    return ids.size() > 1 ? static_cast<float>(total / static_cast<double>(ids.size() - 1)) : 0.0f;
 }
 
 }

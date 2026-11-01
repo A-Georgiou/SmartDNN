@@ -27,19 +27,25 @@ inline void addCharGptLayers(smart_dnn::SmartDNN<float>& model, int vocabularySi
     model.addLayer(FullyConnectedLayer<float>(width, vocabularySize));
 }
 
-// Samples the next id given the last CHAR_GPT_CONTEXT ids; temperatures below 1 make likely characters likelier.
-inline int sampleNextCharacter(smart_dnn::SmartDNN<float>& model, const std::vector<int>& ids, int vocabularySize, float temperature, std::mt19937& rng) {
-    const int length = std::min(static_cast<int>(ids.size()), CHAR_GPT_CONTEXT);
+// Logits for the character after ids[0, end), read from at most the last CHAR_GPT_CONTEXT of them.
+inline std::vector<float> nextCharacterLogits(smart_dnn::SmartDNN<float>& model, const std::vector<int>& ids, size_t end, int vocabularySize) {
+    const int length = static_cast<int>(std::min<size_t>(end, CHAR_GPT_CONTEXT));
     smart_dnn::Tensor<float> context(Shape({1, length}), 0.0f);
     for (int t = 0; t < length; ++t) {
-        context[t] = static_cast<float>(ids[ids.size() - length + t]);
+        context[t] = static_cast<float>(ids[end - length + t]);
     }
     const smart_dnn::Tensor<float> logits = model.predict(context);
     const float* last = logits.getData().data() + static_cast<size_t>(length - 1) * vocabularySize;
-    const float maxLogit = *std::max_element(last, last + vocabularySize);
-    std::vector<double> weights(vocabularySize);
-    for (int v = 0; v < vocabularySize; ++v) {
-        weights[v] = std::exp((last[v] - maxLogit) / temperature);
+    return std::vector<float>(last, last + vocabularySize);
+}
+
+// Samples the next id after all of ids; temperatures below 1 make likely characters likelier.
+inline int sampleNextCharacter(smart_dnn::SmartDNN<float>& model, const std::vector<int>& ids, int vocabularySize, float temperature, std::mt19937& rng) {
+    const std::vector<float> logits = nextCharacterLogits(model, ids, ids.size(), vocabularySize);
+    const float maxLogit = *std::max_element(logits.begin(), logits.end());
+    std::vector<double> weights(logits.size());
+    for (size_t v = 0; v < logits.size(); ++v) {
+        weights[v] = std::exp((logits[v] - maxLogit) / temperature);
     }
     return std::discrete_distribution<int>(weights.begin(), weights.end())(rng);
 }
