@@ -436,6 +436,40 @@ TEST(AdvancedTensorOperationsTest, TestBatchedMatrixMultiplication) {
     }
 }
 
+TEST(AdvancedTensorOperationsTest, BatchedMatmulBroadcastsSingletonBatches) {
+    Tensor<float> a(Shape({1, 1, 1}), {2});
+    Tensor<float> b(Shape({2, 1, 1}), {3, 4});
+    Tensor<float> expected(Shape({2, 1, 1}), {6, 8});
+
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<float>::matmul(a, b), expected));
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<float>::matmul(b, a), expected));
+}
+
+TEST(AdvancedTensorOperationsTest, BatchedMatmulBroadcastsRankFourBatches) {
+    // Batch (i, j) of the result is a[i] times b[j].
+    Tensor<float> a(Shape({2, 1, 2, 3}), {1, 2, 3, 4, 5, 6,
+                                          7, 8, 9, 10, 11, 12});
+    Tensor<float> b(Shape({1, 2, 3, 2}), {1, 0, 0, 1, 1, 1,
+                                          2, 1, 0, 3, 1, 0});
+    Tensor<float> expected(Shape({2, 2, 2, 2}), {4, 5, 10, 11,   5, 7, 14, 19,
+                                                 16, 17, 22, 23, 23, 31, 32, 43});
+
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<float>::matmul(a, b), expected));
+    // A rank-3 operand aligns from the right, so b without its leading 1 gives the same result.
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<float>::matmul(a, AdvancedTensorOperations<float>::reshape(b, {2, 3, 2})), expected));
+}
+
+TEST(AdvancedTensorOperationsTest, BatchedMatmulRejectsMismatchedBatches) {
+    Tensor<float> a(Shape({2, 1, 1}), {1, 2});
+    Tensor<float> b(Shape({3, 1, 1}), {1, 2, 3});
+    Tensor<float> c(Shape({1, 2, 1, 1}), {1, 2});
+    Tensor<float> d(Shape({1, 3, 1, 1}), {1, 2, 3});
+
+    ASSERT_THROW(AdvancedTensorOperations<float>::matmul(a, b), std::invalid_argument);
+    ASSERT_THROW(AdvancedTensorOperations<float>::matmul(c, d), std::invalid_argument);
+    ASSERT_THROW(AdvancedTensorOperations<float>::matmul(d, c), std::invalid_argument);
+}
+
 
 } // namespace smart_dnn
 

@@ -356,7 +356,6 @@ private:
     Output: Tensor result (m x n)
 
     Each value i,j is equal to the dot product of the i-th row of a and the j-th column of b.
-    Row i of the result is accumulated as a[i][p] * (row p of b), so the inner loop runs over contiguous memory.
     
     */
     static Tensor<T> matrixMatrixMul(const Tensor<T>& a, const Tensor<T>& b) {
@@ -367,39 +366,37 @@ private:
 
         int m = a.getShape()[0];
         int n = b.getShape()[1];
-        int k = a.getShape()[1];
 
         Tensor<T> result({m, n}, T(0));
+        multiplyInto(a.getData().data(), b.getData().data(), result.getData().data(), m, a.getShape()[1], n);
+        return result;
+    }
 
-        const T* aData = a.getData().data();
-        const T* bData = b.getData().data();
-        T* resultData = result.getData().data();
-
+    // c (m x n) += a (m x k) * b (k x n), all contiguous row-major; the i-p-j order keeps the inner loop contiguous.
+    static void multiplyInto(const T* a, const T* b, T* c, size_t m, size_t k, size_t n) {
         // A single output column is m dot products; accumulating each in a register beats the row loop.
         if (n == 1) {
-            for (int i = 0; i < m; i++) {
+            for (size_t i = 0; i < m; i++) {
                 T sum = 0;
-                for (int p = 0; p < k; p++) {
-                    sum += aData[static_cast<size_t>(i) * k + p] * bData[p];
+                for (size_t p = 0; p < k; p++) {
+                    sum += a[i * k + p] * b[p];
                 }
-                resultData[i] = sum;
+                c[i] += sum;
             }
-            return result;
+            return;
         }
 
         #pragma omp parallel for
-        for (int i = 0; i < m; i++) {
-            T* resultRow = resultData + static_cast<size_t>(i) * n;
-            for (int p = 0; p < k; p++) {
-                const T aValue = aData[static_cast<size_t>(i) * k + p];
-                const T* bRow = bData + static_cast<size_t>(p) * n;
-                for (int j = 0; j < n; j++) {
-                    resultRow[j] += aValue * bRow[j];
+        for (size_t i = 0; i < m; i++) {
+            T* cRow = c + i * n;
+            for (size_t p = 0; p < k; p++) {
+                const T aValue = a[i * k + p];
+                const T* bRow = b + p * n;
+                for (size_t j = 0; j < n; j++) {
+                    cRow[j] += aValue * bRow[j];
                 }
             }
         }
-
-        return result;
     }
     /*
     
@@ -449,141 +446,78 @@ private:
     Batched Matrix Multiplication:
     -----------------------------
 
-    Input: Tensor a (b x m x k), Tensor b (b x k x n)
-    Output: Tensor result (b x m x n)
+    Input: Tensor a (... x m x k), Tensor b (... x k x n), at least one of rank three or more
+    Output: Tensor result (... x m x n)
 
-    For each batch, perform matrix multiplication on the corresponding slices of a and b.
-    The output is a tensor of shape (b x m x n).
+    Batch dimensions broadcast like NumPy: aligned from the right, each pair equal or 1.
+    Each batch is one multiplyInto call, and a 2-D b multiplies every row of a in a single call.
    
    */
 
     static Tensor<T> batchedMatmul(const Tensor<T>& a, const Tensor<T>& b) {
-        auto shapeA = a.getShape();
-        auto shapeB = b.getShape();
-
-        // Handle 3D x 2D case
-        if (shapeA.rank() == 3 && shapeB.rank() == 2) {
-            return matmul3D2D(a, b);
+        const Shape& shapeA = a.getShape();
+        const Shape& shapeB = b.getShape();
+        const int rankA = shapeA.rank();
+        const int rankB = shapeB.rank();
+        if (rankA < 2 || rankB < 2 || shapeA[rankA - 1] != shapeB[rankB - 2]) {
+            throw std::invalid_argument("Incompatible dimensions for matrix multiplication: " + shapeA.toString() + " and " + shapeB.toString());
         }
 
-        // Handle 2D x 3D case
-        if (shapeA.rank() == 2 && shapeB.rank() == 3) {
-            return matmul2D3D(a, b);
+        const int m = shapeA[rankA - 2];
+        const int k = shapeA[rankA - 1];
+        const int n = shapeB[rankB - 1];
+
+        if (rankB == 2) {
+            std::vector<int> dims = shapeA.getDimensions();
+            dims.back() = n;
+            Tensor<T> result(Shape(dims), T(0));
+            multiplyInto(a.getData().data(), b.getData().data(), result.getData().data(), shapeA.size() / k, k, n);
+            return result;
         }
 
-        if (shapeA.rank() != shapeB.rank()) {
-            throw std::invalid_argument("Tensors must have the same rank for batched matmul, mismatch: " + shapeA.toString() + " and " + shapeB.toString());
-        }
-
-        int rank = shapeA.rank();
-        if (rank < 3) {
-            throw std::invalid_argument("Tensors must have at least 3 dimensions for batched matmul");
-        }
-
-        // Check if the last two dimensions are compatible for matrix multiplication
-        if (shapeA[rank - 1] != shapeB[rank - 2]) {
-            throw std::invalid_argument("Incompatible dimensions for matrix multiplication");
-        }
-
-        // Calculate the shape of the result tensor
-        std::vector<int> resultShape;
-        for (int i = 0; i < rank - 2; ++i) {
-            resultShape.push_back(std::max(shapeA[i], shapeB[i]));
-        }
-        resultShape.push_back(shapeA[rank - 2]);
-        resultShape.push_back(shapeB[rank - 1]);
-
-        Tensor<T> result(Shape(resultShape), T(0));
-
-        // Iterate over all batch dimensions
-        std::vector<int> batchIndices(rank - 2, 0);
-        do {
-            // Perform matrix multiplication for this batch
-            for (int i = 0; i < shapeA[rank - 2]; ++i) {
-                for (int j = 0; j < shapeB[rank - 1]; ++j) {
-                    T sum = 0;
-                    for (int k = 0; k < shapeA[rank - 1]; ++k) {
-                        std::vector<int> aIndices = batchIndices;
-                        aIndices.push_back(i);
-                        aIndices.push_back(k);
-
-                        std::vector<int> bIndices = batchIndices;
-                        bIndices.push_back(k);
-                        bIndices.push_back(j);
-
-                        sum += a.getData().at(aIndices) * b.getData().at(bIndices);
-                    }
-
-                    std::vector<int> resultIndices = batchIndices;
-                    resultIndices.push_back(i);
-                    resultIndices.push_back(j);
-                    result.getData().at(resultIndices) = sum;
-                }
+        const int batchRank = std::max(rankA, rankB) - 2;
+        std::vector<int> dims(batchRank);
+        std::vector<size_t> stepA(batchRank), stepB(batchRank);  // Offset change per batch index; 0 on broadcast axes.
+        size_t strideA = static_cast<size_t>(m) * k;
+        size_t strideB = static_cast<size_t>(k) * n;
+        size_t batches = 1;
+        for (int d = batchRank - 1; d >= 0; --d) {
+            const int axisA = d - batchRank + rankA - 2;
+            const int axisB = d - batchRank + rankB - 2;
+            const int sizeA = axisA >= 0 ? shapeA[axisA] : 1;
+            const int sizeB = axisB >= 0 ? shapeB[axisB] : 1;
+            if (sizeA != sizeB && sizeA != 1 && sizeB != 1) {
+                throw std::invalid_argument("Batch dimensions must match or be 1: " + shapeA.toString() + " and " + shapeB.toString());
             }
-        } while (incrementIndices(batchIndices, resultShape));
-
-        return result;
-    }
-
-
-    static Tensor<T> matmul2D3D(const Tensor<T>& a, const Tensor<T>& b) {
-        auto shapeA = a.getShape();
-        auto shapeB = b.getShape();
-
-        if (shapeA.rank() != 2 || shapeB.rank() != 3 || shapeA[1] != shapeB[1]) {
-            throw std::invalid_argument("Invalid shapes for matmul 2D x 3D. Got shapes: " 
-                + shapeA.toString() + " and " + shapeB.toString());
+            dims[d] = std::max(sizeA, sizeB);
+            stepA[d] = sizeA == 1 ? 0 : strideA;
+            stepB[d] = sizeB == 1 ? 0 : strideB;
+            strideA *= sizeA;
+            strideB *= sizeB;
+            batches *= dims[d];
         }
 
-        int outFeatures = shapeA[0];
-        int inFeatures = shapeA[1];
-        int batchSize = shapeB[0];
-        int sequenceLength = shapeB[2];
+        dims.push_back(m);
+        dims.push_back(n);
+        Tensor<T> result(Shape(dims), T(0));
+        const T* aData = a.getData().data();
+        const T* bData = b.getData().data();
+        T* resultData = result.getData().data();
 
-        Tensor<T> result({batchSize, outFeatures, sequenceLength}, T(0));
-
-        for (int n = 0; n < batchSize; ++n) {
-            for (int i = 0; i < outFeatures; ++i) {
-                for (int j = 0; j < sequenceLength; ++j) {
-                    T sum = 0;
-                    for (int k = 0; k < inFeatures; ++k) {
-                        sum += a.getData().at({i, k}) * b.getData().at({n, k, j});
-                    }
-                    result.getData().at({n, i, j}) = sum;
+        std::vector<int> index(batchRank, 0);
+        size_t offsetA = 0;
+        size_t offsetB = 0;
+        for (size_t batch = 0; batch < batches; ++batch) {
+            multiplyInto(aData + offsetA, bData + offsetB, resultData + batch * m * n, m, k, n);
+            for (int d = batchRank - 1; d >= 0; --d) {
+                offsetA += stepA[d];
+                offsetB += stepB[d];
+                if (++index[d] < dims[d]) {
+                    break;
                 }
-            }
-        }
-
-        return result;
-    }
-
-    static Tensor<T> matmul3D2D(const Tensor<T>& a, const Tensor<T>& b) {
-        auto shapeA = a.getShape();
-        auto shapeB = b.getShape();
-
-        if (shapeA.rank() != 3 || shapeB.rank() != 2 || shapeA[2] != shapeB[0]) {
-            throw std::invalid_argument("Invalid shapes for matmul 3D x 2D. Got shapes: " 
-                + shapeA.toString() + " and " + shapeB.toString());
-        }
-
-        int batchSize = shapeA[0];
-        int m = shapeA[1];
-        int n = shapeA[2];
-        int p = shapeB[1];
-
-        Tensor<T> result({batchSize, m, p}, T(0));
-
-        for (int batch = 0; batch < batchSize; ++batch) {
-            for (int i = 0; i < m; ++i) {
-                for (int j = 0; j < p; ++j) {
-                    T sum = 0;
-                    for (int k = 0; k < n; ++k) {
-                        T aVal = a.getData().at({batch, i, k});
-                        T bVal = b.getData().at({k, j});
-                        sum += aVal * bVal;
-                    }
-                    result.getData().at({batch, i, j}) = sum;
-                }
+                offsetA -= stepA[d] * dims[d];
+                offsetB -= stepB[d] * dims[d];
+                index[d] = 0;
             }
         }
 
