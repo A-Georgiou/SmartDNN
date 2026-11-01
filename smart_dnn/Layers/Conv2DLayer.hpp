@@ -166,8 +166,8 @@ private:
         weights.emplace(Shape({outputChannels, inputChannels, kernelHeight, kernelWidth}));
         for (T& w : weights->getData()) w = static_cast<T>(RandomEngine::getHeInit(inputChannels * kernelHeight * kernelWidth));
         biases = TensorType::zeros({outputChannels, 1});
-        weightGradients.emplace(weights->getShape(), T(0));
-        biasGradients.emplace(biases->getShape(), T(0));
+        weightGradients.emplace(noGradient<T>());
+        biasGradients.emplace(noGradient<T>());
     }
 
     TensorType im2col(const TensorType& input, int kernelHeight, int kernelWidth, int stride, int padding, int dilation) {

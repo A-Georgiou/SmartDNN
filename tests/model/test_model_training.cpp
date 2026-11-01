@@ -9,7 +9,10 @@
 #include "../../smart_dnn/SmartDNN.hpp"
 #include "../../smart_dnn/Layers/FullyConnectedLayer.hpp"
 #include "../../smart_dnn/Layers/Conv2DLayer.hpp"
+#include "../../smart_dnn/Layers/EmbeddingLayer.hpp"
+#include "../../smart_dnn/Layers/PositionalEmbeddingLayer.hpp"
 #include "../../smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
+#include "../../smart_dnn/Regularisation/LayerNormalizationLayer.hpp"
 #include "../../smart_dnn/Layers/ActivationLayer.hpp"
 #include "../../smart_dnn/Activations/Tanh.hpp"
 #include "../../smart_dnn/Loss/MSELoss.hpp"
@@ -132,16 +135,32 @@ TEST(SmartDNNTrainingTest, SetMaxGradientNormRejectsInvalidLimits) {
     EXPECT_THROW(model.setMaxGradientNorm(std::numeric_limits<float>::infinity()), std::invalid_argument);
 }
 
-TEST(SmartDNNTrainingTest, ParametersAreAvailableBeforeTheFirstBackwardPass) {
+TEST(SmartDNNTrainingTest, GradientsAreOnlyAllocatedByBackward) {
     FullyConnectedLayer<float> dense(3, 2);
     Conv2DLayer<float> conv(1, 2, 3);
-    BatchNormalizationLayer<float> norm(2);
-
-    for (Layer<float>* layer : std::initializer_list<Layer<float>*>{&dense, &conv, &norm}) {
+    BatchNormalizationLayer<float> batchNorm(2);
+    LayerNormalizationLayer<float> layerNorm(2);
+    EmbeddingLayer<float> embedding(4, 2);
+    PositionalEmbeddingLayer<float> positions(3, 2);
+    for (Layer<float>* layer : std::initializer_list<Layer<float>*>{&dense, &conv, &batchNorm, &layerNorm, &embedding, &positions}) {
         for (const Parameter<float>& parameter : layer->parameters()) {
-            EXPECT_TRUE(TensorEquals(parameter.gradient.get(), Tensor<float>(parameter.value.get().getShape(), 0.0f)));
+            EXPECT_FALSE(parameter.hasGradient());
         }
     }
+
+    OptimizerLog log;
+    SmartDNN<float> model;
+    model.addLayer(FullyConnectedLayer<float>(3, 2));
+    model.compile(MSELoss<float>(), LoggingOptimizer(log));
+    EXPECT_THROW(model.updateWeights(), std::logic_error);
+    LoggingOptimizer optimizer(log);
+    EXPECT_THROW(dense.updateWeights(optimizer), std::logic_error);
+    EXPECT_EQ(log.calls, 0);
+
+    dense.forward(input);
+    dense.backward(Tensor<float>({2, 2}, 1.0f));
+    dense.updateWeights(optimizer);
+    EXPECT_EQ(log.calls, 1);
 }
 
 } // namespace smart_dnn

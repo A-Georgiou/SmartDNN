@@ -17,7 +17,7 @@ public:
         : numFeatures(numFeatures), epsilon(epsilon), momentum(momentum), 
           gamma(TensorType({1, numFeatures}, T(1))), beta(TensorType({1, numFeatures}, T(0))),
           runningMean(TensorType({1, numFeatures}, T(0))), runningVariance(TensorType({1, numFeatures}, T(1))),
-          gammaGrad(TensorType({1, numFeatures}, T(0))), betaGrad(TensorType({1, numFeatures}, T(0))) {}
+          gammaGrad(noGradient<T>()), betaGrad(noGradient<T>()) {}
 
     TensorType forward(const TensorType& input) override {
         const auto& shape = input.getShape();
