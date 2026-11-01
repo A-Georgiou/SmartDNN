@@ -15,9 +15,10 @@ namespace smart_dnn {
 
     Softmax Activation Function
     ---------------------------
+    Normalises each row along the last axis.
     
-    f(x) = exp(x) / sum(exp(x))
-    f'(x) = f(x) * (1 - f(x))
+    f(x)_i = exp(x_i) / sum_j(exp(x_j))
+    Backward: dx_i = f(x)_i * (dy_i - sum_j(dy_j * f(x)_j))
 
 */
 template <typename T=float>
@@ -32,23 +33,23 @@ public:
         const T* inputData = input.getData().data();
         T* outputData = output.getData().data();
 
-        int batchSize = input.getShape()[0];
-        int featuresSize = input.getShape().size() / batchSize;
+        const size_t features = input.getShape()[input.getShape().rank() - 1];
+        const size_t rows = input.getShape().size() / features;
 
-        for (int b = 0; b < batchSize; ++b) {
-            const T* batchInputData = inputData + b * featuresSize;
-            T* batchOutputData = outputData + b * featuresSize;
+        for (size_t r = 0; r < rows; ++r) {
+            const T* rowInputData = inputData + r * features;
+            T* rowOutputData = outputData + r * features;
 
-            T maxVal = *std::max_element(batchInputData, batchInputData + featuresSize);
+            T maxVal = *std::max_element(rowInputData, rowInputData + features);
             T sum = T(0);
 
-            for (int i = 0; i < featuresSize; ++i) {
-                batchOutputData[i] = std::exp(batchInputData[i] - maxVal);
-                sum += batchOutputData[i];
+            for (size_t i = 0; i < features; ++i) {
+                rowOutputData[i] = std::exp(rowInputData[i] - maxVal);
+                sum += rowOutputData[i];
             }
 
-            for (int i = 0; i < featuresSize; ++i) {
-                batchOutputData[i] /= sum;
+            for (size_t i = 0; i < features; ++i) {
+                rowOutputData[i] /= sum;
             }
         }
 
@@ -57,8 +58,8 @@ public:
     }
 
     Tensor<T> backward(const Tensor<T>& input, const Tensor<T>& gradOutput) const override {
-        if (input.getShape().rank() < 2 || gradOutput.getShape().rank() < 2) {
-            throw std::invalid_argument("Input and gradOutput must have at least 2 dimensions (batch_size, features)");
+        if (input.getShape().rank() < 2 || gradOutput.getShape() != input.getShape()) {
+            throw std::invalid_argument("gradOutput must have the input's shape, with at least 2 dimensions (batch_size, features)");
         }
         
         Tensor<T> forwardOutput = forward(input);
@@ -68,24 +69,21 @@ public:
         const T* gradOutputData = gradOutput.getData().data();
         T* gradInputData = gradInput.getData().data();
 
-        int batchSize = input.getShape()[0];
-        int featuresSize = input.getShape().size() / batchSize;
+        const size_t features = input.getShape()[input.getShape().rank() - 1];
+        const size_t rows = input.getShape().size() / features;
 
-        for (int b = 0; b < batchSize; ++b) {
-            const T* batchOutputData = outputData + b * featuresSize;
-            const T* batchGradOutputData = gradOutputData + b * featuresSize;
-            T* batchGradInputData = gradInputData + b * featuresSize;
+        for (size_t r = 0; r < rows; ++r) {
+            const T* rowOutputData = outputData + r * features;
+            const T* rowGradOutputData = gradOutputData + r * features;
+            T* rowGradInputData = gradInputData + r * features;
 
-            for (int i = 0; i < featuresSize; ++i) {
-                T gradient = T(0);
-                for (int j = 0; j < featuresSize; ++j) {
-                    if (i == j) {
-                        gradient += batchOutputData[i] * (T(1) - batchOutputData[j]) * batchGradOutputData[j];
-                    } else {
-                        gradient -= batchOutputData[i] * batchOutputData[j] * batchGradOutputData[j];
-                    }
-                }
-                batchGradInputData[i] = gradient;
+            T dot = T(0);
+            for (size_t i = 0; i < features; ++i) {
+                dot += rowGradOutputData[i] * rowOutputData[i];
+            }
+
+            for (size_t i = 0; i < features; ++i) {
+                rowGradInputData[i] = rowOutputData[i] * (rowGradOutputData[i] - dot);
             }
         }
 
