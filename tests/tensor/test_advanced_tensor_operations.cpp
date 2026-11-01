@@ -455,13 +455,19 @@ TEST(AdvancedTensorOperationsTest, BatchedMatmulBroadcastsRankFourBatches) {
                                                  16, 17, 22, 23, 23, 31, 32, 43});
 
     ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<float>::matmul(a, b), expected));
+    // A rank-3 operand aligns from the right, so b without its leading 1 gives the same result.
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<float>::matmul(a, AdvancedTensorOperations<float>::reshape(b, {2, 3, 2})), expected));
 }
 
 TEST(AdvancedTensorOperationsTest, BatchedMatmulRejectsMismatchedBatches) {
     Tensor<float> a(Shape({2, 1, 1}), {1, 2});
     Tensor<float> b(Shape({3, 1, 1}), {1, 2, 3});
+    Tensor<float> c(Shape({1, 2, 1, 1}), {1, 2});
+    Tensor<float> d(Shape({1, 3, 1, 1}), {1, 2, 3});
 
     ASSERT_THROW(AdvancedTensorOperations<float>::matmul(a, b), std::invalid_argument);
+    ASSERT_THROW(AdvancedTensorOperations<float>::matmul(c, d), std::invalid_argument);
+    ASSERT_THROW(AdvancedTensorOperations<float>::matmul(d, c), std::invalid_argument);
 }
 
 

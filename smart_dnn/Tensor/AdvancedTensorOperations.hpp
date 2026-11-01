@@ -372,14 +372,7 @@ private:
         return result;
     }
 
-    /*
-
-    Matrix Multiply Kernel:
-    -----------------------------
-    Adds a (m x k) times b (k x n) into c (m x n); all three are contiguous row-major blocks.
-    Row i of c is accumulated as a[i][p] * (row p of b), so the inner loop runs over contiguous memory.
-
-    */
+    // c (m x n) += a (m x k) * b (k x n), all contiguous row-major; the i-p-j order keeps the inner loop contiguous.
     static void multiplyInto(const T* a, const T* b, T* c, size_t m, size_t k, size_t n) {
         // A single output column is m dot products; accumulating each in a register beats the row loop.
         if (n == 1) {
