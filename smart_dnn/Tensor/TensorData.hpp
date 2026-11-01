@@ -6,13 +6,10 @@
 #include "smart_dnn/Tensor/DeviceTypes.hpp"
 #include <iomanip>
 #include <functional>
-<<<<<<< HEAD
 #include <memory>
-=======
 #include <cassert>
 #include <initializer_list>
 #include <type_traits>
->>>>>>> origin/main
 
 namespace smart_dnn {
 
