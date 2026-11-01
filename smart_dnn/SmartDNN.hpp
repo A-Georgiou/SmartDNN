@@ -43,6 +43,7 @@ public:
     std::vector<Tensor<T>> predict(const std::vector<Tensor<T>>& inputs);
 
     Layer<T>* getLayer(size_t index) const;
+    size_t getLayerCount() const;
 
     void backward(const Tensor<T>& gradOutput);
     void updateWeights(T learningRate = T(-1));

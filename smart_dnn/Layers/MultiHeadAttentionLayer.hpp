@@ -97,6 +97,14 @@ public:
         return inputProjection.backward(gradPacked);
     }
 
+    int getHeads() const {
+        return heads;
+    }
+
+    bool isCausal() const {
+        return causal;
+    }
+
     std::vector<Parameter<T>> parameters() override {
         std::vector<Parameter<T>> all = inputProjection.parameters();
         for (const Parameter<T>& parameter : outputProjection.parameters()) {
