@@ -34,6 +34,8 @@ TEST(TensorInitialisationTest, ExpectVectorInitialisation) {
     ValidateTensorShape(moved, 2, 6, {2, 3});
     ValidateTensorData(copied, values);
     ValidateTensorData(moved, values);
+    EXPECT_THROW(Tensor<float>(Shape({5}), values), std::invalid_argument);
+    EXPECT_THROW(Tensor<float>(Shape({5}), std::vector<float>(values)), std::invalid_argument);
 }
 
 /*

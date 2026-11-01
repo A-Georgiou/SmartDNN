@@ -22,7 +22,7 @@ public:
     Tensor(Tensor&& other) noexcept;
     Tensor(Shape dimensions, std::initializer_list<T> values);
     Tensor(Shape dimensions, const std::vector<T>& values);
-    Tensor(Shape dimensions, std::vector<T>&& values) noexcept;
+    Tensor(Shape dimensions, std::vector<T>&& values);
 
     ~Tensor() = default;
 
