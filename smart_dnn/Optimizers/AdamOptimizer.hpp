@@ -76,9 +76,9 @@ private:
         size_t key = reinterpret_cast<size_t>(&weight);
         initializeMomentEstimates(key, weight.getShape());
 
-        T beta1Power = std::max(T(std::pow(beta1, iterations)), std::numeric_limits<T>::min());
-        T beta2Power = std::max(T(std::pow(beta2, iterations)), std::numeric_limits<T>::min());
-        T alphaT = learningRate * std::sqrt(T(1) - beta2Power) / (T(1) - beta1Power);
+        // Bias corrections for this step, shared by every element.
+        T correction1 = T(1) - T(std::pow(beta1, iterations));
+        T correction2 = T(1) - T(std::pow(beta2, iterations));
 
         size_t size = weight.getShape().size();
         T* weightData = weight.getData().data();
@@ -88,7 +88,7 @@ private:
 
         #pragma omp parallel for if(size > 1000)
         for (size_t j = 0; j < size; ++j) {
-            updateParameter(weightData[j], gradientData[j], mData[j], vData[j], alphaT);
+            updateParameter(weightData[j], gradientData[j], mData[j], vData[j], correction1, correction2);
         }
     }
 
@@ -99,7 +99,7 @@ private:
         }
     }
 
-    void updateParameter(T& weight, const T& gradient, T& mValue, T& vValue, T alphaT) {
+    void updateParameter(T& weight, const T& gradient, T& mValue, T& vValue, T correction1, T correction2) {
         // Average the gradient over the batch
         T averagedGradient = gradient / static_cast<T>(batchSize);
 
@@ -110,9 +110,9 @@ private:
         vValue = beta2 * vValue + (T(1) - beta2) * averagedGradient * averagedGradient;
 
         // Compute update
-        T mHat = mValue / (T(1) - std::pow(beta1, iterations));
-        T vHat = vValue / (T(1) - std::pow(beta2, iterations));
-        T update = alphaT * mHat / (std::sqrt(vHat) + epsilon);
+        T mHat = mValue / correction1;
+        T vHat = vValue / correction2;
+        T update = learningRate * mHat / (std::sqrt(vHat) + epsilon);
 
         // Apply L1 and L2 regularization
         if (l1Strength > T(0)) {
