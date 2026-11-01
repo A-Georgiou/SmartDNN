@@ -20,8 +20,11 @@ void SmartDNN<T>::updateWeights(T learningRate) {
     std::vector<std::reference_wrapper<Tensor<T>>> gradients;
     for (const auto& layer : layers) {
         for (const Parameter<T>& parameter : layer->parameters()) {
+            if (!parameter.gradient.get()) {
+                throw std::logic_error("updateWeights needs a backward pass first");
+            }
             values.push_back(parameter.value);
-            gradients.push_back(parameter.gradient);
+            gradients.push_back(*parameter.gradient.get());
         }
     }
     if (values.empty()) {

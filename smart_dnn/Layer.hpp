@@ -5,15 +5,17 @@
 #include "smart_dnn/Tensor/TensorIO.hpp"
 #include "smart_dnn/Optimizer.hpp"
 #include <functional>
+#include <optional>
+#include <stdexcept>
 #include <vector>
 
 namespace smart_dnn {
 
-    // A learned tensor and its gradient from the most recent backward pass.
+    // A learned tensor and its gradient from the most recent backward pass, empty until the first one.
     template <typename T>
     struct Parameter {
         std::reference_wrapper<Tensor<T>> value;
-        std::reference_wrapper<Tensor<T>> gradient;
+        std::reference_wrapper<std::optional<Tensor<T>>> gradient;
     };
 
     template <typename T>
@@ -31,8 +33,11 @@ namespace smart_dnn {
             std::vector<std::reference_wrapper<Tensor<T>>> values;
             std::vector<std::reference_wrapper<Tensor<T>>> gradients;
             for (const Parameter<T>& parameter : parameters()) {
+                if (!parameter.gradient.get()) {
+                    throw std::logic_error("updateWeights needs a backward pass first");
+                }
                 values.push_back(parameter.value);
-                gradients.push_back(parameter.gradient);
+                gradients.push_back(*parameter.gradient.get());
             }
             if (!values.empty()) {
                 optimizer.optimize(values, gradients);

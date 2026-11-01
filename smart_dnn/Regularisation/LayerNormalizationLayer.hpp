@@ -17,8 +17,7 @@ template <typename T = float>
 class LayerNormalizationLayer : public Layer<T> {
 public:
     LayerNormalizationLayer(int features, T epsilon = T(1e-5))
-        : gamma(Shape({1, features}), T(1)), beta(Shape({1, features}), T(0)),
-          gammaGrad(Shape({1, features}), T(0)), betaGrad(Shape({1, features}), T(0)), epsilon(epsilon) {}
+        : gamma(Shape({1, features}), T(1)), beta(Shape({1, features}), T(0)), epsilon(epsilon) {}
 
     Tensor<T> forward(const Tensor<T>& input) override {
         const Shape& shape = input.getShape();
@@ -69,10 +68,10 @@ public:
         const T* xHat = normalized->getData().data();
         const T* g = gamma.getData().data();
         T* dx = gradInput.getData().data();
-        T* dGamma = gammaGrad.getData().data();
-        T* dBeta = betaGrad.getData().data();
-        std::fill(dGamma, dGamma + features, T(0));
-        std::fill(dBeta, dBeta + features, T(0));
+        gammaGrad.emplace(gamma.getShape(), T(0));
+        betaGrad.emplace(beta.getShape(), T(0));
+        T* dGamma = gammaGrad->getData().data();
+        T* dBeta = betaGrad->getData().data();
 
         for (size_t r = 0; r < rows; ++r) {
             const size_t offset = r * features;
@@ -112,8 +111,8 @@ public:
 private:
     Tensor<T> gamma;
     Tensor<T> beta;
-    Tensor<T> gammaGrad;
-    Tensor<T> betaGrad;
+    std::optional<Tensor<T>> gammaGrad;
+    std::optional<Tensor<T>> betaGrad;
     T epsilon;
     std::optional<Tensor<T>> normalized;
     std::vector<T> inverseDeviations;
