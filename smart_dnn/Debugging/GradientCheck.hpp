@@ -17,25 +17,15 @@ struct GradientCheckOptions {
 template <typename T>
 struct GradientCheckResult {
     bool passed = true;
-    size_t index = 0;
+    size_t checked = 0;
+    T maxAbsoluteError = T(0);
+    T maxRelativeError = T(0);  // |analytic - numeric| / max(1, |analytic|, |numeric|), compared with the tolerance.
+    size_t index = 0;  // Flat index of the largest relative error, with its two values below.
     T analytic = T(0);
     T numeric = T(0);
-    T error = T(0);
 };
 
-/*
-
-    Gradient Check
-    --------------
-    Compares analyticGradient with central differences of objective around point,
-    (f(x + epsilon) - f(x - epsilon)) / (2 * epsilon), one coordinate at a time.
-    A coordinate passes when |analytic - numeric| <= tolerance * max(1, |analytic|, |numeric|).
-    The result describes the coordinate with the largest error, and point is never modified.
-
-    To check a layer's input gradient, use objective(x) = sum(layer.forward(x) * upstream)
-    and analyticGradient = layer.backward(upstream) after a forward pass at point.
-
-*/
+// Checks analyticGradient against central differences of objective at point; for a layer use sum(forward(x) * upstream) and backward(upstream).
 template <typename T, typename Objective>
 GradientCheckResult<T> checkGradient(Objective&& objective, const Tensor<T>& point, const Tensor<T>& analyticGradient,
                                      const GradientCheckOptions<T>& options = {}) {
@@ -43,33 +33,41 @@ GradientCheckResult<T> checkGradient(Objective&& objective, const Tensor<T>& poi
         throw std::invalid_argument("Analytic gradient shape " + analyticGradient.getShape().toString()
             + " does not match point shape " + point.getShape().toString());
     }
-    if (!(options.epsilon > T(0)) || !(options.tolerance >= T(0))) {
-        throw std::invalid_argument("Gradient check needs a positive epsilon and a non-negative tolerance");
+    if (!std::isfinite(options.epsilon) || !std::isfinite(options.tolerance) || options.epsilon <= T(0) || options.tolerance < T(0)) {
+        throw std::invalid_argument("Gradient check needs a finite positive epsilon and a finite non-negative tolerance");
     }
 
     Tensor<T> probe = point;
     GradientCheckResult<T> result;
     for (size_t i = 0; i < point.getShape().size(); ++i) {
         const T original = probe[i];
-        probe[i] = original + options.epsilon;
+        const T up = original + options.epsilon;
+        const T down = original - options.epsilon;
+        probe[i] = up;
         const T plus = objective(probe);
-        probe[i] = original - options.epsilon;
+        probe[i] = down;
         const T minus = objective(probe);
         probe[i] = original;
 
-        const T numeric = (plus - minus) / (T(2) * options.epsilon);
+        // Divide by the step actually taken; a step lost to rounding gives 0 / 0 and fails.
+        const T numeric = (plus - minus) / (up - down);
         const T analytic = analyticGradient[i];
-        const T error = std::abs(analytic - numeric) / std::max({T(1), std::abs(analytic), std::abs(numeric)});
-        // A NaN error is kept as the worst, so non-finite values always fail.
-        if (std::isnan(error) || error > result.error) {
+        const T absoluteError = std::abs(analytic - numeric);
+        const T relativeError = absoluteError / std::max({T(1), std::abs(analytic), std::abs(numeric)});
+        // A NaN error stays the maximum, so non-finite values always fail.
+        if (std::isnan(absoluteError) || absoluteError > result.maxAbsoluteError) {
+            result.maxAbsoluteError = absoluteError;
+        }
+        if (std::isnan(relativeError) || relativeError > result.maxRelativeError) {
+            result.maxRelativeError = relativeError;
             result.index = i;
             result.analytic = analytic;
             result.numeric = numeric;
-            result.error = error;
         }
+        ++result.checked;
     }
 
-    result.passed = result.error <= options.tolerance;
+    result.passed = result.maxRelativeError <= options.tolerance;
     return result;
 }
 
