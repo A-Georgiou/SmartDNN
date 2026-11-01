@@ -399,6 +399,39 @@ TEST(BatchNormalizationLayerTest, EvalModeAfterTraining4D) {
     }
 }
 
+// Checks backward against central finite differences of sum(BN(x) * upstream) in double precision.
+void ExpectBatchNormBackwardMatchesFiniteDifferences(const std::vector<int>& dims, const std::vector<double>& x, const std::vector<double>& upstream) {
+    const Shape shape(dims);
+    auto loss = [&](const std::vector<double>& values) {
+        BatchNormalizationLayer<double> bn(dims[1]);
+        Tensor<double> output = bn.forward(Tensor<double>(shape, values.data()));
+        double total = 0.0;
+        for (size_t i = 0; i < values.size(); ++i) total += output[i] * upstream[i];
+        return total;
+    };
+
+    BatchNormalizationLayer<double> bn(dims[1]);
+    bn.forward(Tensor<double>(shape, x.data()));
+    Tensor<double> gradInput = bn.backward(Tensor<double>(shape, upstream.data()));
+
+    const double h = 1e-4;
+    for (size_t i = 0; i < x.size(); ++i) {
+        std::vector<double> plus = x, minus = x;
+        plus[i] += h;
+        minus[i] -= h;
+        const double numerical = (loss(plus) - loss(minus)) / (2 * h);
+        EXPECT_NEAR(gradInput[i], numerical, 1e-4 * std::max(1.0, std::abs(numerical))) << "shape " << shape.toString() << ", index " << i;
+    }
+}
+
+TEST(BatchNormalizationLayerTest, BackwardMatchesFiniteDifferences) {
+    ExpectBatchNormBackwardMatchesFiniteDifferences({2, 1}, {-2, 2}, {1, 0});
+    ExpectBatchNormBackwardMatchesFiniteDifferences({1, 1, 1, 2}, {-2, 2}, {1, 1});
+    ExpectBatchNormBackwardMatchesFiniteDifferences({3, 2}, {-1.5, 4, 0.5, -2, 3, 1}, {0.3, -1, 2, 0.5, -0.7, 1.2});
+    ExpectBatchNormBackwardMatchesFiniteDifferences({2, 2, 1, 3}, {1, -2, 3, 0.5, 4, -1, -3, 2, 0, 1.5, -0.5, 2.5},
+                                                   {0.2, -0.4, 1, 0.7, -1.1, 0.3, 0.9, -0.2, 0.5, -0.8, 1.3, 0.1});
+}
+
 } // namespace smart_dnn
 
 

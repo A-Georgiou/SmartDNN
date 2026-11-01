@@ -62,8 +62,6 @@ public:
         }
 
         const auto& inputShape = gradOutput.getShape();
-        
-        int batchSize = inputShape[0];
         std::vector<size_t> reductionAxes = (inputShape.rank() == 4) ? std::vector<size_t>{0, 2, 3} : std::vector<size_t>{0};
 
         TensorType reshapedGamma = reshapeForBroadcast(gamma, inputShape);
@@ -71,27 +69,16 @@ public:
         TensorType dGamma = AdvancedTensorOperations<T>::sum(gradOutput * (*normalizedInput), reductionAxes);
         TensorType dBeta = AdvancedTensorOperations<T>::sum(gradOutput, reductionAxes);
 
+        // dx = (g - mean(g) - xhat * mean(g * xhat)) / sqrt(var + eps), averaging over each channel's N (2D) or N * H * W (4D) values.
         TensorType dNormalized = gradOutput * reshapedGamma;
-        
-        TensorType variance = reshapeForBroadcast(*batchVariance + epsilon, inputShape);
-        TensorType stdDev = variance.sqrt();
-        TensorType invStdDev = AdvancedTensorOperations<T>::reciprocal(stdDev);
-        
-        TensorType dVariance = AdvancedTensorOperations<T>::sum(dNormalized * (*normalizedInput), reductionAxes);
-        dVariance = reshapeForBroadcast(dVariance, invStdDev.getShape());
-        dVariance = dVariance * T(-0.5) * invStdDev * invStdDev * invStdDev;
-        dVariance = reshapeForBroadcast(dVariance, inputShape);
-        
-        TensorType dMean = AdvancedTensorOperations<T>::sum(dNormalized * invStdDev * T(-1), reductionAxes);
-        dMean = reshapeForBroadcast(dMean, inputShape);
+        const T count = T(inputShape.size() / numFeatures);
+        TensorType invStdDev = AdvancedTensorOperations<T>::reciprocal(reshapeForBroadcast(*batchVariance + epsilon, inputShape).sqrt());
+        TensorType meanDNormalized = reshapeForBroadcast(AdvancedTensorOperations<T>::sum(dNormalized, reductionAxes), inputShape) * (T(1) / count);
+        TensorType meanDNormalizedXhat = reshapeForBroadcast(AdvancedTensorOperations<T>::sum(dNormalized * (*normalizedInput), reductionAxes), inputShape) * (T(1) / count);
+        TensorType dInput = invStdDev * (dNormalized - meanDNormalized - (*normalizedInput) * meanDNormalizedXhat);
 
-        
-        TensorType dInput = dNormalized * invStdDev +
-                            dVariance * T(2) * (*normalizedInput) / T(batchSize) +
-                            dMean / T(batchSize);
-
-        gammaGrad = dGamma;
-        betaGrad = dBeta;
+        gammaGrad = AdvancedTensorOperations<T>::reshape(dGamma, gamma.getShape());
+        betaGrad = AdvancedTensorOperations<T>::reshape(dBeta, beta.getShape());
 
         return dInput;
     }
@@ -124,7 +111,7 @@ private:
 
     TensorType reshapeForBroadcast(const TensorType& tensor, const Shape& targetShape) {
         std::vector<int> newShape(targetShape.rank(), 1);
-        newShape[1] = tensor.getShape()[1];  // Preserve the channel dimension
+        newShape[1] = numFeatures;  // Reductions drop the summed axes, so take the channel count from the layer
         
         // For 2D input, we need to keep the first dimension as 1 to allow broadcasting
         if (targetShape.rank() == 2) {
