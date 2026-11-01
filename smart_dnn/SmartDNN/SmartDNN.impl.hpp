@@ -77,6 +77,11 @@ Layer<T>* SmartDNN<T>::getLayer(size_t index) const {
 }
 
 template <typename T>
+size_t SmartDNN<T>::getLayerCount() const {
+    return layers.size();
+}
+
+template <typename T>
 void SmartDNN<T>::saveModel(const std::string& filename, WeightFormat format) const {
     std::ofstream os(filename, std::ios::binary);
     if (!os) {

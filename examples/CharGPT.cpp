@@ -1,6 +1,7 @@
 // Trains a small character-level GPT on a text file, then samples: c++ -std=c++17 -O3 -I . examples/CharGPT.cpp -o chargpt && ./chargpt input.txt [steps]
 #include "smart_dnn/SmartDNN.hpp"
 #include "smart_dnn/Datasets/CharacterDataset.hpp"
+#include "smart_dnn/Inference/KVCacheDecoder.hpp"
 #include "smart_dnn/Layers/EmbeddingLayer.hpp"
 #include "smart_dnn/Layers/FullyConnectedLayer.hpp"
 #include "smart_dnn/Layers/PositionalEmbeddingLayer.hpp"
@@ -37,24 +38,31 @@ float learningRate(int step, int steps) {
     return PEAK_RATE * (0.1f + 0.45f * (1.0f + std::cos(3.14159265f * progress)));
 }
 
-// Samples one character at a time from the model's next-character distribution.
+// Samples one character at a time through a KV cache, re-feeding the latest half context whenever the cache fills.
 std::string generate(SmartDNN<float>& model, const CharacterDataset<float>& data, const std::string& prompt, int count, float temperature, std::mt19937& rng) {
     std::vector<int> ids = data.encode(prompt);
-    const int vocabulary = data.vocabularySize();
+    if (ids.empty()) {
+        throw std::invalid_argument("generate needs a non-empty prompt");
+    }
+    KVCacheDecoder<float> decoder(model, HEADS);
+    std::vector<float> logits;
+    for (size_t i = ids.size() > static_cast<size_t>(LENGTH) ? ids.size() - LENGTH : 0; i < ids.size(); ++i) {
+        logits = decoder.push(ids[i]);
+    }
     for (int i = 0; i < count; ++i) {
-        const int length = std::min(static_cast<int>(ids.size()), LENGTH);
-        Tensor<float> context(Shape({1, length}), 0.0f);
-        for (int t = 0; t < length; ++t) {
-            context[t] = static_cast<float>(ids[ids.size() - length + t]);
-        }
-        const Tensor<float> logits = model.predict(context);
-        const float* last = logits.getData().data() + static_cast<size_t>(length - 1) * vocabulary;
-        const float maxLogit = *std::max_element(last, last + vocabulary);
-        std::vector<double> weights(vocabulary);
-        for (int v = 0; v < vocabulary; ++v) {
-            weights[v] = std::exp((last[v] - maxLogit) / temperature);
+        const float maxLogit = *std::max_element(logits.begin(), logits.end());
+        std::vector<double> weights(logits.size());
+        for (size_t v = 0; v < logits.size(); ++v) {
+            weights[v] = std::exp((logits[v] - maxLogit) / temperature);
         }
         ids.push_back(std::discrete_distribution<int>(weights.begin(), weights.end())(rng));
+        if (decoder.size() == decoder.capacity()) {
+            decoder.reset();
+            for (size_t j = ids.size() - LENGTH / 2; j + 1 < ids.size(); ++j) {
+                decoder.push(ids[j]);
+            }
+        }
+        logits = decoder.push(ids.back());
     }
     return data.decode(ids);
 }
