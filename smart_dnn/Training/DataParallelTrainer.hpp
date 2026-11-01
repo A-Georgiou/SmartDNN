@@ -13,11 +13,11 @@
 
 namespace smart_dnn {
 
-// Splits each batch by rows across threads, each running its own copy of a compiled model, then applies the row-weighted mean gradient with the model's optimizer.
+// Splits each batch by rows across threads, each running its own copy of a compiled model, then applies the mean gradient with the model's optimizer.
 template <typename T = float>
 class DataParallelTrainer {
 public:
-    // build adds the model's layers to an empty model; loss must be a mean over rows, like MSELoss and SoftmaxCrossEntropyLoss.
+    // build adds the model's layers to an empty model; each part counts in proportion to the terms its loss averages over.
     template <typename LossType>
     DataParallelTrainer(SmartDNN<T>& model, const std::function<void(SmartDNN<T>&)>& build, const LossType& loss, int threads)
         : model(model) {
@@ -54,7 +54,7 @@ public:
         }
         const int workers = std::min(static_cast<int>(replicas.size()) + 1, rows);
         auto firstRow = [&](int worker) { return rows * worker / workers; };
-        std::vector<T> shares(static_cast<size_t>(workers));
+        std::vector<size_t> terms(static_cast<size_t>(workers));
         std::vector<T> shardLosses(static_cast<size_t>(workers));
         std::vector<std::vector<Parameter<T>>> parameters{parametersOf(model)};
         for (int worker = 1; worker < workers; ++worker) {
@@ -70,10 +70,21 @@ public:
             const int last = firstRow(worker + 1);
             const Tensor<T> prediction = copy.predict(rowsOf(inputs, first, last));
             const Tensor<T> target = rowsOf(targets, first, last);
-            shares[worker] = T(last - first) / T(rows);
-            shardLosses[worker] = losses[worker]->compute(prediction, target)[0] * shares[worker];
+            terms[worker] = losses[worker]->averagedTerms(prediction, target);
+            shardLosses[worker] = losses[worker]->compute(prediction, target)[0];
             copy.backward(losses[worker]->gradient(prediction, target));
         });
+
+        size_t totalTerms = 0;
+        for (size_t count : terms) {
+            totalTerms += count;
+        }
+        std::vector<T> shares(terms.size(), T(0));
+        T loss = T(0);
+        for (size_t w = 0; totalTerms > 0 && w < terms.size(); ++w) {
+            shares[w] = T(terms[w]) / T(totalTerms);
+            loss += shares[w] * shardLosses[w];
+        }
 
         // Each thread sums a disjoint set of parameters into the model's gradients.
         runAcross(workers, [&](int worker) {
@@ -92,11 +103,6 @@ public:
             }
         });
         model.updateWeights(learningRate);
-
-        T loss = T(0);
-        for (T part : shardLosses) {
-            loss += part;
-        }
         return loss;
     }
 

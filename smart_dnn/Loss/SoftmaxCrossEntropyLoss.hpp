@@ -71,6 +71,12 @@ public:
         return counted > 0 ? grad / T(counted) : grad;
     }
 
+    size_t averagedTerms(const Tensor<T>& logits, const Tensor<T>& targets) const override {
+        (void)logits;
+        const auto& values = targets.getData();
+        return static_cast<size_t>(std::count_if(values.begin(), values.end(), [&](T target) { return static_cast<int>(target) != ignoreIndex; }));
+    }
+
 private:
     int ignoreIndex;
 
