@@ -165,6 +165,7 @@ TEST(FullyConnectedLayerTest, DifferentInputShapes) {
     Tensor<float> input1D({3}, {1.0f, 2.0f, 3.0f});
     Tensor<float> output1D = fcLayer.forward(input1D);
     ASSERT_EQ(output1D.getShape(), Shape({2}));
+    ASSERT_EQ(fcLayer.backward(Tensor<float>({2}, {1.0f, 1.0f})).getShape(), Shape({3}));
 
     // Test with multiple samples (2D input)
     Tensor<float> input2D({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
