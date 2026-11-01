@@ -24,7 +24,7 @@ public:
     TensorData(const TensorData& other);
     TensorData(Shape dimensions, std::initializer_list<T> values);
     TensorData(Shape dimensions, const std::vector<T>& values);
-    TensorData(Shape dimensions, std::vector<T>&& values) noexcept;
+    TensorData(Shape dimensions, std::vector<T>&& values);
 
 
     TensorData(TensorData&&) noexcept = default;

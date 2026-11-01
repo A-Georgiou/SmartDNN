@@ -35,7 +35,7 @@ TEMPLATE_TENSOR
 Tensor<T, DeviceType>::Tensor(Shape dimensions, const std::vector<T>& values) : data_(dimensions, values) {}
 
 TEMPLATE_TENSOR
-Tensor<T, DeviceType>::Tensor(Shape dimensions, std::vector<T>&& values) noexcept : data_(dimensions, std::move(values)) {}
+Tensor<T, DeviceType>::Tensor(Shape dimensions, std::vector<T>&& values) : data_(dimensions, std::move(values)) {}
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator=(const Tensor<T, DeviceType>& other) {

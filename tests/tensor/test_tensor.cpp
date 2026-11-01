@@ -25,6 +25,26 @@ TEST(TensorInitialisationTest, ExpectValueFillInitialisation) {
     ValidateTensorData(a, std::vector<float>(6, 5.0f));
 }
 
+TEST(TensorInitialisationTest, ExpectVectorInitialisation) {
+    const std::vector<float> values = {1, 2, 3, 4, 5, 6};
+    Tensor<float> copied(Shape({2, 3}), values);
+    Tensor<float> moved(Shape({2, 3}), std::vector<float>(values));
+    Tensor<float> shorter(Shape({2, 4}), values);
+
+    ValidateTensorShape(copied, 2, 6, {2, 3});
+    ValidateTensorShape(moved, 2, 6, {2, 3});
+    ValidateTensorData(copied, values);
+    ValidateTensorData(moved, values);
+    ValidateTensorData(shorter, {1, 2, 3, 4, 5, 6, 0, 0});
+}
+
+TEST(TensorInitialisationTest, ExpectOversizedValuesRejected) {
+    const std::vector<float> values = {1, 2, 3};
+    EXPECT_THROW(Tensor<float>(Shape({2}), values), std::invalid_argument);
+    EXPECT_THROW(Tensor<float>(Shape({2}), std::vector<float>(values)), std::invalid_argument);
+    EXPECT_THROW(Tensor<float>(Shape({2}), {1.0f, 2.0f, 3.0f}), std::invalid_argument);
+}
+
 /*
 
     INVALID INITIALISATION TESTS
