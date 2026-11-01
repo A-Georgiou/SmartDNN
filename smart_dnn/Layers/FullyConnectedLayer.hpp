@@ -26,23 +26,19 @@ public:
     Fully Connected Layer forward pass
     -------------------------------
 
-    Input: 1D or 2D tensor shape (input_size) or (batch_size, input_size)
-    Output: 1D or 2D tensor shape (output_size) or (batch_size, output_size)
+    Input: tensor of shape (..., input_size); each index of the leading dimensions is one row
+    Output: tensor of shape (..., output_size)
     
     */
     
     TensorType forward(const TensorType& input) override {
         this->input = input;
-        TensorType reshapedInput = input;
-        if (input.getShape().rank() == 1) {
-            reshapedInput = AdvancedTensorOperations<T>::reshape(input, {1, input.getShape()[0]});
-        }
-        TensorType output = AdvancedTensorOperations<T>::matmul(reshapedInput, *weights);
-        output = output + *biases;
+        std::vector<int> outputDimensions = input.getShape().getDimensions();
+        outputDimensions.back() = weights->getShape()[1];
 
-        if (input.getShape().rank() == 1) {
-            output = AdvancedTensorOperations<T>::reshape(output, {output.getShape()[1]});
-        }
+        TensorType output = AdvancedTensorOperations<T>::matmul(asRows(input), *weights);
+        output = output + *biases;
+        output.reshape(outputDimensions);
         return output;
     }
 
@@ -51,8 +47,8 @@ public:
     Fully Connected Layer backward pass
     -------------------------------
 
-    Input: Gradient tensor shape (batch_size, output_size)
-    Output: Gradient tensor shape (batch_size, input_size)
+    Input: Gradient tensor shape (..., output_size)
+    Output: Gradient tensor with the input's shape (..., input_size)
 
     */
     TensorType backward(const TensorType& gradOutput) override {
@@ -60,31 +56,23 @@ public:
             throw std::runtime_error("Input tensor is not initialized!");
         }
 
-        TensorType inputTensor = *input;
-
-        // Ensure input is 2D
-        if (inputTensor.getShape().rank() == 1)
-            inputTensor = AdvancedTensorOperations<T>::reshape(inputTensor, {1, inputTensor.getShape()[0]});
-
-        // Ensure gradOutput is 2D (for non-batched input case)
-        TensorType reshapedGradOutput = gradOutput;
-        if (gradOutput.getShape().rank() == 1) {
-            reshapedGradOutput = AdvancedTensorOperations<T>::reshape(gradOutput, {1, gradOutput.getShape()[0]});
-        }
+        TensorType inputRows = asRows(*input); // Shape: (rows, input_size)
+        TensorType gradOutputRows = asRows(gradOutput); // Shape: (rows, output_size)
 
         // Calculate weight gradients
-        TensorType inputTransposed = AdvancedTensorOperations<T>::transpose(inputTensor, 0, 1); // Shape: (input_size, batch_size)
-        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, reshapedGradOutput)); // Shape: (input_size, output_size)
+        TensorType inputTransposed = AdvancedTensorOperations<T>::transpose(inputRows, 0, 1); // Shape: (input_size, rows)
+        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutputRows)); // Shape: (input_size, output_size)
 
         // Calculate bias gradients
         biasGradients.emplace(AdvancedTensorOperations<T>::reshape(
-            AdvancedTensorOperations<T>::sum(reshapedGradOutput, 0),
+            AdvancedTensorOperations<T>::sum(gradOutputRows, 0),
             {1, biases->getShape()[1]}
         ));
 
         // Calculate input gradients
         TensorType weightsTransposed = AdvancedTensorOperations<T>::transpose(*weights, 0, 1); // Shape: (output_size, input_size)
-        TensorType gradInput = AdvancedTensorOperations<T>::matmul(reshapedGradOutput, weightsTransposed); // Shape: (batch_size, input_size)
+        TensorType gradInput = AdvancedTensorOperations<T>::matmul(gradOutputRows, weightsTransposed); // Shape: (rows, input_size)
+        gradInput.reshape(input->getShape());
 
         return gradInput;
     }
@@ -150,6 +138,13 @@ public:
     }
 
 private:
+    // Views (..., features) as (rows, features), so a rank-1 tensor is a single row.
+    static TensorType asRows(const TensorType& tensor) {
+        const Shape& shape = tensor.getShape();
+        const int features = shape[shape.rank() - 1];
+        return AdvancedTensorOperations<T>::reshape(tensor, {static_cast<int>(shape.size()) / features, features});
+    }
+
     std::optional<TensorType> weights;
     std::optional<TensorType> biases;
     std::optional<TensorType> input;
