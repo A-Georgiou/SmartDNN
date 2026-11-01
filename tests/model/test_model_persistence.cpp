@@ -2,6 +2,7 @@
 #define TEST_MODEL_PERSISTENCE_CPP
 
 #include <gtest/gtest.h>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include "../utils/tensor_helpers.hpp"
@@ -49,6 +50,41 @@ TEST(SmartDNNTest, SaveModelThenLoadModelReproducesPredictions) {
     addPersistenceTestLayers(otherShape, 5);
     EXPECT_THROW(otherShape.loadModel(path), std::runtime_error);
     std::remove(path.c_str());
+}
+
+
+TEST(SmartDNNTest, Int8ModelFilesAreUnderAThirdOfTheSizeAndPredictClosely) {
+    const std::string floatPath = (std::filesystem::temp_directory_path() / "smartdnn_float_test.bin").string();
+    const std::string int8Path = (std::filesystem::temp_directory_path() / "smartdnn_int8_test.bin").string();
+    auto addLayers = [](SmartDNN<float>& model) {
+        model.addLayer(FullyConnectedLayer(64, 128));
+        model.addLayer(ActivationLayer(ReLU()));
+        model.addLayer(FullyConnectedLayer(128, 10));
+    };
+    std::vector<float> values(4 * 64);
+    for (size_t i = 0; i < values.size(); ++i) values[i] = std::sin(0.37f * static_cast<float>(i));
+    const Tensor<float> input(Shape({4, 64}), values.data());
+    SmartDNN<float> trained;
+    addLayers(trained);
+    const Tensor<float> expected = trained.predict(input);
+
+    trained.saveModel(floatPath);
+    trained.saveModel(int8Path, WeightFormat::Int8);
+    SmartDNN<float> restored;
+    addLayers(restored);
+    restored.loadModel(int8Path);
+
+    EXPECT_LT(std::filesystem::file_size(int8Path) * 3, std::filesystem::file_size(floatPath));
+    const Tensor<float> output = restored.predict(input);
+    float largest = 0.0f;
+    float worst = 0.0f;
+    for (size_t i = 0; i < expected.getShape().size(); ++i) {
+        largest = std::max(largest, std::abs(expected[i]));
+        worst = std::max(worst, std::abs(output[i] - expected[i]));
+    }
+    EXPECT_LT(worst, 0.02f * largest);
+    std::remove(floatPath.c_str());
+    std::remove(int8Path.c_str());
 }
 
 } // namespace smart_dnn

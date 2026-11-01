@@ -77,13 +77,15 @@ Layer<T>* SmartDNN<T>::getLayer(size_t index) const {
 }
 
 template <typename T>
-void SmartDNN<T>::saveModel(const std::string& filename) const {
+void SmartDNN<T>::saveModel(const std::string& filename, WeightFormat format) const {
     std::ofstream os(filename, std::ios::binary);
     if (!os) {
         throw std::runtime_error("Cannot open " + filename + " for writing");
     }
-    const uint32_t header[4] = {modelMagic, modelVersion, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(layers.size())};
+    const uint32_t bytesPerWeight = format == WeightFormat::Int8 ? 1 : static_cast<uint32_t>(sizeof(T));
+    const uint32_t header[4] = {modelMagic, modelVersion, bytesPerWeight, static_cast<uint32_t>(layers.size())};
     os.write(reinterpret_cast<const char*>(header), sizeof(header));
+    int8TensorStorage(os) = format == WeightFormat::Int8;
     for (const auto& layer : layers) {
         layer->save(os);
     }
@@ -100,9 +102,10 @@ void SmartDNN<T>::loadModel(const std::string& filename) {
     }
     uint32_t header[4] = {};
     is.read(reinterpret_cast<char*>(header), sizeof(header));
-    if (!is || header[0] != modelMagic || header[1] != modelVersion || header[2] != sizeof(T) || header[3] != layers.size()) {
+    if (!is || header[0] != modelMagic || header[1] != modelVersion || (header[2] != sizeof(T) && header[2] != 1) || header[3] != layers.size()) {
         throw std::runtime_error(filename + " is not a SmartDNN model with this model's layer count and element type");
     }
+    int8TensorStorage(is) = header[2] == 1;
     for (auto& layer : layers) {
         layer->load(is);
     }
