@@ -105,6 +105,57 @@ TEST(SigmoidTest, BackwardPass) {
     }
 }
 
+TEST(SigmoidTest, DoublePrecisionReferencesAndGradientScaling) {
+    Sigmoid<double> sigmoid;
+    Tensor<double> input({1, 3}, {1.0, -1.0, 1.00000001});
+    Tensor<double> gradOutput({1, 3}, {2.5, 2.5, 2.5});
+    Tensor<double> output = sigmoid.forward(input);
+    Tensor<double> gradInput = sigmoid.backward(input, gradOutput);
+    const long double values[] = {1.0L, -1.0L, 1.00000001L};
+
+    ASSERT_EQ(output.getShape(), input.getShape());
+    ASSERT_EQ(gradInput.getShape(), input.getShape());
+    for (size_t i = 0; i < 3; ++i) {
+        const long double exponential = std::exp(-values[i]);
+        const long double denominator = 1.0L + exponential;
+        const long double expectedForward = 1.0L / denominator;
+        const long double expectedDerivative = exponential / (denominator * denominator);
+        const long double actualForward = static_cast<long double>(output.getData()[i]);
+        const long double actualGradient = static_cast<long double>(gradInput.getData()[i]);
+
+        EXPECT_LT(std::abs(actualForward - expectedForward) / std::abs(expectedForward), 1e-12L);
+        EXPECT_LT(std::abs(actualGradient - expectedDerivative * 2.5L) /
+                      std::abs(expectedDerivative * 2.5L),
+                  1e-12L);
+    }
+
+    EXPECT_NE(output.getData()[0], output.getData()[2]);
+    EXPECT_NE(gradInput.getData()[0], gradInput.getData()[2]);
+}
+
+TEST(SigmoidTest, DoubleCentralDifferenceMatchesBackward) {
+    Sigmoid<double> sigmoid;
+    const double values[] = {1.0, -1.0, 1.00000001};
+    const double upstream = 2.5;
+    const double h = 1e-5;
+    Tensor<double> input({1, 3}, {values[0], values[1], values[2]});
+    Tensor<double> gradOutput({1, 3}, {upstream, upstream, upstream});
+    Tensor<double> gradInput = sigmoid.backward(input, gradOutput);
+
+    ASSERT_EQ(gradInput.getShape(), input.getShape());
+    for (size_t i = 0; i < 3; ++i) {
+        Tensor<double> plusInput(Shape{1}, {values[i] + h});
+        Tensor<double> minusInput(Shape{1}, {values[i] - h});
+        const double numerical = (sigmoid.forward(plusInput).getData()[0] -
+                                  sigmoid.forward(minusInput).getData()[0]) /
+                                 (2.0 * h) * upstream;
+        const double analytical = gradInput.getData()[i];
+        EXPECT_LT(std::abs(numerical - analytical) /
+                      (std::abs(numerical) + std::abs(analytical)),
+                  1e-4);
+    }
+}
+
 TEST(SoftmaxTest, ForwardPass) {
     Softmax<float> softmax;
     Tensor<float> input({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
