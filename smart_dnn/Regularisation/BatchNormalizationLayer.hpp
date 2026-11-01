@@ -16,7 +16,8 @@ public:
     BatchNormalizationLayer(int numFeatures, T epsilon = 1e-5, T momentum = 0.9)
         : numFeatures(numFeatures), epsilon(epsilon), momentum(momentum), 
           gamma(TensorType({1, numFeatures}, T(1))), beta(TensorType({1, numFeatures}, T(0))),
-          runningMean(TensorType({1, numFeatures}, T(0))), runningVariance(TensorType({1, numFeatures}, T(1))) {}
+          runningMean(TensorType({1, numFeatures}, T(0))), runningVariance(TensorType({1, numFeatures}, T(1))),
+          gammaGrad(TensorType({1, numFeatures}, T(0))), betaGrad(TensorType({1, numFeatures}, T(0))) {}
 
     TensorType forward(const TensorType& input) override {
         const auto& shape = input.getShape();
@@ -84,10 +85,6 @@ public:
     }
 
     std::vector<Parameter<T>> parameters() override {
-        if (!gammaGrad || !betaGrad) {
-            throw std::runtime_error("BatchNormalizationLayer: gradients are not initialized");
-        }
-
         return {{gamma, *gammaGrad}, {beta, *betaGrad}};
     }
 

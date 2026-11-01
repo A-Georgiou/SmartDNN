@@ -8,6 +8,8 @@
 #include "../utils/tensor_helpers.hpp"
 #include "../../smart_dnn/SmartDNN.hpp"
 #include "../../smart_dnn/Layers/FullyConnectedLayer.hpp"
+#include "../../smart_dnn/Layers/Conv2DLayer.hpp"
+#include "../../smart_dnn/Regularisation/BatchNormalizationLayer.hpp"
 #include "../../smart_dnn/Layers/ActivationLayer.hpp"
 #include "../../smart_dnn/Activations/Tanh.hpp"
 #include "../../smart_dnn/Loss/MSELoss.hpp"
@@ -128,6 +130,18 @@ TEST(SmartDNNTrainingTest, SetMaxGradientNormRejectsInvalidLimits) {
     EXPECT_THROW(model.setMaxGradientNorm(-1.0f), std::invalid_argument);
     EXPECT_THROW(model.setMaxGradientNorm(std::nanf("")), std::invalid_argument);
     EXPECT_THROW(model.setMaxGradientNorm(std::numeric_limits<float>::infinity()), std::invalid_argument);
+}
+
+TEST(SmartDNNTrainingTest, ParametersAreAvailableBeforeTheFirstBackwardPass) {
+    FullyConnectedLayer<float> dense(3, 2);
+    Conv2DLayer<float> conv(1, 2, 3);
+    BatchNormalizationLayer<float> norm(2);
+
+    for (Layer<float>* layer : std::initializer_list<Layer<float>*>{&dense, &conv, &norm}) {
+        for (const Parameter<float>& parameter : layer->parameters()) {
+            EXPECT_TRUE(TensorEquals(parameter.gradient.get(), Tensor<float>(parameter.value.get().getShape(), 0.0f)));
+        }
+    }
 }
 
 } // namespace smart_dnn
