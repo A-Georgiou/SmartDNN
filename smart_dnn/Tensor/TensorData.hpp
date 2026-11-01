@@ -8,6 +8,7 @@
 #include <functional>
 #include <cassert>
 #include <initializer_list>
+#include <type_traits>
 
 namespace smart_dnn {
 
@@ -76,6 +77,7 @@ private:
 
     template <typename... Indices>
     size_t offset(Indices... indices) const noexcept {
+        static_assert((std::is_integral_v<Indices> && ...), "Tensor indices must be integers");
         assert(sizeof...(Indices) == shape_.rank());
         const size_t* stride = shape_.getStride().data();
         size_t flat = 0, dim = 0;

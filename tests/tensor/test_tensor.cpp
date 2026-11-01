@@ -247,11 +247,7 @@ TEST(TensorScalarOperatorTest, ExpectValidScalarDivisionInverse) {
     ValidateTensorData(b, std::vector<float>(6, 2.0f));
 }
 
-/*
-
-    ELEMENT ACCESS TESTS
-
-*/
+// ELEMENT ACCESS TESTS
 
 TEST(TensorAccessTest, MultiIndexAccessMatchesFlatLayout) {
     Tensor<float> t(Shape({2, 3, 4}));
@@ -268,6 +264,7 @@ TEST(TensorAccessTest, MultiIndexAccessMatchesFlatLayout) {
 
     t(1, 2, 3) = -1.0f;
     EXPECT_EQ(t.at({1, 2, 3}), -1.0f);
+    EXPECT_EQ(computeFlatIndex(t.getShape(), {1, 2, 3}), 23u);
 }
 
 TEST(TensorAccessTest, AtChecksRankAndBounds) {

@@ -79,6 +79,11 @@ public:
         return flatIndex;
     }
 
+    // Braced lists such as {n, c, h, w} cannot deduce the template above.
+    static size_t computeFlatIndex(const Shape& shape, std::initializer_list<int> indices) {
+        return computeFlatIndex<std::initializer_list<int>>(shape, indices);
+    }
+
 } // namespace smart_dnn
 
 #endif // SHAPE_OPERATIONS_HPP
