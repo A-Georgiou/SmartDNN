@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <cmath>
+#include <sstream>
 #include "../utils/tensor_helpers.hpp"
 #include "../../smart_dnn/Debugging/GradientCheck.hpp"
 #include "../../smart_dnn/Layers/EmbeddingLayer.hpp"
@@ -33,11 +34,13 @@ TEST(EmbeddingLayerTest, LooksUpRowsAndAccumulatesRepeatedIds) {
     EXPECT_TRUE(TensorEquals(embedding.parameters()[0].gradient.get(), Tensor<float>({4, 2}, {7, 8, 6, 8, 0, 0, 3, 4})));
 }
 
-TEST(EmbeddingLayerTest, RejectsIdsOutsideTheVocabulary) {
+TEST(EmbeddingLayerTest, RejectsInvalidIdsAndGradients) {
     EmbeddingLayer<float> embedding(4, 2);
 
     EXPECT_THROW(embedding.forward(Tensor<float>({2}, {0, 4})), std::invalid_argument);
     EXPECT_THROW(embedding.forward(Tensor<float>({2}, {0, 1.5f})), std::invalid_argument);
+    embedding.forward(Tensor<float>({2}, {0, 1}));
+    EXPECT_THROW(embedding.backward(Tensor<float>({4}, 0.0f)), std::invalid_argument);
 }
 
 TEST(PositionalEmbeddingLayerTest, PassesGradientCheckOnShorterSequences) {
@@ -48,10 +51,28 @@ TEST(PositionalEmbeddingLayerTest, PassesGradientCheckOnShorterSequences) {
     }
 }
 
-TEST(PositionalEmbeddingLayerTest, RejectsSequencesLongerThanMaxLength) {
+TEST(PositionalEmbeddingLayerTest, RejectsLongSequencesAndMismatchedGradients) {
     PositionalEmbeddingLayer<float> positions(5, 3);
 
     EXPECT_THROW(positions.forward(Tensor<float>({1, 6, 3}, 0.0f)), std::invalid_argument);
+    positions.forward(Tensor<float>({1, 4, 3}, 0.0f));
+    EXPECT_THROW(positions.backward(Tensor<float>({2, 4, 3}, 0.0f)), std::invalid_argument);
+}
+
+TEST(EmbeddingLayersTest, SaveAndLoadRestoreBothTables) {
+    EmbeddingLayer<float> embedding(4, 3);
+    PositionalEmbeddingLayer<float> positions(5, 3);
+    EmbeddingLayer<float> restoredEmbedding(4, 3);
+    PositionalEmbeddingLayer<float> restoredPositions(5, 3);
+    std::stringstream stream;
+    const Tensor<float> ids({1, 4}, {3, 0, 2, 1});
+
+    embedding.save(stream);
+    positions.save(stream);
+    restoredEmbedding.load(stream);
+    restoredPositions.load(stream);
+
+    EXPECT_TRUE(TensorEquals(restoredPositions.forward(restoredEmbedding.forward(ids)), positions.forward(embedding.forward(ids))));
 }
 
 } // namespace smart_dnn

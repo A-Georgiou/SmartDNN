@@ -5,6 +5,7 @@
 #include "smart_dnn/RandomEngine.hpp"
 #include "smart_dnn/Tensor/Tensor.hpp"
 #include <algorithm>
+#include <optional>
 #include <random>
 #include <stdexcept>
 #include <string>
@@ -32,6 +33,7 @@ public:
                 + ") with length up to " + std::to_string(weights.getShape()[0]) + ", got " + shape.toString());
         }
 
+        inputShape = shape;
         sequenceSize = static_cast<size_t>(shape[rank - 2]) * shape[rank - 1];
         Tensor<T> output = input;
         T* values = output.getData().data();
@@ -45,8 +47,8 @@ public:
     }
 
     Tensor<T> backward(const Tensor<T>& gradOutput) override {
-        if (sequenceSize == 0 || gradOutput.getShape().size() % sequenceSize != 0) {
-            throw std::invalid_argument("Positional embedding backward needs the shape of the last forward pass");
+        if (!inputShape || gradOutput.getShape() != *inputShape) {
+            throw std::invalid_argument("Positional embedding backward needs gradOutput with the last forward pass's shape");
         }
 
         T* table = weightGradients.getData().data();
@@ -75,6 +77,7 @@ public:
 private:
     Tensor<T> weights;
     Tensor<T> weightGradients;
+    std::optional<Shape> inputShape;
     size_t sequenceSize = 0;
 };
 

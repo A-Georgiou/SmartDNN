@@ -50,8 +50,10 @@ public:
 
     Tensor<T> backward(const Tensor<T>& gradOutput) override {
         const size_t width = weights.getShape()[1];
-        if (ids.empty() || gradOutput.getShape().size() != ids.size() * width) {
-            throw std::invalid_argument("Embedding backward needs one gradient row per id from the last forward pass");
+        std::vector<int> outputDimensions = inputDimensions;
+        outputDimensions.push_back(static_cast<int>(width));
+        if (ids.empty() || gradOutput.getShape().getDimensions() != outputDimensions) {
+            throw std::invalid_argument("Embedding backward needs gradOutput with the last forward pass's output shape");
         }
 
         T* table = weightGradients.getData().data();
