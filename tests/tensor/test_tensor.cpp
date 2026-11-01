@@ -267,6 +267,34 @@ TEST(TensorScalarOperatorTest, ExpectValidScalarDivisionInverse) {
     ValidateTensorData(b, std::vector<float>(6, 2.0f));
 }
 
+// ELEMENT ACCESS TESTS
+
+TEST(TensorAccessTest, MultiIndexAccessMatchesFlatLayout) {
+    Tensor<float> t(Shape({2, 3, 4}));
+    for (size_t i = 0; i < t.getShape().size(); ++i) t[i] = static_cast<float>(i);
+
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 3; ++j)
+            for (int k = 0; k < 4; ++k) {
+                const float expected = static_cast<float>((i * 3 + j) * 4 + k);
+                EXPECT_EQ(t(i, j, k), expected);
+                EXPECT_EQ(t.at({i, j, k}), expected);
+                EXPECT_EQ(t.at(std::vector<int>{i, j, k}), expected);
+            }
+
+    t(1, 2, 3) = -1.0f;
+    EXPECT_EQ(t.at({1, 2, 3}), -1.0f);
+    EXPECT_EQ(computeFlatIndex(t.getShape(), {1, 2, 3}), 23u);
+}
+
+TEST(TensorAccessTest, AtChecksRankAndBounds) {
+    Tensor<float> t(Shape({2, 3}));
+    EXPECT_THROW(t.at({1, 3}), std::out_of_range);
+    EXPECT_THROW(t.at({-1, 0}), std::out_of_range);
+    EXPECT_THROW(t.at({1}), std::invalid_argument);
+    EXPECT_THROW(t.at(std::vector<int>{0, 0, 0}), std::invalid_argument);
+}
+
 } // namespace smart_dnn
 
 #endif // TEST_TENSOR_CPP

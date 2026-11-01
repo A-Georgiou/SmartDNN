@@ -53,8 +53,17 @@ public:
     // Accessors
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
-    T& at(std::vector<int> indices);
-    const T& at(std::vector<int> indices) const;
+    T& at(std::initializer_list<int> indices);
+    const T& at(std::initializer_list<int> indices) const;
+    T& at(const std::vector<int>& indices);
+    const T& at(const std::vector<int>& indices) const;
+
+    // Unchecked in release builds, asserted in debug: tensor(n, c, h, w).
+    template <typename... Indices>
+    T& operator()(Indices... indices) noexcept { return data_(indices...); }
+    template <typename... Indices>
+    const T& operator()(Indices... indices) const noexcept { return data_(indices...); }
+
     Tensor sqrt() const;
 
     Tensor operator-() const;

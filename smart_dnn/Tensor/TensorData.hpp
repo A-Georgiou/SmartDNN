@@ -6,6 +6,9 @@
 #include "smart_dnn/Tensor/DeviceTypes.hpp"
 #include <iomanip>
 #include <functional>
+#include <cassert>
+#include <initializer_list>
+#include <type_traits>
 
 namespace smart_dnn {
 
@@ -44,8 +47,16 @@ public:
 
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
-    T& at(std::vector<int> indices);
-    const T& at(std::vector<int> indices) const;
+    T& at(std::initializer_list<int> indices);
+    const T& at(std::initializer_list<int> indices) const;
+    T& at(const std::vector<int>& indices);
+    const T& at(const std::vector<int>& indices) const;
+
+    // Unchecked in release builds, asserted in debug: data(n, c, h, w).
+    template <typename... Indices>
+    T& operator()(Indices... indices) noexcept { return data_[offset(indices...)]; }
+    template <typename... Indices>
+    const T& operator()(Indices... indices) const noexcept { return data_[offset(indices...)]; }
 
     // Fill the tensor with a given value
     void fill(T value) noexcept { std::fill_n(data_.get(), shape_.size(), value); }
@@ -63,6 +74,16 @@ public:
 private:
     Shape shape_;
     std::unique_ptr<T[]> data_;
+
+    template <typename... Indices>
+    size_t offset(Indices... indices) const noexcept {
+        static_assert((std::is_integral_v<Indices> && ...), "Tensor indices must be integers");
+        assert(sizeof...(Indices) == shape_.rank());
+        const size_t* stride = shape_.getStride().data();
+        size_t flat = 0, dim = 0;
+        ((assert(static_cast<size_t>(indices) < static_cast<size_t>(shape_[dim]) && "index out of bounds"), flat += static_cast<size_t>(indices) * stride[dim++]), ...);
+        return flat;
+    }
 };
 
 } // namespace smart_dnn
