@@ -42,12 +42,8 @@ public:
         this->input = input;
 
         int batchSize = input.getShape()[0];
-        int inputHeight = input.getShape()[2];
-        int inputWidth = input.getShape()[3];
-        
-        int outputHeight = (inputHeight + 2 * padding - dilation * (kernelHeight - 1) - 1) / stride + 1;
-        int outputWidth = (inputWidth + 2 * padding - dilation * (kernelWidth - 1) - 1) / stride + 1;
-        const int positions = outputHeight * outputWidth;
+        const Shape outShape = outputShape(input.getShape());
+        const int positions = outShape[2] * outShape[3];
 
         TensorType colMatrix = im2col(input, kernelHeight, kernelWidth, stride, padding, dilation);
         TensorType weightMatrix = AdvancedTensorOperations<T>::reshape(*weights, {outputChannels, inputChannels * kernelHeight * kernelWidth});
@@ -64,7 +60,7 @@ public:
             }
         }
 
-        return swapLeadingAxes(output, outputChannels, batchSize, positions, Shape({batchSize, outputChannels, outputHeight, outputWidth}));
+        return swapLeadingAxes(output, outputChannels, batchSize, positions, outShape);
     }
 
     /*
@@ -80,8 +76,12 @@ public:
 
         const TensorType& inputTensor = input.value();
         const Shape& inputShape = inputTensor.getShape();
+        const Shape expectedShape = outputShape(inputShape);
+        if (gradOutput.getShape() != expectedShape) {
+            throw std::invalid_argument("Conv2D backward expects gradient shape " + expectedShape.toString() + ", got " + gradOutput.getShape().toString());
+        }
         const int batchSize = inputShape[0];
-        const int positions = gradOutput.getShape()[2] * gradOutput.getShape()[3];
+        const int positions = expectedShape[2] * expectedShape[3];
 
         // Match the forward GEMM layout: rows are output channels, columns are (batch, y, x).
         TensorType gradOutput2D = swapLeadingAxes(gradOutput, batchSize, outputChannels, positions, Shape({outputChannels, batchSize * positions}));
@@ -248,6 +248,13 @@ private:
         }
 
         return output;
+    }
+
+    // Forward output shape (N, OC, OH, OW) for an input of shape (N, C, H, W).
+    Shape outputShape(const Shape& inputShape) const {
+        const int outputHeight = (inputShape[2] + 2 * padding - dilation * (kernelHeight - 1) - 1) / stride + 1;
+        const int outputWidth = (inputShape[3] + 2 * padding - dilation * (kernelWidth - 1) - 1) / stride + 1;
+        return Shape({inputShape[0], outputChannels, outputHeight, outputWidth});
     }
 
     // Reorders contiguous [a, b, inner] data into [b, a, inner].

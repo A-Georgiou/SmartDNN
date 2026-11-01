@@ -250,6 +250,18 @@ TEST(Conv2DLayerTest, KeepsDoublePrecision) {
     }
 }
 
+TEST(Conv2DLayerTest, BackwardRejectsMismatchedGradientShape) {
+    Conv2DLayer<float> convLayer(1, 1, 1);
+    convLayer.setWeights(Tensor<float>({1, 1, 1, 1}, {2.0f}));
+    convLayer.setBiases(Tensor<float>({1, 1}, {0.0f}));
+    convLayer.forward(Tensor<float>({2, 1, 1, 1}, {3.0f, 5.0f}));
+    convLayer.backward(Tensor<float>({2, 1, 1, 1}, {1.0f, 4.0f}));
+
+    EXPECT_THROW(convLayer.backward(Tensor<float>({1, 1, 1, 1}, {1.0f})), std::invalid_argument);
+    EXPECT_THROW(convLayer.backward(Tensor<float>({2}, {1.0f, 4.0f})), std::invalid_argument);
+    EXPECT_EQ(convLayer.getWeightGradients()[0], 23.0f);  // 1 * 3 + 4 * 5 from the last valid backward
+}
+
 } // namespace smart_dnn
 
 #endif // TEST_CONV_2D_CPP

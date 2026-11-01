@@ -217,6 +217,31 @@ TEST(AdvancedTensorOperationsTest, TestTransposeWithInvalidDimensions) {
                  std::invalid_argument);
 }
 
+TEST(AdvancedTensorOperationsTest, TestTransposeMatchesCoordinateOracle) {
+    const std::vector<int> dims = {2, 3, 4};
+    Tensor<float> a{Shape(dims)};
+    for (size_t i = 0; i < a.getShape().size(); ++i) a[i] = static_cast<float>(i);
+
+    // Every axis pair, including same-axis copies and reversed axes.
+    for (size_t dim0 = 0; dim0 < dims.size(); ++dim0) {
+        for (size_t dim1 = 0; dim1 < dims.size(); ++dim1) {
+            Tensor<float> result = AdvancedTensorOperations<float>::transpose(a, dim0, dim1);
+            std::vector<int> swappedDims = dims;
+            std::swap(swappedDims[dim0], swappedDims[dim1]);
+            ASSERT_EQ(result.getShape(), Shape(swappedDims));
+            for (int i = 0; i < dims[0]; ++i)
+                for (int j = 0; j < dims[1]; ++j)
+                    for (int k = 0; k < dims[2]; ++k) {
+                        std::vector<int> from = {i, j, k}, to = from;
+                        std::swap(to[dim0], to[dim1]);
+                        ASSERT_EQ(result.at(to), a.at(from));
+                    }
+            result[0] = -1.0f;
+            ASSERT_EQ(a[0], 0.0f) << "transpose must not share storage with its input";
+        }
+    }
+}
+
 /*
 
     TEST RESHAPE FUNCTION
