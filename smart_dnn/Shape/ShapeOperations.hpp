@@ -58,19 +58,22 @@ public:
     }
     };
 
-    static size_t computeFlatIndex(const Shape& shape, const std::vector<int>& indices) {
+    // Accepts std::vector<int> or std::initializer_list<int>.
+    template <typename Indices>
+    static size_t computeFlatIndex(const Shape& shape, const Indices& indices) {
         if (indices.size() != shape.rank()) {
             throw std::invalid_argument("Number of indices must match the rank of the shape.");
         }
 
         const std::vector<size_t>& strides = shape.getStride();
         size_t flatIndex = 0;
+        size_t i = 0;
 
-        for (size_t i = 0; i < indices.size(); ++i) {
-            if (indices[i] < 0 || indices[i] >= static_cast<int>(shape[i])) {
+        for (int index : indices) {
+            if (index < 0 || index >= shape[i]) {
                 throw std::out_of_range("Index out of bounds for dimension " + std::to_string(i));
             }
-            flatIndex += static_cast<size_t>(indices[i]) * strides[i];
+            flatIndex += static_cast<size_t>(index) * strides[i++];
         }
 
         return flatIndex;

@@ -86,12 +86,22 @@ const T& TENSOR_DATA_CPU::operator[](size_t index) const{
 }
 
 TEMPLATE_TENSOR
-T& TENSOR_DATA_CPU::at(std::vector<int> indices){
+T& TENSOR_DATA_CPU::at(std::initializer_list<int> indices){
     return data_[computeFlatIndex(shape_, indices)];
 }
 
 TEMPLATE_TENSOR
-const T& TENSOR_DATA_CPU::at(std::vector<int> indices) const{
+const T& TENSOR_DATA_CPU::at(std::initializer_list<int> indices) const{
+    return data_[computeFlatIndex(shape_, indices)];
+}
+
+TEMPLATE_TENSOR
+T& TENSOR_DATA_CPU::at(const std::vector<int>& indices){
+    return data_[computeFlatIndex(shape_, indices)];
+}
+
+TEMPLATE_TENSOR
+const T& TENSOR_DATA_CPU::at(const std::vector<int>& indices) const{
     return data_[computeFlatIndex(shape_, indices)];
 }
 
