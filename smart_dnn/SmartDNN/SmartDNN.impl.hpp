@@ -15,10 +15,60 @@ void SmartDNN<T>::backward(const Tensor<T>& gradOutput) {
 }
 
 template <typename T>
-void SmartDNN<T>::updateWeights() {
-    for (auto& layer : layers) {
-        layer->updateWeights(*optimizer);
+void SmartDNN<T>::updateWeights(T learningRate) {
+    std::vector<std::reference_wrapper<Tensor<T>>> values;
+    std::vector<std::reference_wrapper<Tensor<T>>> gradients;
+    for (const auto& layer : layers) {
+        for (const Parameter<T>& parameter : layer->parameters()) {
+            values.push_back(parameter.value);
+            gradients.push_back(parameter.gradient);
+        }
     }
+    if (values.empty()) {
+        return;
+    }
+
+    if (maxGradientNorm > T(0)) {
+        clipGradients(gradients);
+    }
+
+    // One call per update, so optimizers that count steps (Adam) advance once per training step.
+    optimizer->optimize(values, gradients, learningRate);
+}
+
+template <typename T>
+void SmartDNN<T>::clipGradients(const std::vector<std::reference_wrapper<Tensor<T>>>& gradients) const {
+    // Dividing by the largest magnitude before squaring keeps exploding gradients from overflowing the norm.
+    T largest = T(0);
+    for (const Tensor<T>& gradient : gradients) {
+        for (T value : gradient.getData()) {
+            largest = std::max(largest, std::abs(value));
+        }
+    }
+    if (largest == T(0)) {
+        return;
+    }
+
+    T scaledSquares = T(0);
+    for (const Tensor<T>& gradient : gradients) {
+        for (T value : gradient.getData()) {
+            scaledSquares += (value / largest) * (value / largest);
+        }
+    }
+    const T norm = largest * std::sqrt(scaledSquares);
+    if (norm > maxGradientNorm) {
+        for (Tensor<T>& gradient : gradients) {
+            gradient = gradient * (maxGradientNorm / norm);
+        }
+    }
+}
+
+template <typename T>
+void SmartDNN<T>::setMaxGradientNorm(T maxNorm) {
+    if (!std::isfinite(maxNorm) || maxNorm < T(0)) {
+        throw std::invalid_argument("maxNorm must be finite and not negative");
+    }
+    maxGradientNorm = maxNorm;
 }
 
 template <typename T>
@@ -62,22 +112,20 @@ template <typename T>
 void SmartDNN<T>::train(const std::vector<Tensor<T>>& inputs, const std::vector<Tensor<T>>& targets, int epochs) {
     for (int epoch = 0; epoch < epochs; ++epoch) {
         Tensor<T> totalLoss{Shape({1}), T(0)};
-        size_t inputSize = inputs.size();
-
-        for (size_t i = 0; i < inputSize; ++i) {
-            Tensor<T> prediction = inputs[i];
-            for (const auto& layer : layers) {
-                prediction = layer->forward(prediction);
-            }
-
-            totalLoss += lossFunction->compute(prediction, targets[i]);
-            Tensor<T> gradOutput = lossFunction->gradient(prediction, targets[i]);
-
-            backward(gradOutput);
-            updateWeights();
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            totalLoss[0] += trainStep(inputs[i], targets[i]);
         }
         std::cout << "Epoch " << epoch << " - Loss: " << (totalLoss / T(inputs.size())).toDataString() << std::endl;
     }
+}
+
+template <typename T>
+T SmartDNN<T>::trainStep(const Tensor<T>& input, const Tensor<T>& target, T learningRate) {
+    Tensor<T> prediction = predict(input);
+    T loss = lossFunction->compute(prediction, target)[0];
+    backward(lossFunction->gradient(prediction, target));
+    updateWeights(learningRate);
+    return loss;
 }
 
 template <typename T>
