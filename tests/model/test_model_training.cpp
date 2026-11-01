@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <cmath>
+#include <limits>
 #include <vector>
 #include "../utils/tensor_helpers.hpp"
 #include "../../smart_dnn/SmartDNN.hpp"
@@ -100,6 +101,33 @@ TEST(SmartDNNTrainingTest, MaxGradientNormScalesAllGradientsTogether) {
     for (size_t i = 0; i < unclipped.size(); ++i) {
         EXPECT_TRUE(TensorEquals(log.gradients[i], unclipped[i] * (1.0f / std::sqrt(squaredNorm))));
     }
+}
+
+TEST(SmartDNNTrainingTest, MaxGradientNormClipsHugeGradientsToTheLimit) {
+    OptimizerLog log;
+    SmartDNN<float> model;
+    model.addLayer(FullyConnectedLayer<float>(3, 2));
+    model.compile(MSELoss<float>(), LoggingOptimizer(log));
+    model.setMaxGradientNorm(1.0f);
+
+    // Gradients near 1e20 overflow float when squared directly.
+    model.trainStep(input, Tensor<float>({2, 2}, 1e20f));
+
+    double squaredNorm = 0.0;
+    for (const Tensor<float>& gradient : log.gradients) {
+        for (float value : gradient.getData()) {
+            squaredNorm += static_cast<double>(value) * value;
+        }
+    }
+    EXPECT_NEAR(std::sqrt(squaredNorm), 1.0, 1e-5);
+}
+
+TEST(SmartDNNTrainingTest, SetMaxGradientNormRejectsInvalidLimits) {
+    SmartDNN<float> model;
+
+    EXPECT_THROW(model.setMaxGradientNorm(-1.0f), std::invalid_argument);
+    EXPECT_THROW(model.setMaxGradientNorm(std::nanf("")), std::invalid_argument);
+    EXPECT_THROW(model.setMaxGradientNorm(std::numeric_limits<float>::infinity()), std::invalid_argument);
 }
 
 } // namespace smart_dnn

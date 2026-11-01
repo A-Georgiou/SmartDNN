@@ -6,6 +6,7 @@
 #include "smart_dnn/Optimizer.hpp"
 #include "smart_dnn/Tensor/Tensor.hpp"
 #include <vector>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <fstream>
@@ -58,6 +59,7 @@ private:
     static constexpr uint32_t modelVersion = 1;
 
     void setTrainingMode(bool trainingMode);
+    void clipGradients(const std::vector<std::reference_wrapper<Tensor<T>>>& gradients) const;
 
     std::vector<std::unique_ptr<Layer<T>>> layers;
     std::unique_ptr<Loss<T>> lossFunction;

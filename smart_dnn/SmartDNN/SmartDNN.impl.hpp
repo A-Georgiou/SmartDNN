@@ -29,18 +29,7 @@ void SmartDNN<T>::updateWeights(T learningRate) {
     }
 
     if (maxGradientNorm > T(0)) {
-        T squaredNorm = T(0);
-        for (const Tensor<T>& gradient : gradients) {
-            for (T value : gradient.getData()) {
-                squaredNorm += value * value;
-            }
-        }
-        const T norm = std::sqrt(squaredNorm);
-        if (norm > maxGradientNorm) {
-            for (Tensor<T>& gradient : gradients) {
-                gradient = gradient * (maxGradientNorm / norm);
-            }
-        }
+        clipGradients(gradients);
     }
 
     // One call per update, so optimizers that count steps (Adam) advance once per training step.
@@ -48,9 +37,36 @@ void SmartDNN<T>::updateWeights(T learningRate) {
 }
 
 template <typename T>
+void SmartDNN<T>::clipGradients(const std::vector<std::reference_wrapper<Tensor<T>>>& gradients) const {
+    // Dividing by the largest magnitude before squaring keeps exploding gradients from overflowing the norm.
+    T largest = T(0);
+    for (const Tensor<T>& gradient : gradients) {
+        for (T value : gradient.getData()) {
+            largest = std::max(largest, std::abs(value));
+        }
+    }
+    if (largest == T(0)) {
+        return;
+    }
+
+    T scaledSquares = T(0);
+    for (const Tensor<T>& gradient : gradients) {
+        for (T value : gradient.getData()) {
+            scaledSquares += (value / largest) * (value / largest);
+        }
+    }
+    const T norm = largest * std::sqrt(scaledSquares);
+    if (norm > maxGradientNorm) {
+        for (Tensor<T>& gradient : gradients) {
+            gradient = gradient * (maxGradientNorm / norm);
+        }
+    }
+}
+
+template <typename T>
 void SmartDNN<T>::setMaxGradientNorm(T maxNorm) {
-    if (maxNorm < T(0)) {
-        throw std::invalid_argument("maxNorm must not be negative");
+    if (!std::isfinite(maxNorm) || maxNorm < T(0)) {
+        throw std::invalid_argument("maxNorm must be finite and not negative");
     }
     maxGradientNorm = maxNorm;
 }
