@@ -399,6 +399,92 @@ TEST(BatchNormalizationLayerTest, EvalModeAfterTraining4D) {
     }
 }
 
+struct BatchNormFixture { std::vector<int> dims; std::vector<double> input, upstream; };
+
+// Mixed-sign 2D and multi-batch, multi-channel 4D fixtures shared by the gradient tests below.
+const BatchNormFixture kBatchNorm2D = {{3, 2}, {-1.5, 4, 0.5, -2, 3, 1}, {0.3, -1, 2, 0.5, -0.7, 1.2}};
+const BatchNormFixture kBatchNorm4D = {{2, 2, 1, 3}, {1, -2, 3, 0.5, 4, -1, -3, 2, 0, 1.5, -0.5, 2.5},
+                                       {0.2, -0.4, 1, 0.7, -1.1, 0.3, 0.9, -0.2, 0.5, -0.8, 1.3, 0.1}};
+
+// Checks backward against central finite differences of sum(BN(x) * upstream) in double precision.
+void ExpectBatchNormBackwardMatchesFiniteDifferences(const BatchNormFixture& fixture) {
+    const Shape shape(fixture.dims);
+    auto loss = [&](const std::vector<double>& values) {
+        BatchNormalizationLayer<double> bn(fixture.dims[1]);
+        Tensor<double> output = bn.forward(Tensor<double>(shape, values.data()));
+        double total = 0.0;
+        for (size_t i = 0; i < values.size(); ++i) total += output[i] * fixture.upstream[i];
+        return total;
+    };
+
+    BatchNormalizationLayer<double> bn(fixture.dims[1]);
+    bn.forward(Tensor<double>(shape, fixture.input.data()));
+    Tensor<double> gradInput = bn.backward(Tensor<double>(shape, fixture.upstream.data()));
+
+    const double h = 1e-4;
+    for (size_t i = 0; i < fixture.input.size(); ++i) {
+        std::vector<double> plus = fixture.input, minus = fixture.input;
+        plus[i] += h;
+        minus[i] -= h;
+        const double numerical = (loss(plus) - loss(minus)) / (2 * h);
+        // Symmetric relative error; the 1e-9 floor only matters for the exactly-zero constant-upstream gradients.
+        const double scale = std::max(std::abs(gradInput[i]), std::abs(numerical));
+        EXPECT_LE(std::abs(gradInput[i] - numerical), 1e-4 * scale + 1e-9) << "shape " << shape.toString() << ", index " << i
+            << ": analytical " << gradInput[i] << ", numerical " << numerical;
+    }
+}
+
+TEST(BatchNormalizationLayerTest, BackwardMatchesFiniteDifferences) {
+    ExpectBatchNormBackwardMatchesFiniteDifferences({{2, 1}, {-2, 2}, {1, 0}});
+    ExpectBatchNormBackwardMatchesFiniteDifferences({{1, 1, 1, 2}, {-2, 2}, {1, 1}});
+    ExpectBatchNormBackwardMatchesFiniteDifferences(kBatchNorm2D);
+    ExpectBatchNormBackwardMatchesFiniteDifferences(kBatchNorm4D);
+}
+
+// Records the tensors a layer hands to its optimizer.
+class CapturingOptimizer : public Optimizer<double> {
+public:
+    std::vector<Tensor<double>> weights, gradients;
+
+    void optimize(const std::vector<std::reference_wrapper<Tensor<double>>>& w,
+                  const std::vector<std::reference_wrapper<Tensor<double>>>& g, double) override {
+        for (const Tensor<double>& tensor : w) weights.push_back(tensor);
+        for (const Tensor<double>& tensor : g) gradients.push_back(tensor);
+    }
+};
+
+TEST(BatchNormalizationLayerTest, AffineGradientsMatchParameters) {
+    for (const BatchNormFixture& fixture : {kBatchNorm2D, kBatchNorm4D}) {
+        const int channels = fixture.dims[1], inner = fixture.dims.size() == 4 ? fixture.dims[2] * fixture.dims[3] : 1;
+        BatchNormalizationLayer<double> bn(channels);
+        bn.forward(Tensor<double>(Shape(fixture.dims), fixture.input.data()));
+        bn.backward(Tensor<double>(Shape(fixture.dims), fixture.upstream.data()));
+        CapturingOptimizer optimizer;
+        bn.updateWeights(optimizer);
+
+        // gamma and beta are (1, C); their gradients must match for both 2D and 4D input.
+        ASSERT_EQ(optimizer.gradients.size(), 2u);
+        ASSERT_EQ(optimizer.gradients[0].getShape(), optimizer.weights[0].getShape());
+        ASSERT_EQ(optimizer.gradients[1].getShape(), optimizer.weights[1].getShape());
+
+        // Per channel: dGamma = sum(upstream * xhat) and dBeta = sum(upstream) over N (2D) or N * H * W (4D) values.
+        for (int c = 0; c < channels; ++c) {
+            std::vector<size_t> indices;
+            for (int n = 0; n < fixture.dims[0]; ++n)
+                for (int k = 0; k < inner; ++k) indices.push_back(static_cast<size_t>((n * channels + c) * inner + k));
+            double mean = 0.0, variance = 0.0, dGamma = 0.0, dBeta = 0.0;
+            for (size_t i : indices) mean += fixture.input[i] / indices.size();
+            for (size_t i : indices) variance += (fixture.input[i] - mean) * (fixture.input[i] - mean) / indices.size();
+            for (size_t i : indices) {
+                dGamma += fixture.upstream[i] * (fixture.input[i] - mean) / std::sqrt(variance + 1e-5);
+                dBeta += fixture.upstream[i];
+            }
+            EXPECT_NEAR(optimizer.gradients[0][c], dGamma, 1e-9);
+            EXPECT_NEAR(optimizer.gradients[1][c], dBeta, 1e-9);
+        }
+    }
+}
+
 } // namespace smart_dnn
 
 
