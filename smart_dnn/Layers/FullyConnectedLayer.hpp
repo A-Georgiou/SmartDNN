@@ -98,6 +98,16 @@ public:
                            {std::ref(*weightGradients), std::ref(*biasGradients)});
     }
 
+    void save(std::ostream& os) const override {
+        saveTensor(os, *weights);
+        saveTensor(os, *biases);
+    }
+
+    void load(std::istream& is) override {
+        loadTensor(is, *weights);
+        loadTensor(is, *biases);
+    }
+
     /*
     
         Test helper functions

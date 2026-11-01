@@ -92,6 +92,20 @@ public:
                            {std::ref(*gammaGrad), std::ref(*betaGrad)});
     }
 
+    void save(std::ostream& os) const override {
+        saveTensor(os, gamma);
+        saveTensor(os, beta);
+        saveTensor(os, runningMean);
+        saveTensor(os, runningVariance);
+    }
+
+    void load(std::istream& is) override {
+        loadTensor(is, gamma);
+        loadTensor(is, beta);
+        loadTensor(is, runningMean);
+        loadTensor(is, runningVariance);
+    }
+
 private:
     int numFeatures;
     T epsilon;

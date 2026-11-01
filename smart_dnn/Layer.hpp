@@ -2,6 +2,7 @@
 #define LAYER_HPP
 
 #include "smart_dnn/Tensor/Tensor.hpp"
+#include "smart_dnn/Tensor/TensorIO.hpp"
 #include "smart_dnn/Optimizer.hpp"
 
 namespace smart_dnn {
@@ -16,6 +17,10 @@ namespace smart_dnn {
 
         virtual inline void updateWeights(Optimizer<T>& optimizer) { (void)optimizer; }
         virtual inline void setTrainingMode(bool mode) { trainingMode = mode; }
+
+        // Learned parameters for SmartDNN::saveModel and loadModel; layers without parameters write nothing.
+        virtual inline void save(std::ostream& os) const { (void)os; }
+        virtual inline void load(std::istream& is) { (void)is; }
 
     protected:
         bool trainingMode = true;
