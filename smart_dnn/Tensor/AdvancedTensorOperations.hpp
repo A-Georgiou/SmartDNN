@@ -356,7 +356,7 @@ private:
     Output: Tensor result (m x n)
 
     Each value i,j is equal to the dot product of the i-th row of a and the j-th column of b.
-    For this approach we slice our data into rows and columns and calculate the dot product of the slices.
+    Row i of the result is accumulated as a[i][p] * (row p of b), so the inner loop runs over contiguous memory.
     
     */
     static Tensor<T> matrixMatrixMul(const Tensor<T>& a, const Tensor<T>& b) {
@@ -375,14 +375,15 @@ private:
         const T* bData = b.getData().data();
         T* resultData = result.getData().data();
 
-        #pragma omp parallel for collapse(2)
+        #pragma omp parallel for
         for (int i = 0; i < m; i++) {
-            for (int j = 0; j < n; j++) {
-                T sum = 0;
-                for (int p = 0; p < k; p++) {
-                    sum += aData[i * k + p] * bData[p * n + j];
+            T* resultRow = resultData + static_cast<size_t>(i) * n;
+            for (int p = 0; p < k; p++) {
+                const T aValue = aData[static_cast<size_t>(i) * k + p];
+                const T* bRow = bData + static_cast<size_t>(p) * n;
+                for (int j = 0; j < n; j++) {
+                    resultRow[j] += aValue * bRow[j];
                 }
-                resultData[i * n + j] = sum;
             }
         }
 
