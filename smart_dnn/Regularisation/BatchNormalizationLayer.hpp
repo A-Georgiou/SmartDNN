@@ -40,8 +40,9 @@ public:
             normalizedInput = (input - reshapedMean) / (reshapedVariance + epsilon).sqrt();
             TensorType output = (*normalizedInput * reshapedGamma) + reshapedBeta;
 
-            runningMean = (momentum * runningMean) + ((1 - momentum) * (*batchMean));
-            runningVariance = (momentum * runningVariance) + ((1 - momentum) * (*batchVariance));
+            // Batch statistics are (1, C, 1, 1) for 4D input; match the (1, C) running statistics.
+            runningMean = (momentum * runningMean) + ((1 - momentum) * AdvancedTensorOperations<T>::reshape(*batchMean, runningMean.getShape()));
+            runningVariance = (momentum * runningVariance) + ((1 - momentum) * AdvancedTensorOperations<T>::reshape(*batchVariance, runningVariance.getShape()));
 
             return output;
         } else {
