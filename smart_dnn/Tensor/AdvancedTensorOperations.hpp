@@ -194,8 +194,8 @@ class AdvancedTensorOperations<T, CPUDevice> {
     }
 
     static Tensor<T> transpose(const Tensor<T>& tensor, size_t dim0, size_t dim1) {
-        auto shape = tensor.getShape();
-        auto rank = shape.rank();
+        const Shape& shape = tensor.getShape();
+        const size_t rank = shape.rank();
 
         if (dim0 >= rank || dim1 >= rank) {
             throw std::invalid_argument("Invalid dimensions for transpose.");
@@ -204,42 +204,25 @@ class AdvancedTensorOperations<T, CPUDevice> {
         std::vector<int> newDimensions = shape.getDimensions();
         std::swap(newDimensions[dim0], newDimensions[dim1]);
         Shape newShape(newDimensions);
-
         Tensor<T> result(newShape);
-        
-        // Create a mapping from old indices to new indices
-        std::vector<size_t> oldToNew(rank);
-        for (size_t i = 0; i < rank; ++i) {
-            oldToNew[i] = i;
-        }
-        std::swap(oldToNew[dim0], oldToNew[dim1]);
 
-        // Iterate through all elements and place them in their new positions
-        std::vector<int> oldIndices(rank, 0);
-        std::vector<int> newIndices(rank, 0);
-        size_t totalSize = shape.size();
+        // Input element at index (.., i, .., j, ..) lands at output index (.., j, .., i, ..).
+        std::vector<size_t> outStride = newShape.getStride();
+        std::swap(outStride[dim0], outStride[dim1]);
 
-        #pragma omp parallel for
-        for (size_t i = 0; i < totalSize; ++i) {
-            // Calculate old indices
-            size_t temp = i;
-            for (int d = static_cast<int>(rank) - 1; d >= 0; --d) {
-                if (shape[d] == 0) {
-                    throw std::runtime_error("Invalid shape: dimension size is zero");
-                }
-                oldIndices[d] = static_cast<int>(temp % static_cast<size_t>(shape[d]));
-                temp /= static_cast<size_t>(shape[d]);
-            }
-
-            // Map to new indices
+        const T* in = tensor.getData().begin();
+        T* out = result.getData().begin();
+        std::vector<int> index(rank, 0);
+        for (size_t i = 0; i < shape.size(); ++i) {
+            size_t offset = 0;
             for (size_t d = 0; d < rank; ++d) {
-                newIndices[d] = oldIndices[oldToNew[d]];
+                offset += static_cast<size_t>(index[d]) * outStride[d];
             }
-
-            // Set the value in the new tensor
-            result.at(newIndices) = tensor.at(oldIndices);
+            out[offset] = in[i];
+            for (int d = static_cast<int>(rank) - 1; d >= 0 && ++index[d] == shape[d]; --d) {
+                index[d] = 0;
+            }
         }
-
         return result;
     }
 
@@ -373,7 +356,7 @@ private:
     Output: Tensor result (m x n)
 
     Each value i,j is equal to the dot product of the i-th row of a and the j-th column of b.
-    For this approach we slice our data into rows and columns and calculate the dot product of the slices.
+    Row i of the result is accumulated as a[i][p] * (row p of b), so the inner loop runs over contiguous memory.
     
     */
     static Tensor<T> matrixMatrixMul(const Tensor<T>& a, const Tensor<T>& b) {
@@ -392,14 +375,27 @@ private:
         const T* bData = b.getData().data();
         T* resultData = result.getData().data();
 
-        #pragma omp parallel for collapse(2)
-        for (int i = 0; i < m; i++) {
-            for (int j = 0; j < n; j++) {
+        // A single output column is m dot products; accumulating each in a register beats the row loop.
+        if (n == 1) {
+            for (int i = 0; i < m; i++) {
                 T sum = 0;
                 for (int p = 0; p < k; p++) {
-                    sum += aData[i * k + p] * bData[p * n + j];
+                    sum += aData[static_cast<size_t>(i) * k + p] * bData[p];
                 }
-                resultData[i * n + j] = sum;
+                resultData[i] = sum;
+            }
+            return result;
+        }
+
+        #pragma omp parallel for
+        for (int i = 0; i < m; i++) {
+            T* resultRow = resultData + static_cast<size_t>(i) * n;
+            for (int p = 0; p < k; p++) {
+                const T aValue = aData[static_cast<size_t>(i) * k + p];
+                const T* bRow = bData + static_cast<size_t>(p) * n;
+                for (int j = 0; j < n; j++) {
+                    resultRow[j] += aValue * bRow[j];
+                }
             }
         }
 

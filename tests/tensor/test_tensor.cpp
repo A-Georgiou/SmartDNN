@@ -25,6 +25,26 @@ TEST(TensorInitialisationTest, ExpectValueFillInitialisation) {
     ValidateTensorData(a, std::vector<float>(6, 5.0f));
 }
 
+TEST(TensorInitialisationTest, ExpectVectorInitialisation) {
+    const std::vector<float> values = {1, 2, 3, 4, 5, 6};
+    Tensor<float> copied(Shape({2, 3}), values);
+    Tensor<float> moved(Shape({2, 3}), std::vector<float>(values));
+    Tensor<float> shorter(Shape({2, 4}), values);
+
+    ValidateTensorShape(copied, 2, 6, {2, 3});
+    ValidateTensorShape(moved, 2, 6, {2, 3});
+    ValidateTensorData(copied, values);
+    ValidateTensorData(moved, values);
+    ValidateTensorData(shorter, {1, 2, 3, 4, 5, 6, 0, 0});
+}
+
+TEST(TensorInitialisationTest, ExpectOversizedValuesRejected) {
+    const std::vector<float> values = {1, 2, 3};
+    EXPECT_THROW(Tensor<float>(Shape({2}), values), std::invalid_argument);
+    EXPECT_THROW(Tensor<float>(Shape({2}), std::vector<float>(values)), std::invalid_argument);
+    EXPECT_THROW(Tensor<float>(Shape({2}), {1.0f, 2.0f, 3.0f}), std::invalid_argument);
+}
+
 /*
 
     INVALID INITIALISATION TESTS
@@ -245,6 +265,34 @@ TEST(TensorScalarOperatorTest, ExpectValidScalarDivisionInverse) {
 
     ValidateTensorShape(b, 3, 6, {1, 2, 3});
     ValidateTensorData(b, std::vector<float>(6, 2.0f));
+}
+
+// ELEMENT ACCESS TESTS
+
+TEST(TensorAccessTest, MultiIndexAccessMatchesFlatLayout) {
+    Tensor<float> t(Shape({2, 3, 4}));
+    for (size_t i = 0; i < t.getShape().size(); ++i) t[i] = static_cast<float>(i);
+
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 3; ++j)
+            for (int k = 0; k < 4; ++k) {
+                const float expected = static_cast<float>((i * 3 + j) * 4 + k);
+                EXPECT_EQ(t(i, j, k), expected);
+                EXPECT_EQ(t.at({i, j, k}), expected);
+                EXPECT_EQ(t.at(std::vector<int>{i, j, k}), expected);
+            }
+
+    t(1, 2, 3) = -1.0f;
+    EXPECT_EQ(t.at({1, 2, 3}), -1.0f);
+    EXPECT_EQ(computeFlatIndex(t.getShape(), {1, 2, 3}), 23u);
+}
+
+TEST(TensorAccessTest, AtChecksRankAndBounds) {
+    Tensor<float> t(Shape({2, 3}));
+    EXPECT_THROW(t.at({1, 3}), std::out_of_range);
+    EXPECT_THROW(t.at({-1, 0}), std::out_of_range);
+    EXPECT_THROW(t.at({1}), std::invalid_argument);
+    EXPECT_THROW(t.at(std::vector<int>{0, 0, 0}), std::invalid_argument);
 }
 
 } // namespace smart_dnn

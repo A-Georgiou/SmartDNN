@@ -3,6 +3,7 @@
 
 #include "smart_dnn/Tensor/Tensor.hpp"
 #include "smart_dnn/Layer.hpp"
+#include "smart_dnn/RandomEngine.hpp"
 
 namespace smart_dnn {
 
@@ -14,9 +15,13 @@ public:
 
     TensorType forward(const TensorType& input) override {
         if (this->trainingMode) {
-            mask = TensorType::rand(input.getShape());
-            mask = (*mask).apply([this](T x) { return x > dropoutRate ? T(1) : T(0); });
-            return input * (*mask) * (T(1) / (T(1) - dropoutRate));
+            // Inverted dropout: keep with probability 1 - rate and scale kept values by 1 / (1 - rate).
+            const T keptScale = T(1) / (T(1) - dropoutRate);
+            mask = TensorType(input.getShape());
+            for (T& value : (*mask).getData()) {
+                value = RandomEngine::getRand() > dropoutRate ? keptScale : T(0);
+            }
+            return input * (*mask);
         } else {
             return input; // No dropout during inference
         }

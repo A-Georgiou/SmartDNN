@@ -35,7 +35,7 @@ TEMPLATE_TENSOR
 Tensor<T, DeviceType>::Tensor(Shape dimensions, const std::vector<T>& values) : data_(dimensions, values) {}
 
 TEMPLATE_TENSOR
-Tensor<T, DeviceType>::Tensor(Shape dimensions, std::vector<T>&& values) noexcept : data_(dimensions, std::move(values)) {}
+Tensor<T, DeviceType>::Tensor(Shape dimensions, std::vector<T>&& values) : data_(dimensions, std::move(values)) {}
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator=(const Tensor<T, DeviceType>& other) {
@@ -144,12 +144,22 @@ const T& Tensor<T, DeviceType>::operator[](size_t index) const {
 }
     
 TEMPLATE_TENSOR
-T& Tensor<T, DeviceType>::at(std::vector<int> indices) {
+T& Tensor<T, DeviceType>::at(std::initializer_list<int> indices) {
     return data_.at(indices);
 }
 
 TEMPLATE_TENSOR
-const T& Tensor<T, DeviceType>::at(std::vector<int> indices) const {
+const T& Tensor<T, DeviceType>::at(std::initializer_list<int> indices) const {
+    return data_.at(indices);
+}
+
+TEMPLATE_TENSOR
+T& Tensor<T, DeviceType>::at(const std::vector<int>& indices) {
+    return data_.at(indices);
+}
+
+TEMPLATE_TENSOR
+const T& Tensor<T, DeviceType>::at(const std::vector<int>& indices) const {
     return data_.at(indices);
 }
 
