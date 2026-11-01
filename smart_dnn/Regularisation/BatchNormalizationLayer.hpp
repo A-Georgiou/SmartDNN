@@ -83,13 +83,12 @@ public:
         return dInput;
     }
 
-    void updateWeights(Optimizer<T>& optimizer) override {
+    std::vector<Parameter<T>> parameters() override {
         if (!gammaGrad || !betaGrad) {
             throw std::runtime_error("BatchNormalizationLayer: gradients are not initialized");
         }
 
-        optimizer.optimize({std::ref(gamma), std::ref(beta)},
-                           {std::ref(*gammaGrad), std::ref(*betaGrad)});
+        return {{gamma, *gammaGrad}, {beta, *betaGrad}};
     }
 
     void save(std::ostream& os) const override {

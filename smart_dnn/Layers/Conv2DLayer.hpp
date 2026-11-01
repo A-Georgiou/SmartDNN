@@ -103,13 +103,12 @@ public:
         return col2im(gradCols, inputShape, kernelHeight, kernelWidth, stride, padding, dilation);
     }
 
-    void updateWeights(Optimizer<T>& optimizer) override {
+    std::vector<Parameter<T>> parameters() override {
         if (!weights || !biases || !weightGradients || !biasGradients) {
             throw std::runtime_error("Weights or gradients are not initialized!");
         }
 
-        optimizer.optimize({std::ref(*weights), std::ref(*biases)},
-                        {std::ref(*weightGradients), std::ref(*biasGradients)});
+        return {{*weights, *weightGradients}, {*biases, *biasGradients}};
     }
 
     void save(std::ostream& os) const override {
