@@ -29,7 +29,7 @@ TEST(KVCacheDecoderTest, MatchesTheFullForwardPassAtEveryPosition) {
         sequence[t] = static_cast<float>(tokens[t]);
     }
     const Tensor<float> expected = model.predict(sequence);
-    KVCacheDecoder<float> decoder(model, 2);
+    KVCacheDecoder<float> decoder(model);
 
     for (size_t t = 0; t < tokens.size(); ++t) {
         const std::vector<float> logits = decoder.push(tokens[t]);
@@ -43,7 +43,7 @@ TEST(KVCacheDecoderTest, MatchesTheFullForwardPassAtEveryPosition) {
 TEST(KVCacheDecoderTest, RefusesTokensBeyondItsCapacityUntilReset) {
     SmartDNN<float> model;
     addTinyGpt(model);
-    KVCacheDecoder<float> decoder(model, 2);
+    KVCacheDecoder<float> decoder(model);
     for (int t = 0; t < 6; ++t) {
         decoder.push(t);
     }
@@ -54,11 +54,25 @@ TEST(KVCacheDecoderTest, RefusesTokensBeyondItsCapacityUntilReset) {
     EXPECT_NO_THROW(decoder.push(1));
 }
 
-TEST(KVCacheDecoderTest, RejectsModelsThatAreNotGptStacks) {
-    SmartDNN<float> model;
-    model.addLayer(FullyConnectedLayer<float>(4, 4));
+TEST(KVCacheDecoderTest, RejectsModelsItCannotDecode) {
+    SmartDNN<float> notGpt;
+    notGpt.addLayer(FullyConnectedLayer<float>(4, 4));
+    SmartDNN<float> notCausal;
+    notCausal.addLayer(EmbeddingLayer<float>(7, 8));
+    notCausal.addLayer(PositionalEmbeddingLayer<float>(6, 8));
+    notCausal.addLayer(TransformerBlock<float>(8, 2, false));
+    notCausal.addLayer(LayerNormalizationLayer<float>(8));
+    notCausal.addLayer(FullyConnectedLayer<float>(8, 7));
+    SmartDNN<float> narrowEmbedding;
+    narrowEmbedding.addLayer(EmbeddingLayer<float>(7, 4));
+    narrowEmbedding.addLayer(PositionalEmbeddingLayer<float>(6, 8));
+    narrowEmbedding.addLayer(TransformerBlock<float>(8, 2));
+    narrowEmbedding.addLayer(LayerNormalizationLayer<float>(8));
+    narrowEmbedding.addLayer(FullyConnectedLayer<float>(8, 7));
 
-    EXPECT_THROW(KVCacheDecoder<float>(model, 2), std::invalid_argument);
+    EXPECT_THROW(KVCacheDecoder<float>{notGpt}, std::invalid_argument);
+    EXPECT_THROW(KVCacheDecoder<float>{notCausal}, std::invalid_argument);
+    EXPECT_THROW(KVCacheDecoder<float>{narrowEmbedding}, std::invalid_argument);
 }
 
 } // namespace smart_dnn

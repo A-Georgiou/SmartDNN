@@ -30,6 +30,14 @@ public:
         return gradHidden + attentionNorm.backward(attention.backward(gradHidden));
     }
 
+    int getHeads() const {
+        return attention.getHeads();
+    }
+
+    bool isCausal() const {
+        return attention.isCausal();
+    }
+
     std::vector<Parameter<T>> parameters() override {
         std::vector<Parameter<T>> all;
         for (Layer<T>* layer : std::initializer_list<Layer<T>*>{&attentionNorm, &attention, &mlpNorm, &expand, &contract}) {

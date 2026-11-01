@@ -25,13 +25,14 @@ class KVCacheDecoder {
 
     struct Block {
         std::vector<Parameter<T>> parameters;
+        size_t heads;
         std::vector<T> keys;
         std::vector<T> values;
     };
 
 public:
-    // The model must be Embedding, PositionalEmbedding, causal TransformerBlocks, LayerNormalization and FullyConnected layers in that order.
-    KVCacheDecoder(SmartDNN<T>& model, int heads) : heads(static_cast<size_t>(heads)) {
+    // The model must be Embedding, PositionalEmbedding, causal TransformerBlocks, LayerNormalization and FullyConnected layers of one width.
+    explicit KVCacheDecoder(SmartDNN<T>& model) {
         const size_t count = model.getLayerCount();
         if (count >= 5) {
             embedding = dynamic_cast<EmbeddingLayer<T>*>(model.getLayer(0));
@@ -41,24 +42,27 @@ public:
         }
         for (size_t i = 2; i + 2 < count; ++i) {
             TransformerBlock<T>* block = dynamic_cast<TransformerBlock<T>*>(model.getLayer(i));
-            if (block == nullptr) {
+            if (block == nullptr || !block->isCausal()) {
                 break;
             }
-            blocks.push_back({block->parameters(), {}, {}});
+            blocks.push_back({block->parameters(), static_cast<size_t>(block->getHeads()), {}, {}});
         }
         if (!embedding || !positions || !finalNorm || !head || count < 5 || blocks.size() != count - 4) {
-            throw std::invalid_argument("KVCacheDecoder needs Embedding, PositionalEmbedding, TransformerBlock..., LayerNormalization and FullyConnected layers");
+            throw std::invalid_argument("KVCacheDecoder needs Embedding, PositionalEmbedding, causal TransformerBlocks, LayerNormalization and FullyConnected layers");
         }
 
         const Shape& table = positions->parameters()[0].value.get().getShape();
         maxLength = static_cast<size_t>(table[0]);
         width = static_cast<size_t>(table[1]);
-        if (heads <= 0 || width % this->heads != 0) {
-            throw std::invalid_argument("KVCacheDecoder heads must divide the embedding size");
-        }
+        bool sameWidth = lastDimension(embedding->parameters()[0]) == width && lastDimension(finalNorm->parameters()[0]) == width
+            && static_cast<size_t>(head->parameters()[0].value.get().getShape()[0]) == width;
         for (Block& block : blocks) {
+            sameWidth = sameWidth && lastDimension(block.parameters[0]) == width;
             block.keys.resize(maxLength * width);
             block.values.resize(maxLength * width);
+        }
+        if (!sameWidth) {
+            throw std::invalid_argument("KVCacheDecoder needs every layer to use the positional embedding's width");
         }
         norm.emplace(static_cast<int>(width));
     }
@@ -98,7 +102,6 @@ public:
     }
 
 private:
-    size_t heads;
     size_t width = 0;
     size_t maxLength = 0;
     size_t length = 0;
@@ -108,6 +111,11 @@ private:
     FullyConnectedLayer<T>* head = nullptr;
     std::vector<Block> blocks;
     std::optional<LayerNormalizationLayer<T>> norm;
+
+    static size_t lastDimension(const Parameter<T>& parameter) {
+        const Shape& shape = parameter.value.get().getShape();
+        return static_cast<size_t>(shape[shape.rank() - 1]);
+    }
 
     // x times a weight matrix plus a bias row, read from a block's parameters.
     static Tensor<T> affine(const Tensor<T>& x, const Parameter<T>& weights, const Parameter<T>& bias) {
@@ -128,11 +136,11 @@ private:
         std::copy(qkv + width, qkv + 2 * width, block.keys.begin() + length * width);
         std::copy(qkv + 2 * width, qkv + 3 * width, block.values.begin() + length * width);
 
-        const size_t headWidth = width / heads;
+        const size_t headWidth = width / block.heads;
         const T scale = T(1) / std::sqrt(static_cast<T>(headWidth));
         Tensor<T> context(Shape({1, static_cast<int>(width)}), T(0));
         std::vector<T> weights(length + 1);
-        for (size_t h = 0; h < heads; ++h) {
+        for (size_t h = 0; h < block.heads; ++h) {
             const size_t offset = h * headWidth;
             T maxScore = -std::numeric_limits<T>::infinity();
             for (size_t p = 0; p <= length; ++p) {

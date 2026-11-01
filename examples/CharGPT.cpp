@@ -44,7 +44,7 @@ std::string generate(SmartDNN<float>& model, const CharacterDataset<float>& data
     if (ids.empty()) {
         throw std::invalid_argument("generate needs a non-empty prompt");
     }
-    KVCacheDecoder<float> decoder(model, HEADS);
+    KVCacheDecoder<float> decoder(model);
     std::vector<float> logits;
     for (size_t i = ids.size() > static_cast<size_t>(LENGTH) ? ids.size() - LENGTH : 0; i < ids.size(); ++i) {
         logits = decoder.push(ids[i]);
