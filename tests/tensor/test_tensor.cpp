@@ -140,6 +140,21 @@ TEST(TensorOperatorTest, ExpectValidElementWiseDivisionAssignment) {
     ValidateTensorData(a, std::vector<float>(6, 1.0f));
 }
 
+TEST(TensorOperatorTest, ExpectBroadcastingKeepsValuesAndOperandOrder) {
+    Tensor<float> rows({2, 3}, {1, 2, 4, 8, 16, 32});
+    Tensor<float> row({1, 3}, {10, 20, 30});
+
+    ValidateTensorData(rows + row, std::vector<float>{11, 22, 34, 18, 36, 62});
+    ValidateTensorData(row - rows, std::vector<float>{9, 18, 26, 2, 4, -2});
+    ValidateTensorData(row / rows, std::vector<float>{10, 10, 7.5f, 1.25f, 1.25f, 0.9375f});
+    ValidateTensorData(rows * Tensor<float>({1}, {0.5f}), std::vector<float>{0.5f, 1, 2, 4, 8, 16});
+    ValidateTensorData(Tensor<float>({2, 1, 3}, {1, 2, 4, 8, 16, 32}) - Tensor<float>({3}, {1, 1, 2}), std::vector<float>{0, 1, 2, 7, 15, 30});
+    ValidateTensorData(rows + Tensor<float>({2, 1}, {100, 200}), std::vector<float>{101, 102, 104, 208, 216, 232});
+
+    rows -= row;
+    ValidateTensorData(rows, std::vector<float>{-9, -18, -26, -2, -4, 2});
+}
+
 TEST(TensorOperatorTest, ExpectValidScalarAssignment) {
     Tensor a({1, 2}, {3.0f, -1.0f});
 
