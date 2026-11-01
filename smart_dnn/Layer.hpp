@@ -5,25 +5,18 @@
 #include "smart_dnn/Tensor/TensorIO.hpp"
 #include "smart_dnn/Optimizer.hpp"
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
 namespace smart_dnn {
 
-    // A learned tensor and its gradient from the most recent backward pass.
+    // A learned tensor and its gradient from the most recent backward pass, empty until the first one.
     template <typename T>
     struct Parameter {
         std::reference_wrapper<Tensor<T>> value;
-        std::reference_wrapper<Tensor<T>> gradient;
-
-        bool hasGradient() const { return gradient.get().getShape() == value.get().getShape(); }
+        std::reference_wrapper<std::optional<Tensor<T>>> gradient;
     };
-
-    // Stands in for a gradient until the first backward pass, so inference allocates no gradient buffers.
-    template <typename T>
-    Tensor<T> noGradient() {
-        return Tensor<T>(Shape({1}), T(0));
-    }
 
     template <typename T>
     class Layer {
@@ -40,11 +33,11 @@ namespace smart_dnn {
             std::vector<std::reference_wrapper<Tensor<T>>> values;
             std::vector<std::reference_wrapper<Tensor<T>>> gradients;
             for (const Parameter<T>& parameter : parameters()) {
-                if (!parameter.hasGradient()) {
+                if (!parameter.gradient.get()) {
                     throw std::logic_error("updateWeights needs a backward pass first");
                 }
                 values.push_back(parameter.value);
-                gradients.push_back(parameter.gradient);
+                gradients.push_back(*parameter.gradient.get());
             }
             if (!values.empty()) {
                 optimizer.optimize(values, gradients);

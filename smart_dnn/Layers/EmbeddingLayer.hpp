@@ -6,6 +6,7 @@
 #include "smart_dnn/Tensor/Tensor.hpp"
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <random>
 #include <stdexcept>
 #include <vector>
@@ -17,7 +18,7 @@ template <typename T = float>
 class EmbeddingLayer : public Layer<T> {
 public:
     EmbeddingLayer(int vocabularySize, int embeddingSize)
-        : weights(Shape({vocabularySize, embeddingSize})), weightGradients(noGradient<T>()) {
+        : weights(Shape({vocabularySize, embeddingSize})) {
         std::normal_distribution<float> distribution(0.0f, 0.02f);
         for (T& weight : weights.getData()) {
             weight = static_cast<T>(distribution(RandomEngine::getInstance()));
@@ -56,8 +57,8 @@ public:
             throw std::invalid_argument("Embedding backward needs gradOutput with the last forward pass's output shape");
         }
 
-        weightGradients = Tensor<T>(weights.getShape(), T(0));
-        T* table = weightGradients.getData().data();
+        weightGradients.emplace(weights.getShape(), T(0));
+        T* table = weightGradients->getData().data();
         const T* rows = gradOutput.getData().data();
         for (size_t i = 0; i < ids.size(); ++i) {
             for (size_t j = 0; j < width; ++j) {
@@ -81,7 +82,7 @@ public:
 
 private:
     Tensor<T> weights;
-    Tensor<T> weightGradients;
+    std::optional<Tensor<T>> weightGradients;
     std::vector<size_t> ids;
     std::vector<int> inputDimensions;
 };

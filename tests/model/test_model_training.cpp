@@ -144,7 +144,7 @@ TEST(SmartDNNTrainingTest, GradientsAreOnlyAllocatedByBackward) {
     PositionalEmbeddingLayer<float> positions(3, 2);
     for (Layer<float>* layer : std::initializer_list<Layer<float>*>{&dense, &conv, &batchNorm, &layerNorm, &embedding, &positions}) {
         for (const Parameter<float>& parameter : layer->parameters()) {
-            EXPECT_FALSE(parameter.hasGradient());
+            EXPECT_FALSE(parameter.gradient.get().has_value());
         }
     }
 

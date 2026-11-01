@@ -96,7 +96,7 @@ public:
     std::vector<Parameter<float>> parameters() override { return {{weight, gradient}}; }
 
     Tensor<float> weight{Shape({1}), 1.0f};
-    Tensor<float> gradient{Shape({1}), 0.0f};
+    std::optional<Tensor<float>> gradient{Tensor<float>(Shape({1}), 0.0f)};
 };
 
 } // namespace

@@ -31,7 +31,7 @@ TEST(EmbeddingLayerTest, LooksUpRowsAndAccumulatesRepeatedIds) {
     embedding.backward(Tensor<float>({2, 2, 2}, {1, 2, 3, 4, 5, 6, 7, 8}));
 
     EXPECT_TRUE(TensorEquals(output, Tensor<float>({2, 2, 2}, {10, 11, 30, 31, 10, 11, 0, 1})));
-    EXPECT_TRUE(TensorEquals(embedding.parameters()[0].gradient.get(), Tensor<float>({4, 2}, {7, 8, 6, 8, 0, 0, 3, 4})));
+    EXPECT_TRUE(TensorEquals(*embedding.parameters()[0].gradient.get(), Tensor<float>({4, 2}, {7, 8, 6, 8, 0, 0, 3, 4})));
 }
 
 TEST(EmbeddingLayerTest, RejectsInvalidIdsAndGradients) {

@@ -16,8 +16,7 @@ public:
     BatchNormalizationLayer(int numFeatures, T epsilon = 1e-5, T momentum = 0.9)
         : numFeatures(numFeatures), epsilon(epsilon), momentum(momentum), 
           gamma(TensorType({1, numFeatures}, T(1))), beta(TensorType({1, numFeatures}, T(0))),
-          runningMean(TensorType({1, numFeatures}, T(0))), runningVariance(TensorType({1, numFeatures}, T(1))),
-          gammaGrad(noGradient<T>()), betaGrad(noGradient<T>()) {}
+          runningMean(TensorType({1, numFeatures}, T(0))), runningVariance(TensorType({1, numFeatures}, T(1))) {}
 
     TensorType forward(const TensorType& input) override {
         const auto& shape = input.getShape();
@@ -85,7 +84,7 @@ public:
     }
 
     std::vector<Parameter<T>> parameters() override {
-        return {{gamma, *gammaGrad}, {beta, *betaGrad}};
+        return {{gamma, gammaGrad}, {beta, betaGrad}};
     }
 
     void save(std::ostream& os) const override {

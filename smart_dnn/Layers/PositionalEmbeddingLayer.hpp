@@ -18,7 +18,7 @@ template <typename T = float>
 class PositionalEmbeddingLayer : public Layer<T> {
 public:
     PositionalEmbeddingLayer(int maxLength, int embeddingSize)
-        : weights(Shape({maxLength, embeddingSize})), weightGradients(noGradient<T>()) {
+        : weights(Shape({maxLength, embeddingSize})) {
         std::normal_distribution<float> distribution(0.0f, 0.02f);
         for (T& weight : weights.getData()) {
             weight = static_cast<T>(distribution(RandomEngine::getInstance()));
@@ -51,8 +51,8 @@ public:
             throw std::invalid_argument("Positional embedding backward needs gradOutput with the last forward pass's shape");
         }
 
-        weightGradients = Tensor<T>(weights.getShape(), T(0));
-        T* table = weightGradients.getData().data();
+        weightGradients.emplace(weights.getShape(), T(0));
+        T* table = weightGradients->getData().data();
         const T* values = gradOutput.getData().data();
         for (size_t start = 0; start < gradOutput.getShape().size(); start += sequenceSize) {
             for (size_t i = 0; i < sequenceSize; ++i) {
@@ -76,7 +76,7 @@ public:
 
 private:
     Tensor<T> weights;
-    Tensor<T> weightGradients;
+    std::optional<Tensor<T>> weightGradients;
     std::optional<Shape> inputShape;
     size_t sequenceSize = 0;
 };

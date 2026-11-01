@@ -104,7 +104,7 @@ std::vector<GradientCheckResult<T>> checkLayerGradients(Layer<T>& layer, const T
             const Tensor<T>& original;
             ~Restore() { value = original; }
         } restore{value, original};
-        const Tensor<T> analytic = parameter.gradient.get();
+        const Tensor<T> analytic = parameter.gradient.get().value();
         results.push_back(checkGradient([&](const Tensor<T>& candidate) { value = candidate; return objective(input); }, original, analytic, options));
     }
     return results;

@@ -19,8 +19,6 @@ public:
         weights.emplace(Shape({inputSize, outputSize}));
         for (T& w : weights->getData()) w = static_cast<T>(RandomEngine::getHeInit(inputSize));
         biases.emplace(TensorType::zeros(Shape({1, outputSize})));
-        weightGradients.emplace(noGradient<T>());
-        biasGradients.emplace(noGradient<T>());
     }
 
     /*
@@ -80,7 +78,7 @@ public:
     }
 
     std::vector<Parameter<T>> parameters() override {
-        return {{*weights, *weightGradients}, {*biases, *biasGradients}};
+        return {{*weights, weightGradients}, {*biases, biasGradients}};
     }
 
     void save(std::ostream& os) const override {
