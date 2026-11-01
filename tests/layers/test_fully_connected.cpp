@@ -10,6 +10,11 @@
 
 namespace smart_dnn {
 
+TEST(FullyConnectedLayerTest, HeNormalInitialization) {
+    FullyConnectedLayer<float> fcLayer(200, 100);
+    ExpectHeNormal(fcLayer.getWeights(), 200);
+}
+
 TEST(FullyConnectedLayerTest, ForwardPassHardcodedFullyConnected) {
     FullyConnectedLayer<float> fcLayer(2, 3);  // Input size = 2, Output size = 3
 

@@ -67,14 +67,20 @@ TEST(Conv2DLayerTest, WeightInitialization) {
     // You could set a range based on the expected He stddev
     float stddev = std::sqrt(2.0f / (1 * 3 * 3));
     for (int i = 0; i < weights.getData().size(); ++i) {
-        ASSERT_GE(weights.getData()[i], -3 * stddev);
-        ASSERT_LE(weights.getData()[i], 3 * stddev);
+        // 6 sigma: a 3 sigma bound fails about 5% of runs for 18 normal draws.
+        ASSERT_GE(weights.getData()[i], -6 * stddev);
+        ASSERT_LE(weights.getData()[i], 6 * stddev);
     }
 
     // Check biases initialized to 0
     for (int i = 0; i < biases.getData().size(); ++i) {
         ASSERT_NEAR(biases.getData()[i], 0.0f, 1e-5);
     }
+}
+
+TEST(Conv2DLayerTest, HeNormalInitialization) {
+    Conv2DLayer<float> convLayer(16, 32, 3);
+    ExpectHeNormal(convLayer.getWeights(), 16 * 3 * 3);
 }
 
 TEST(Conv2DLayerTest, WeightUpdate) {
