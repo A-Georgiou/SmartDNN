@@ -141,6 +141,49 @@ TEST(SoftmaxTest, BackwardPass) {
     EXPECT_TRUE(approxEqual(sum2, 0.0f));
 }
 
+TEST(SoftmaxTest, NormalisesEachRowOfTheLastAxis) {
+    Softmax<float> softmax;
+    Tensor<float> input({2, 2, 3}, {1.0f, 2.0f, 3.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.5f, 4.0f, 2.0f, 0.0f});
+    Tensor<float> output = softmax.forward(input);
+
+    ASSERT_EQ(output.getShape(), input.getShape());
+    for (int row = 0; row < 4; ++row) {
+        const float* x = input.getData().data() + row * 3;
+        float sum = std::exp(x[0]) + std::exp(x[1]) + std::exp(x[2]);
+        for (int i = 0; i < 3; ++i) {
+            EXPECT_TRUE(approxEqual(output.getData()[row * 3 + i], std::exp(x[i]) / sum));
+        }
+    }
+}
+
+TEST(SoftmaxTest, BackwardAppliesEachRowsJacobian) {
+    Softmax<float> softmax;
+    Tensor<float> input({2, 2, 3}, {1.0f, 2.0f, 3.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.5f, 4.0f, 2.0f, 0.0f});
+    Tensor<float> gradOutput({2, 2, 3}, {0.1f, -0.2f, 0.3f, 1.0f, 0.0f, -1.0f, 0.5f, 0.5f, -0.25f, 2.0f, -1.0f, 0.0f});
+    Tensor<float> y = softmax.forward(input);
+    Tensor<float> gradInput = softmax.backward(input, gradOutput);
+
+    // dx_i = sum_j dy_j * y_j * (delta_ij - y_i) within each row.
+    for (int row = 0; row < 4; ++row) {
+        for (int i = 0; i < 3; ++i) {
+            float expected = 0.0f;
+            for (int j = 0; j < 3; ++j) {
+                float yi = y.getData()[row * 3 + i];
+                float yj = y.getData()[row * 3 + j];
+                expected += gradOutput.getData()[row * 3 + j] * yj * ((i == j ? 1.0f : 0.0f) - yi);
+            }
+            EXPECT_TRUE(approxEqual(gradInput.getData()[row * 3 + i], expected));
+        }
+    }
+}
+
+TEST(SoftmaxTest, BackwardRejectsGradientsOfAnotherShape) {
+    Softmax<float> softmax;
+    EXPECT_THROW(softmax.backward(Tensor<float>({1, 2}, {1.0f, 2.0f}), Tensor<float>({1, 1}, {1.0f})), std::invalid_argument);
+    EXPECT_THROW(softmax.backward(Tensor<float>({2, 3}, 0.5f), Tensor<float>({3, 2}, 1.0f)), std::invalid_argument);
+    EXPECT_THROW(Softmax<double>().backward(Tensor<double>({1, 2}, {1.0, 2.0}), Tensor<double>({1, 1}, {1.0})), std::invalid_argument);
+}
+
 TEST(TanhTest, ForwardPass) {
     Tanh<float> tanh;
     Tensor<float> input({2, 3}, {-2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f});
