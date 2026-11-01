@@ -7,43 +7,53 @@
 
 namespace smart_dnn {
 
-TEST(AdamOptimizerTest, FirstStepMovesEachWeightByTheLearningRate) {
-    AdamOptions<float> options;
-    options.learningRate = 0.1f;
-    AdamOptimizer<float> optimizer(options);
-    Tensor<float> weight({3}, {1.0f, -2.0f, 3.0f});
-    Tensor<float> gradient({3}, {0.5f, -0.25f, 4.0f});
+template <typename T>
+class AdamOptimizerTest : public ::testing::Test {};
+
+using AdamPrecisions = ::testing::Types<float, double>;
+TYPED_TEST_SUITE(AdamOptimizerTest, AdamPrecisions);
+
+TYPED_TEST(AdamOptimizerTest, FirstStepMovesEachWeightByTheLearningRate) {
+    using T = TypeParam;
+    AdamOptions<T> options;
+    options.learningRate = T(0.1);
+    AdamOptimizer<T> optimizer(options);
+    Tensor<T> weight({3}, {T(1), T(-2), T(3)});
+    Tensor<T> gradient({3}, {T(0.5), T(-0.25), T(4)});
 
     optimizer.optimize({std::ref(weight)}, {std::ref(gradient)});
 
     // Bias-corrected moments make the first step learningRate * sign(gradient).
-    EXPECT_NEAR(weight[0], 0.9f, 1e-6f);
-    EXPECT_NEAR(weight[1], -1.9f, 1e-6f);
-    EXPECT_NEAR(weight[2], 2.9f, 1e-6f);
+    EXPECT_NEAR(weight[0], 0.9, 1e-6);
+    EXPECT_NEAR(weight[1], -1.9, 1e-6);
+    EXPECT_NEAR(weight[2], 2.9, 1e-6);
 }
 
-TEST(AdamOptimizerTest, FollowsTheAdamRecurrenceOverSeveralSteps) {
-    AdamOptions<float> options;
-    options.learningRate = 0.01f;
-    AdamOptimizer<float> optimizer(options);
-    Tensor<float> weight({2}, {1.0f, -2.0f});
-    const float gradients[3][2] = {{0.5f, -0.25f}, {-1.0f, 0.75f}, {0.2f, 0.1f}};
-    float expected[2] = {1.0f, -2.0f};
-    float m[2] = {0.0f, 0.0f};
-    float v[2] = {0.0f, 0.0f};
+TYPED_TEST(AdamOptimizerTest, FollowsTheAdamRecurrenceOverSeveralSteps) {
+    using T = TypeParam;
+    AdamOptions<T> options;
+    options.learningRate = T(0.01);
+    AdamOptimizer<T> optimizer(options);
+    Tensor<T> weight({2}, {T(1), T(-2)});
+    const T gradients[3][2] = {{T(0.5), T(-0.25)}, {T(-1), T(0.75)}, {T(0.2), T(0.1)}};
+    T expected[2] = {T(1), T(-2)};
+    T m[2] = {T(0), T(0)};
+    T v[2] = {T(0), T(0)};
 
     for (int t = 1; t <= 3; ++t) {
-        Tensor<float> gradient({2}, {gradients[t - 1][0], gradients[t - 1][1]});
-        optimizer.optimize({std::ref(weight)}, {std::ref(gradient)});
+        // The last step overrides the configured learning rate.
+        const T rate = t == 3 ? T(0.02) : T(0.01);
+        Tensor<T> gradient({2}, {gradients[t - 1][0], gradients[t - 1][1]});
+        optimizer.optimize({std::ref(weight)}, {std::ref(gradient)}, t == 3 ? rate : T(-1));
 
         for (int i = 0; i < 2; ++i) {
-            const float g = gradients[t - 1][i];
-            m[i] = 0.9f * m[i] + 0.1f * g;
-            v[i] = 0.999f * v[i] + 0.001f * g * g;
-            const float mHat = m[i] / (1.0f - std::pow(0.9f, t));
-            const float vHat = v[i] / (1.0f - std::pow(0.999f, t));
-            expected[i] -= 0.01f * mHat / (std::sqrt(vHat) + 1e-8f);
-            EXPECT_NEAR(weight[i], expected[i], 1e-6f) << "step " << t << ", weight " << i;
+            const T g = gradients[t - 1][i];
+            m[i] = T(0.9) * m[i] + T(0.1) * g;
+            v[i] = T(0.999) * v[i] + T(0.001) * g * g;
+            const T mHat = m[i] / (T(1) - std::pow(T(0.9), t));
+            const T vHat = v[i] / (T(1) - std::pow(T(0.999), t));
+            expected[i] -= rate * mHat / (std::sqrt(vHat) + T(1e-8));
+            EXPECT_NEAR(weight[i], expected[i], 1e-6) << "step " << t << ", weight " << i;
         }
     }
 }
