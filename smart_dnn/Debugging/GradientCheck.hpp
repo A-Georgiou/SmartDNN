@@ -1,10 +1,12 @@
 #ifndef GRADIENT_CHECK_HPP
 #define GRADIENT_CHECK_HPP
 
+#include "smart_dnn/Layer.hpp"
 #include "smart_dnn/Tensor/Tensor.hpp"
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 
 namespace smart_dnn {
 
@@ -69,6 +71,43 @@ GradientCheckResult<T> checkGradient(Objective&& objective, const Tensor<T>& poi
 
     result.passed = result.maxRelativeError <= options.tolerance;
     return result;
+}
+
+// Checks backward against sum(forward(x) * upstream) for the input (unless skipped) and then each parameter; the layer must be deterministic.
+template <typename T>
+std::vector<GradientCheckResult<T>> checkLayerGradients(Layer<T>& layer, const Tensor<T>& input, const Tensor<T>& upstream,
+                                                        bool checkInput = true, const GradientCheckOptions<T>& options = {}) {
+    auto objective = [&](const Tensor<T>& x) {
+        const Tensor<T> output = layer.forward(x);
+        if (output.getShape() != upstream.getShape()) {
+            throw std::invalid_argument("Upstream gradient must have the layer output's shape " + output.getShape().toString());
+        }
+        T sum = T(0);
+        for (size_t i = 0; i < output.getShape().size(); ++i) {
+            sum += output[i] * upstream[i];
+        }
+        return sum;
+    };
+
+    objective(input);
+    const Tensor<T> inputGradient = layer.backward(upstream);
+    std::vector<GradientCheckResult<T>> results;
+    if (checkInput) {
+        results.push_back(checkGradient(objective, input, inputGradient, options));
+    }
+    for (const Parameter<T>& parameter : layer.parameters()) {
+        Tensor<T>& value = parameter.value.get();
+        const Tensor<T> original = value;
+        // Puts the parameter back however the check below exits.
+        struct Restore {
+            Tensor<T>& value;
+            const Tensor<T>& original;
+            ~Restore() { value = original; }
+        } restore{value, original};
+        const Tensor<T> analytic = parameter.gradient.get();
+        results.push_back(checkGradient([&](const Tensor<T>& candidate) { value = candidate; return objective(input); }, original, analytic, options));
+    }
+    return results;
 }
 
 } // namespace smart_dnn

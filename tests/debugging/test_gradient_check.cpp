@@ -6,6 +6,8 @@
 #include <limits>
 #include "../utils/tensor_helpers.hpp"
 #include "../../smart_dnn/Debugging/GradientCheck.hpp"
+#include "../../smart_dnn/Layers/FullyConnectedLayer.hpp"
+#include <vector>
 
 namespace smart_dnn {
 
@@ -70,6 +72,64 @@ TYPED_TEST(GradientCheckTest, RejectsMismatchedShapesAndInvalidOptions) {
     EXPECT_THROW(checkGradient(cubeSum<T>, x, Tensor<T>({1, 2}, T(0))), std::invalid_argument);
     EXPECT_THROW(checkGradient(cubeSum<T>, x, x, {T(0), T(1e-2)}), std::invalid_argument);
     EXPECT_THROW(checkGradient(cubeSum<T>, x, x, {T(1e-3), std::numeric_limits<T>::infinity()}), std::invalid_argument);
+}
+
+namespace {
+
+// Doubles its input but reports three times the upstream gradient.
+class WrongBackwardLayer : public Layer<float> {
+public:
+    Tensor<float> forward(const Tensor<float>& input) override { return input * 2.0f; }
+    Tensor<float> backward(const Tensor<float>& gradOutput) override { return gradOutput * 3.0f; }
+};
+
+// Throws once its weight is perturbed, so a parameter check stops partway through.
+class ThrowsWhenPerturbedLayer : public Layer<float> {
+public:
+    Tensor<float> forward(const Tensor<float>& input) override {
+        if (weight[0] != 1.0f) {
+            throw std::runtime_error("perturbed");
+        }
+        return input;
+    }
+    Tensor<float> backward(const Tensor<float>& gradOutput) override { return gradOutput; }
+    std::vector<Parameter<float>> parameters() override { return {{weight, gradient}}; }
+
+    Tensor<float> weight{Shape({1}), 1.0f};
+    Tensor<float> gradient{Shape({1}), 0.0f};
+};
+
+} // namespace
+
+TEST(CheckLayerGradientsTest, PassesForFullyConnectedInputAndParameters) {
+    FullyConnectedLayer<float> layer(3, 2);
+    const Tensor<float> weightsBefore = layer.getWeights();
+    Tensor<float> input({2, 3}, {0.5f, -1.0f, 2.0f, 1.5f, 0.25f, -0.75f});
+    Tensor<float> upstream({2, 2}, {1.0f, -2.0f, 0.5f, 3.0f});
+
+    std::vector<GradientCheckResult<float>> results = checkLayerGradients(layer, input, upstream);
+
+    ASSERT_EQ(results.size(), 3u);
+    for (const GradientCheckResult<float>& result : results) {
+        EXPECT_TRUE(result.passed) << "index " << result.index << ": analytic " << result.analytic << ", numeric " << result.numeric;
+    }
+    EXPECT_TRUE(TensorEquals(layer.getWeights(), weightsBefore));
+}
+
+TEST(CheckLayerGradientsTest, RestoresParametersWhenTheObjectiveThrows) {
+    ThrowsWhenPerturbedLayer layer;
+
+    EXPECT_THROW(checkLayerGradients(layer, Tensor<float>({1}, 1.0f), Tensor<float>({1}, 1.0f), false), std::runtime_error);
+    EXPECT_EQ(layer.weight[0], 1.0f);
+}
+
+TEST(CheckLayerGradientsTest, FailsForAWrongBackward) {
+    WrongBackwardLayer layer;
+
+    std::vector<GradientCheckResult<float>> results = checkLayerGradients(layer, Tensor<float>({2}, {1.0f, -1.0f}), Tensor<float>({2}, 1.0f));
+
+    ASSERT_EQ(results.size(), 1u);
+    EXPECT_FALSE(results[0].passed);
 }
 
 } // namespace smart_dnn
