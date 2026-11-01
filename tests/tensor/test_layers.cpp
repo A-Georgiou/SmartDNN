@@ -375,6 +375,20 @@ TEST(BatchNormalizationLayerTest, BackwardPass) {
     ValidateTensorShape(gradInput, 2, 8, {2, 4});
 }
 
+TEST(BatchNormalizationLayerTest, EvalModeAfterTraining4D) {
+    BatchNormalizationLayer<float> bnLayer(3);
+    Tensor<float> input({2, 3, 4, 4}, 1.0f);
+
+    bnLayer.forward(input);  // Running mean 0.9 * 0 + 0.1 * 1, running variance 0.9 * 1 + 0.1 * 0
+    bnLayer.setTrainingMode(false);
+    Tensor<float> output = bnLayer.forward(input);
+
+    ValidateTensorShape(output, 4, 96, {2, 3, 4, 4});
+    for (float value : output.getData()) {
+        ASSERT_NEAR(value, (1.0f - 0.1f) / std::sqrt(0.9f + 1e-5f), 1e-4);
+    }
+}
+
 } // namespace smart_dnn
 
 
