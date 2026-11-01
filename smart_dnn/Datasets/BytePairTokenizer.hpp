@@ -135,23 +135,58 @@ public:
 private:
     enum class Kind { Letter, Digit, Space, Control, Other };
 
-    static Kind kindOf(char c) {
-        const unsigned char byte = static_cast<unsigned char>(c);
-        if ((byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z') || byte >= 0x80) {
+    struct Character {
+        Kind kind;
+        size_t length;
+    };
+
+    static Kind kindOf(uint32_t code) {
+        if ((code >= 'a' && code <= 'z') || (code >= 'A' && code <= 'Z')) {
             return Kind::Letter;
         }
-        if (byte >= '0' && byte <= '9') {
+        if (code >= '0' && code <= '9') {
             return Kind::Digit;
         }
-        if (byte == ' ' || byte == '\n' || byte == '\t' || byte == '\r') {
+        if (code == ' ' || code == '\n' || code == '\t' || code == '\r' || code == 0xa0 || code == 0x1680 || (code >= 0x2000 && code <= 0x200a)
+            || code == 0x2028 || code == 0x2029 || code == 0x202f || code == 0x205f || code == 0x3000) {
             return Kind::Space;
         }
         // Control bytes such as 0x1E stay single tokens, so they can mark document ends.
-        return byte < 0x20 || byte == 0x7f ? Kind::Control : Kind::Other;
+        if (code < 0x20 || code == 0x7f) {
+            return Kind::Control;
+        }
+        // ASCII and Latin-1 symbols, general punctuation through symbols and arrows, CJK and full-width punctuation, emoji.
+        const bool other = code < 0x80 || (code >= 0xa1 && code <= 0xbf) || code == 0xd7 || code == 0xf7 || (code >= 0x200b && code <= 0x2bff)
+            || (code >= 0x3001 && code <= 0x303f) || (code >= 0xff01 && code <= 0xff0f) || (code >= 0x1f000 && code <= 0x1faff);
+        return other ? Kind::Other : Kind::Letter;
+    }
+
+    // Decodes the UTF-8 character at text[i]; a malformed byte counts as one punctuation byte.
+    static Character characterAt(const std::string& text, size_t i) {
+        const unsigned char lead = static_cast<unsigned char>(text[i]);
+        const size_t length = lead < 0x80 ? 1 : lead >= 0xf0 ? 4 : lead >= 0xe0 ? 3 : lead >= 0xc0 ? 2 : 0;
+        if (length == 0 || i + length > text.size()) {
+            return {Kind::Other, 1};
+        }
+        uint32_t code = length == 1 ? lead : lead & (0x7fu >> length);
+        for (size_t k = 1; k < length; ++k) {
+            const unsigned char next = static_cast<unsigned char>(text[i + k]);
+            if ((next & 0xc0) != 0x80) {
+                return {Kind::Other, 1};
+            }
+            code = (code << 6) | (next & 0x3fu);
+        }
+        return {kindOf(code), length};
     }
 
     static bool takesLeadingSpace(Kind kind) {
         return kind == Kind::Letter || kind == Kind::Digit || kind == Kind::Other;
+    }
+
+    // Length of an apostrophe (' or U+2019) at text[i] that sits between letters, otherwise 0.
+    static size_t innerApostrophe(const std::string& text, size_t i) {
+        const size_t length = text[i] == '\'' ? 1 : text.compare(i, 3, "\xe2\x80\x99") == 0 ? 3 : 0;
+        return length > 0 && i + length < text.size() && characterAt(text, i + length).kind == Kind::Letter ? length : 0;
     }
 
     // Splits text like GPT-2: a word, number or punctuation run with at most one leading space, a whitespace run, or a control byte.
@@ -161,23 +196,32 @@ private:
         size_t i = 0;
         while (i < size) {
             const size_t start = i;
-            Kind kind = kindOf(text[i]);
-            if (kind == Kind::Space && text[i] == ' ' && i + 1 < size && takesLeadingSpace(kindOf(text[i + 1]))) {
-                kind = kindOf(text[++i]);
+            Kind kind = characterAt(text, i).kind;
+            if (text[i] == ' ' && i + 1 < size && takesLeadingSpace(characterAt(text, i + 1).kind)) {
+                kind = characterAt(text, ++i).kind;
             }
             if (kind == Kind::Control) {
                 ++i;
             } else if (kind == Kind::Space) {
-                while (i < size && kindOf(text[i]) == Kind::Space) {
-                    ++i;
+                size_t last = i;
+                for (Character next = characterAt(text, i); next.kind == Kind::Space; next = characterAt(text, i)) {
+                    last = i;
+                    if ((i += next.length) == size) {
+                        break;
+                    }
                 }
                 // Leaves the last space of a longer run to the word after it.
-                if (i < size && i - start > 1 && text[i - 1] == ' ' && takesLeadingSpace(kindOf(text[i]))) {
-                    --i;
+                if (i < size && last > start && text[last] == ' ' && takesLeadingSpace(characterAt(text, i).kind)) {
+                    i = last;
                 }
             } else {
-                while (i < size && (kindOf(text[i]) == kind || (kind == Kind::Letter && text[i] == '\'' && i + 1 < size && kindOf(text[i + 1]) == Kind::Letter))) {
-                    ++i;
+                while (i < size) {
+                    const Character next = characterAt(text, i);
+                    const size_t apostrophe = kind == Kind::Letter && next.kind != kind ? innerApostrophe(text, i) : 0;
+                    if (next.kind != kind && apostrophe == 0) {
+                        break;
+                    }
+                    i += apostrophe > 0 ? apostrophe : next.length;
                 }
             }
             visit(std::string_view(text.data() + start, i - start));

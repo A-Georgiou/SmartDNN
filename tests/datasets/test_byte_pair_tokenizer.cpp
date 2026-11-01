@@ -20,6 +20,23 @@ TEST(BytePairTokenizerTest, MergesFrequentWordsButNotAcrossBoundaries) {
     EXPECT_EQ(tokenizer.vocabularySize(), 259);
 }
 
+TEST(BytePairTokenizerTest, KeepsUnicodePunctuationAndSpacesOutOfWords) {
+    std::string text;
+    for (int i = 0; i < 3; ++i) {
+        text += "\xe2\x80\x9cHi\xe2\x80\x9d said Sam.\xc2\xa0";
+    }
+    const BytePairTokenizer tokenizer = BytePairTokenizer::train(text, 300);
+    auto pieces = [&](const std::string& input) {
+        std::vector<std::string> out;
+        for (int id : tokenizer.encode(input)) {
+            out.push_back(tokenizer.decode({id}));
+        }
+        return out;
+    };
+    EXPECT_EQ(pieces("\xe2\x80\x9cHi\xe2\x80\x9d"), (std::vector<std::string>{"\xe2\x80\x9c", "Hi", "\xe2\x80\x9d"}));
+    EXPECT_EQ(pieces(" Sam.\xc2\xa0"), (std::vector<std::string>{" Sam", ".", "\xc2\xa0"}));
+}
+
 TEST(BytePairTokenizerTest, SavesAndLoadsTheSameMerges) {
     const BytePairTokenizer tokenizer = BytePairTokenizer::train("low lower lowest newer newest", 270);
     std::stringstream stream;
