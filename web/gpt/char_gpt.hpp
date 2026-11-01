@@ -1,4 +1,4 @@
-// The examples/CharGPT.cpp network, which trained model.bin, and its next-character sampler.
+// The examples/CharGPT.cpp network, which trained model.bin, plus helpers to score it and sample from it.
 #ifndef CHAR_GPT_HPP
 #define CHAR_GPT_HPP
 
@@ -39,9 +39,8 @@ inline std::vector<float> nextCharacterLogits(smart_dnn::SmartDNN<float>& model,
     return std::vector<float>(last, last + vocabularySize);
 }
 
-// Samples the next id after all of ids; temperatures below 1 make likely characters likelier.
-inline int sampleNextCharacter(smart_dnn::SmartDNN<float>& model, const std::vector<int>& ids, int vocabularySize, float temperature, std::mt19937& rng) {
-    const std::vector<float> logits = nextCharacterLogits(model, ids, ids.size(), vocabularySize);
+// Samples an id from next-character logits; temperatures below 1 make likely characters likelier.
+inline int sampleCharacter(const std::vector<float>& logits, float temperature, std::mt19937& rng) {
     const float maxLogit = *std::max_element(logits.begin(), logits.end());
     std::vector<double> weights(logits.size());
     for (size_t v = 0; v < logits.size(); ++v) {

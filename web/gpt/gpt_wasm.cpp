@@ -1,10 +1,12 @@
 // WebAssembly entry points for the Shakespeare GPT demo: load the embedded model, start from a prompt and sample characters.
 #include "char_gpt.hpp"
+#include "smart_dnn/Inference/KVCacheDecoder.hpp"
 #include <emscripten/emscripten.h>
 #include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iterator>
+#include <optional>
 #include <random>
 #include <string>
 #include <vector>
@@ -13,9 +15,11 @@ using namespace smart_dnn;
 
 namespace {
 SmartDNN<float> model;
+std::optional<KVCacheDecoder<float>> decoder;
 std::string vocabulary;
 int idOf[256];
 std::vector<int> context;
+std::vector<float> logits;
 std::mt19937 rng;
 
 // Ids of the characters the model knows; any others are skipped.
@@ -27,6 +31,14 @@ std::vector<int> encode(const char* text) {
         }
     }
     return ids;
+}
+
+// Restarts the cache from the latest tokens of the context, at most count of them, keeping the logits that follow.
+void refill(size_t count) {
+    decoder->reset();
+    for (size_t i = context.size() - std::min(count, context.size()); i < context.size(); ++i) {
+        logits = decoder->push(context[i]);
+    }
 }
 }
 
@@ -43,6 +55,7 @@ EMSCRIPTEN_KEEPALIVE int gpt_load() {
     addCharGptLayers(model, static_cast<int>(vocabulary.size()));
     model.loadModel("/model.bin");
     model.evalMode();
+    decoder.emplace(model);
     return static_cast<int>(vocabulary.size());
 }
 
@@ -52,14 +65,19 @@ EMSCRIPTEN_KEEPALIVE void gpt_reset(const char* prompt, unsigned seed) {
     if (context.empty()) {
         context.push_back(idOf[static_cast<unsigned char>('\n')]);
     }
+    refill(decoder->capacity());
     rng.seed(seed);
 }
 
-// Samples the next character at the given temperature, appends it to the context and returns its character code.
+// Samples the next character at the given temperature through the KV cache, keeping the latest half context when it fills.
 EMSCRIPTEN_KEEPALIVE int gpt_next(float temperature) {
-    const int id = sampleNextCharacter(model, context, static_cast<int>(vocabulary.size()), temperature, rng);
-    context.push_back(id);
-    return static_cast<unsigned char>(vocabulary[id]);
+    context.push_back(sampleCharacter(logits, temperature, rng));
+    if (decoder->size() == decoder->capacity()) {
+        refill(decoder->capacity() / 2);
+    } else {
+        logits = decoder->push(context.back());
+    }
+    return static_cast<unsigned char>(vocabulary[context.back()]);
 }
 
 // Average negative log-likelihood per character of the text, each predicted from all earlier characters up to CHAR_GPT_CONTEXT.
