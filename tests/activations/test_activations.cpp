@@ -181,6 +181,7 @@ TEST(SoftmaxTest, BackwardRejectsGradientsOfAnotherShape) {
     Softmax<float> softmax;
     EXPECT_THROW(softmax.backward(Tensor<float>({1, 2}, {1.0f, 2.0f}), Tensor<float>({1, 1}, {1.0f})), std::invalid_argument);
     EXPECT_THROW(softmax.backward(Tensor<float>({2, 3}, 0.5f), Tensor<float>({3, 2}, 1.0f)), std::invalid_argument);
+    EXPECT_THROW(Softmax<double>().backward(Tensor<double>({1, 2}, {1.0, 2.0}), Tensor<double>({1, 1}, {1.0})), std::invalid_argument);
 }
 
 TEST(TanhTest, ForwardPass) {

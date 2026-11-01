@@ -15,10 +15,9 @@ namespace smart_dnn {
 
     Softmax Activation Function
     ---------------------------
-    Normalises each row along the last axis.
     
-    f(x)_i = exp(x_i) / sum_j(exp(x_j))
-    Backward: dx_i = f(x)_i * (dy_i - sum_j(dy_j * f(x)_j))
+    f(x) = exp(x) / sum(exp(x))
+    f'(x) = f(x) * (1 - f(x))
 
 */
 template <typename T=float>
@@ -36,6 +35,7 @@ public:
         const size_t features = input.getShape()[input.getShape().rank() - 1];
         const size_t rows = input.getShape().size() / features;
 
+        // One softmax per row of the last axis.
         for (size_t r = 0; r < rows; ++r) {
             const T* rowInputData = inputData + r * features;
             T* rowOutputData = outputData + r * features;
@@ -77,6 +77,7 @@ public:
             const T* rowGradOutputData = gradOutputData + r * features;
             T* rowGradInputData = gradInputData + r * features;
 
+            // dx = y * (dy - sum(dy * y)) is the row's Jacobian product without forming the Jacobian.
             T dot = T(0);
             for (size_t i = 0; i < features; ++i) {
                 dot += rowGradOutputData[i] * rowOutputData[i];
