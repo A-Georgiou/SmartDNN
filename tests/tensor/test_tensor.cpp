@@ -140,6 +140,17 @@ TEST(TensorOperatorTest, ExpectValidElementWiseDivisionAssignment) {
     ValidateTensorData(a, std::vector<float>(6, 1.0f));
 }
 
+TEST(TensorOperatorTest, ExpectValidScalarAssignment) {
+    Tensor a({1, 2}, {3.0f, -1.0f});
+
+    a += 1.0f;
+    a -= 2.0f;
+    a *= 3.0f;
+    a /= 2.0f;
+
+    ValidateTensorData(a, std::vector<float>{3.0f, -3.0f});
+}
+
 /*
 
     COPY AND MOVE TESTS

@@ -77,13 +77,13 @@ Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator+=(T scalar) {
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator-=(T scalar) {
-    TensorOperations<T, DeviceType>::substractScalarInPlace(data_, scalar);
+    TensorOperations<T, DeviceType>::subtractScalarInPlace(data_, scalar);
     return *this;
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator*=(T scalar) {
-    TensorOperations<T, DeviceType>::multipleScalarInPlace(data_, scalar);
+    TensorOperations<T, DeviceType>::multiplyScalarInPlace(data_, scalar);
     return *this;
 }
 
