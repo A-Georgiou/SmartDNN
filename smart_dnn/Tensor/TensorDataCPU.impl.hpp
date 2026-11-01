@@ -38,14 +38,17 @@ TENSOR_DATA_CPU::TensorData(const TENSOR_DATA_CPU& other)
 TEMPLATE_TENSOR
 TENSOR_DATA_CPU::TensorData(Shape dimensions, std::initializer_list<T> values)
     : shape_(dimensions), data_(std::make_unique<T[]>(dimensions.size())) {
+    if (values.size() > shape_.size()) {
+        throw std::invalid_argument("Too many values (" + std::to_string(values.size()) + ") for shape " + shape_.toString());
+    }
     std::copy(values.begin(), values.end(), data_.get());
 }
 
 TEMPLATE_TENSOR
 TENSOR_DATA_CPU::TensorData(Shape dimensions, const std::vector<T>& values)
     : shape_(std::move(dimensions)), data_(std::make_unique<T[]>(shape_.size())) {
-    if (values.size() != shape_.size()) {
-        throw std::invalid_argument("Expected " + std::to_string(shape_.size()) + " values for shape " + shape_.toString() + ", got " + std::to_string(values.size()));
+    if (values.size() > shape_.size()) {
+        throw std::invalid_argument("Too many values (" + std::to_string(values.size()) + ") for shape " + shape_.toString());
     }
     std::copy(values.begin(), values.end(), data_.get());
 }
@@ -53,8 +56,8 @@ TENSOR_DATA_CPU::TensorData(Shape dimensions, const std::vector<T>& values)
 TEMPLATE_TENSOR
 TENSOR_DATA_CPU::TensorData(Shape dimensions, std::vector<T>&& values)
     : shape_(std::move(dimensions)), data_(std::make_unique<T[]>(shape_.size())) {
-    if (values.size() != shape_.size()) {
-        throw std::invalid_argument("Expected " + std::to_string(shape_.size()) + " values for shape " + shape_.toString() + ", got " + std::to_string(values.size()));
+    if (values.size() > shape_.size()) {
+        throw std::invalid_argument("Too many values (" + std::to_string(values.size()) + ") for shape " + shape_.toString());
     }
     std::move(values.begin(), values.end(), data_.get());
 }
