@@ -165,6 +165,7 @@ TEST(FullyConnectedLayerTest, DifferentInputShapes) {
     Tensor<float> input1D({3}, {1.0f, 2.0f, 3.0f});
     Tensor<float> output1D = fcLayer.forward(input1D);
     ASSERT_EQ(output1D.getShape(), Shape({2}));
+    ASSERT_EQ(fcLayer.backward(Tensor<float>({2}, {1.0f, 1.0f})).getShape(), Shape({3}));
 
     // Test with multiple samples (2D input)
     Tensor<float> input2D({2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
@@ -242,6 +243,30 @@ TEST(FullyConnectedLayerTest, BatchedDataProcessing) {
         ASSERT_NEAR(biasGradients.getData()[i], expectedBiasGradients[i], 1e-5) 
             << "Bias gradient mismatch at index " << i;
     }
+}
+
+TEST(FullyConnectedLayerTest, SequenceInputMatchesTheSameRowsAsABatch) {
+    Tensor<float> weights({3, 2}, {1.0f, -2.0f, 0.5f, 3.0f, -1.0f, 2.0f});
+    Tensor<float> biases({1, 2}, {0.1f, -0.2f});
+    FullyConnectedLayer<float> sequenceLayer(3, 2);
+    FullyConnectedLayer<float> rowLayer(3, 2);
+    for (FullyConnectedLayer<float>* layer : {&sequenceLayer, &rowLayer}) {
+        layer->setWeights(weights);
+        layer->setBiases(biases);
+    }
+
+    // (batch 2, time 2, features 3) against the same four rows as a (4, 3) batch.
+    Tensor<float> sequence({2, 2, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, -1.0f, 0.0f, 2.0f, 3.0f, -2.0f, 1.0f});
+    Tensor<float> gradOutput({2, 2, 2}, {1.0f, 0.0f, -1.0f, 2.0f, 0.5f, 1.0f, 2.0f, -1.0f});
+    Tensor<float> output = sequenceLayer.forward(sequence);
+    Tensor<float> gradInput = sequenceLayer.backward(gradOutput);
+    Tensor<float> rowOutput = rowLayer.forward(AdvancedTensorOperations<float>::reshape(sequence, {4, 3}));
+    Tensor<float> rowGradInput = rowLayer.backward(AdvancedTensorOperations<float>::reshape(gradOutput, {4, 2}));
+
+    EXPECT_TRUE(TensorEquals(output, AdvancedTensorOperations<float>::reshape(rowOutput, {2, 2, 2})));
+    EXPECT_TRUE(TensorEquals(gradInput, AdvancedTensorOperations<float>::reshape(rowGradInput, {2, 2, 3})));
+    EXPECT_TRUE(TensorEquals(sequenceLayer.getWeightGradients(), rowLayer.getWeightGradients()));
+    EXPECT_TRUE(TensorEquals(sequenceLayer.getBiasGradients(), rowLayer.getBiasGradients()));
 }
 
 
