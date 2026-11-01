@@ -16,6 +16,9 @@
 
 namespace smart_dnn {
 
+// How saveModel stores weights: the model's own floating-point type, or 8-bit blocks about a quarter of the size.
+enum class WeightFormat { Float, Int8 };
+
 template <typename T=float>
 class SmartDNN {
 public:
@@ -50,11 +53,11 @@ public:
     void trainingMode();
     void evalMode();
 
-    void saveModel(const std::string& filename) const;
+    void saveModel(const std::string& filename, WeightFormat format = WeightFormat::Float) const;
     void loadModel(const std::string& filename);
 
 private:
-    // Model files start with "SDNN" (little-endian), a format version, sizeof(T) and the layer count.
+    // Model files start with "SDNN" (little-endian), a format version, the bytes stored per weight (sizeof(T), or 1 for Int8) and the layer count.
     static constexpr uint32_t modelMagic = 0x4E4E4453;
     static constexpr uint32_t modelVersion = 1;
 
