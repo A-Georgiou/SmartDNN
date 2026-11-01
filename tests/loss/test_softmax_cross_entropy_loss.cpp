@@ -16,6 +16,8 @@ TEST(SoftmaxCrossEntropyLossTest, MatchesLogSoftmaxAndItsGradient) {
 
     EXPECT_NEAR(loss.compute(logits, targets)[0], (std::log(5.0f / 3.0f) + std::log(5.0f / 2.0f)) / 2.0f, 1e-6);
     EXPECT_TRUE(TensorEquals(loss.gradient(logits, targets), Tensor<float>({2, 3}, {0.1f, -0.2f, 0.1f, -0.3f, 0.1f, 0.2f})));
+    // Large equal logits still give log(2) rather than losing it next to the max.
+    EXPECT_NEAR(loss.compute(Tensor<float>({1, 2}, {1e8f, 1e8f}), Tensor<float>({1}, {0.0f}))[0], std::log(2.0f), 1e-6);
 }
 
 TEST(SoftmaxCrossEntropyLossTest, SkipsIgnoredPositionsInSequences) {

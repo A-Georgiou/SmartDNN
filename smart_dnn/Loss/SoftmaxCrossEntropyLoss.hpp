@@ -11,17 +11,7 @@
 
 namespace smart_dnn {
 
-/*
-
-    Softmax Cross-Entropy Loss
-    --------------------------
-    Input: logits (..., classes) before any softmax, and targets (...) holding class indices.
-    Rows whose target equals ignoreIndex, such as padding, add no loss and no gradient.
-
-    Loss: mean over counted rows of log(sum_j(exp(z_j))) - z_target
-    Gradient: (softmax(z) - onehot(target)) / counted rows
-
-*/
+// Cross-entropy on raw logits (..., classes) against class indices (...), skipping rows whose target is ignoreIndex.
 template <typename T = float>
 class SoftmaxCrossEntropyLoss : public Loss<T> {
 public:
@@ -44,13 +34,14 @@ public:
             for (size_t j = 0; j < classes; ++j) {
                 sum += std::exp(rowLogits[j] - maxValue);
             }
-            loss += std::log(sum) + maxValue - rowLogits[target];
+            loss += std::log(sum) - (rowLogits[target] - maxValue);
             ++counted;
         }
 
         return Tensor<T>({1}, counted > 0 ? loss / T(counted) : T(0));
     }
 
+    // Gradient with respect to the logits, (softmax - onehot) / counted rows, so the model needs no Softmax layer.
     Tensor<T> gradient(const Tensor<T>& logits, const Tensor<T>& targets) override {
         const size_t classes = validate(logits, targets);
         Tensor<T> grad(logits.getShape(), T(0));
