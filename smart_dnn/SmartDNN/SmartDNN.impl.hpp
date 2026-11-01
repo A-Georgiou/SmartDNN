@@ -2,7 +2,7 @@
 #define SMART_DNN_IMPL_HPP
 
 #include "smart_dnn/SmartDNN.hpp"
-#include "smart_dnn/debugging/Logger.hpp"
+#include "smart_dnn/Debugging/Logger.hpp"
 
 namespace smart_dnn {
 
@@ -24,6 +24,38 @@ void SmartDNN<T>::updateWeights() {
 template <typename T>
 Layer<T>* SmartDNN<T>::getLayer(size_t index) const {
     return layers[index].get();
+}
+
+template <typename T>
+void SmartDNN<T>::saveModel(const std::string& filename) const {
+    std::ofstream os(filename, std::ios::binary);
+    if (!os) {
+        throw std::runtime_error("Cannot open " + filename + " for writing");
+    }
+    const uint32_t header[4] = {modelMagic, modelVersion, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(layers.size())};
+    os.write(reinterpret_cast<const char*>(header), sizeof(header));
+    for (const auto& layer : layers) {
+        layer->save(os);
+    }
+    if (!os) {
+        throw std::runtime_error("Failed to write " + filename);
+    }
+}
+
+template <typename T>
+void SmartDNN<T>::loadModel(const std::string& filename) {
+    std::ifstream is(filename, std::ios::binary);
+    if (!is) {
+        throw std::runtime_error("Cannot open " + filename);
+    }
+    uint32_t header[4] = {};
+    is.read(reinterpret_cast<char*>(header), sizeof(header));
+    if (!is || header[0] != modelMagic || header[1] != modelVersion || header[2] != sizeof(T) || header[3] != layers.size()) {
+        throw std::runtime_error(filename + " is not a SmartDNN model with this model's layer count and element type");
+    }
+    for (auto& layer : layers) {
+        layer->load(is);
+    }
 }
 
 template <typename T>

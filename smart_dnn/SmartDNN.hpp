@@ -6,6 +6,10 @@
 #include "smart_dnn/Optimizer.hpp"
 #include "smart_dnn/Tensor/Tensor.hpp"
 #include <vector>
+#include <cstdint>
+#include <fstream>
+#include <stdexcept>
+#include <string>
 
 namespace smart_dnn {
 
@@ -42,6 +46,10 @@ public:
     void loadModel(const std::string& filename);
 
 private:
+    // Model files start with "SDNN" (little-endian), a format version, sizeof(T) and the layer count.
+    static constexpr uint32_t modelMagic = 0x4E4E4453;
+    static constexpr uint32_t modelVersion = 1;
+
     void setTrainingMode(bool trainingMode);
 
     std::vector<std::unique_ptr<Layer<T>>> layers;
