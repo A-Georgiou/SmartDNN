@@ -83,6 +83,22 @@ public:
     Tensor<float> backward(const Tensor<float>& gradOutput) override { return gradOutput * 3.0f; }
 };
 
+// Throws once its weight is perturbed, so a parameter check stops partway through.
+class ThrowsWhenPerturbedLayer : public Layer<float> {
+public:
+    Tensor<float> forward(const Tensor<float>& input) override {
+        if (weight[0] != 1.0f) {
+            throw std::runtime_error("perturbed");
+        }
+        return input;
+    }
+    Tensor<float> backward(const Tensor<float>& gradOutput) override { return gradOutput; }
+    std::vector<Parameter<float>> parameters() override { return {{weight, gradient}}; }
+
+    Tensor<float> weight{Shape({1}), 1.0f};
+    Tensor<float> gradient{Shape({1}), 0.0f};
+};
+
 } // namespace
 
 TEST(CheckLayerGradientsTest, PassesForFullyConnectedInputAndParameters) {
@@ -98,6 +114,13 @@ TEST(CheckLayerGradientsTest, PassesForFullyConnectedInputAndParameters) {
         EXPECT_TRUE(result.passed) << "index " << result.index << ": analytic " << result.analytic << ", numeric " << result.numeric;
     }
     EXPECT_TRUE(TensorEquals(layer.getWeights(), weightsBefore));
+}
+
+TEST(CheckLayerGradientsTest, RestoresParametersWhenTheObjectiveThrows) {
+    ThrowsWhenPerturbedLayer layer;
+
+    EXPECT_THROW(checkLayerGradients(layer, Tensor<float>({1}, 1.0f), Tensor<float>({1}, 1.0f), false), std::runtime_error);
+    EXPECT_EQ(layer.weight[0], 1.0f);
 }
 
 TEST(CheckLayerGradientsTest, FailsForAWrongBackward) {

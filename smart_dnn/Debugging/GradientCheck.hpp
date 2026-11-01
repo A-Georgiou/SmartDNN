@@ -98,9 +98,14 @@ std::vector<GradientCheckResult<T>> checkLayerGradients(Layer<T>& layer, const T
     for (const Parameter<T>& parameter : layer.parameters()) {
         Tensor<T>& value = parameter.value.get();
         const Tensor<T> original = value;
+        // Puts the parameter back however the check below exits.
+        struct Restore {
+            Tensor<T>& value;
+            const Tensor<T>& original;
+            ~Restore() { value = original; }
+        } restore{value, original};
         const Tensor<T> analytic = parameter.gradient.get();
         results.push_back(checkGradient([&](const Tensor<T>& candidate) { value = candidate; return objective(input); }, original, analytic, options));
-        value = original;
     }
     return results;
 }
