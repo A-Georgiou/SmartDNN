@@ -1,4 +1,5 @@
 import createSmartDNN from './smartdnn.js';
+import { toMnistPixels } from './preprocess.js';
 
 const pad = document.getElementById('pad');
 const padCtx = pad.getContext('2d', { willReadFrequently: true });
@@ -86,7 +87,7 @@ function strokeTo(next) {
 }
 
 function predict() {
-  const pixels = toMnistPixels();
+  const pixels = toMnistPixels(padCtx.getImageData(0, 0, pad.width, pad.height).data, pad.width, pad.height);
   if (!pixels) return;
   drawSeen(pixels);
   smartdnn.HEAPF32.set(pixels, inputPtr / 4);
@@ -101,61 +102,6 @@ function predict() {
     row.percent.textContent = `${percent.toFixed(1)}%`;
     row.li.classList.toggle('best', digit === best);
   });
-}
-
-// Mirrors MNIST: the digit's bounding box is scaled to fit 20 x 20, then centred by mass in 28 x 28.
-function toMnistPixels() {
-  const { width, height } = pad;
-  const rgba = padCtx.getImageData(0, 0, width, height).data;
-  let minX = width, minY = height, maxX = -1, maxY = -1;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      if (rgba[(y * width + x) * 4] > 0) {
-        minX = Math.min(minX, x);
-        maxX = Math.max(maxX, x);
-        minY = Math.min(minY, y);
-        maxY = Math.max(maxY, y);
-      }
-    }
-  }
-  if (maxX < 0) return null;
-
-  const scale = 20 / Math.max(maxX - minX + 1, maxY - minY + 1);
-  const w = Math.max(1, Math.round((maxX - minX + 1) * scale));
-  const h = Math.max(1, Math.round((maxY - minY + 1) * scale));
-  const small = new Float32Array(w * h);
-  let mass = 0, massX = 0, massY = 0;
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const value = areaAverage(rgba, width, height, minX + x / scale, minY + y / scale, minX + (x + 1) / scale, minY + (y + 1) / scale);
-      small[y * w + x] = value;
-      mass += value;
-      massX += value * x;
-      massY += value * y;
-    }
-  }
-
-  const dx = Math.min(Math.max(Math.round(13.5 - massX / mass), 0), 28 - w);
-  const dy = Math.min(Math.max(Math.round(13.5 - massY / mass), 0), 28 - h);
-  const pixels = new Float32Array(784);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) pixels[(y + dy) * 28 + x + dx] = small[y * w + x];
-  }
-  return pixels;
-}
-
-// Averages the red channel over a fractional source rectangle so the downscaled strokes stay anti-aliased.
-function areaAverage(rgba, width, height, x0, y0, x1, y1) {
-  let sum = 0, area = 0;
-  for (let y = Math.floor(y0); y < Math.min(Math.ceil(y1), height); y++) {
-    const wy = Math.min(y + 1, y1) - Math.max(y, y0);
-    for (let x = Math.floor(x0); x < Math.min(Math.ceil(x1), width); x++) {
-      const wx = Math.min(x + 1, x1) - Math.max(x, x0);
-      sum += wx * wy * rgba[(y * width + x) * 4];
-      area += wx * wy;
-    }
-  }
-  return area > 0 ? sum / area / 255 : 0;
 }
 
 function drawSeen(pixels) {

@@ -29,10 +29,11 @@ jobs:
           git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
           "$RUNNER_TEMP/emsdk/emsdk" install "$EMSDK_VERSION"
           "$RUNNER_TEMP/emsdk/emsdk" activate "$EMSDK_VERSION"
-      - name: Build WebAssembly
+      - name: Build WebAssembly and test the demo
         run: |
           source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
           web/build.sh
+          "$EMSDK_NODE" --test web/test/*.test.mjs
       - name: Upload site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
