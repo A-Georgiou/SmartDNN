@@ -1,4 +1,4 @@
-// Trains the story GPT on TinyStoriesV2-GPT4 (huggingface.co/datasets/roneneldan/TinyStories) across threads; see the usage message.
+// Trains the story GPT on TinyStoriesV2-GPT4 (huggingface.co/datasets/roneneldan/TinyStories), writing tokenizer.txt, the best model as 8-bit model.bin and a float checkpoint.bin to resume from.
 #include "story_gpt.hpp"
 #include "smart_dnn/Datasets/BytePairTokenizer.hpp"
 #include "smart_dnn/Inference/KVCacheDecoder.hpp"
@@ -102,7 +102,7 @@ std::string sampleStory(SmartDNN<float>& model, const BytePairTokenizer& tokeniz
 
 int main(int argc, char** argv) {
     if (argc < 3) {
-        std::fprintf(stderr, "usage: story_train <dir with TinyStoriesV2-GPT4-train.txt and -valid.txt> <out dir> [steps] [threads] [resume step]\n");
+        std::fprintf(stderr, "usage: story_train <dir with TinyStoriesV2-GPT4-train.txt and -valid.txt> <out dir, web/stories for the demo> [steps] [threads] [resume step]\n");
         return 1;
     }
     const std::string dataDir = argv[1];
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
     model.compile(SoftmaxCrossEntropyLoss<float>(), AdamOptimizer<float>(adam));
     model.setMaxGradientNorm(1.0f);
     if (resumeStep > 0) {
-        model.loadModel(outDir + "/model.bin");
+        model.loadModel(outDir + "/checkpoint.bin");
     }
     DataParallelTrainer<float> trainer(model, story_gpt::addLayers, SoftmaxCrossEntropyLoss<float>(), threads);
 
@@ -165,12 +165,10 @@ int main(int argc, char** argv) {
         }
         if (step % 500 == 0 || step == steps) {
             const float validation = validationLoss(model, validX, validY);
-            model.saveModel(outDir + "/model.bin");
-            model.saveModel(outDir + "/model-int8.bin", WeightFormat::Int8);
+            model.saveModel(outDir + "/checkpoint.bin");
             if (validation < best) {
                 best = validation;
-                model.saveModel(outDir + "/best.bin");
-                model.saveModel(outDir + "/best-int8.bin", WeightFormat::Int8);
+                model.saveModel(outDir + "/model.bin", WeightFormat::Int8);
             }
             std::printf("step %5d  validation %.4f (%.4f nats/char, best %.4f)\n  sample: %s\n", step, validation, validation / charsPerToken, best,
                         sampleStory(model, tokenizer, rng).c_str());
