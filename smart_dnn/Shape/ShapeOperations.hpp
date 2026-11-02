@@ -2,6 +2,7 @@
 #define SHAPE_OPERATIONS_HPP
 
 #include "smart_dnn/Shape/Shape.hpp"
+#include <algorithm>
 
 namespace smart_dnn {
 

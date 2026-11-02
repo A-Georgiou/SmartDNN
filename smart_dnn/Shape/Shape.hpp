@@ -2,6 +2,7 @@
 #define SHAPE_HPP
 
 #include <iostream>
+#include <limits>
 #include <numeric>
 #include <vector>
 #include <sstream>
