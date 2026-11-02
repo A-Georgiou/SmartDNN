@@ -35,7 +35,7 @@ TEMPLATE_TENSOR
 Tensor<T, DeviceType>::Tensor(Shape dimensions, const std::vector<T>& values) : data_(dimensions, values) {}
 
 TEMPLATE_TENSOR
-Tensor<T, DeviceType>::Tensor(Shape dimensions, std::vector<T>&& values) noexcept : data_(dimensions, std::move(values)) {}
+Tensor<T, DeviceType>::Tensor(Shape dimensions, std::vector<T>&& values) : data_(dimensions, std::move(values)) {}
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator=(const Tensor<T, DeviceType>& other) {
@@ -77,13 +77,13 @@ Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator+=(T scalar) {
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator-=(T scalar) {
-    TensorOperations<T, DeviceType>::substractScalarInPlace(data_, scalar);
+    TensorOperations<T, DeviceType>::subtractScalarInPlace(data_, scalar);
     return *this;
 }
 
 TEMPLATE_TENSOR
 Tensor<T, DeviceType>& Tensor<T, DeviceType>::operator*=(T scalar) {
-    TensorOperations<T, DeviceType>::multipleScalarInPlace(data_, scalar);
+    TensorOperations<T, DeviceType>::multiplyScalarInPlace(data_, scalar);
     return *this;
 }
 
@@ -144,12 +144,22 @@ const T& Tensor<T, DeviceType>::operator[](size_t index) const {
 }
     
 TEMPLATE_TENSOR
-T& Tensor<T, DeviceType>::at(std::vector<int> indices) {
+T& Tensor<T, DeviceType>::at(std::initializer_list<int> indices) {
     return data_.at(indices);
 }
 
 TEMPLATE_TENSOR
-const T& Tensor<T, DeviceType>::at(std::vector<int> indices) const {
+const T& Tensor<T, DeviceType>::at(std::initializer_list<int> indices) const {
+    return data_.at(indices);
+}
+
+TEMPLATE_TENSOR
+T& Tensor<T, DeviceType>::at(const std::vector<int>& indices) {
+    return data_.at(indices);
+}
+
+TEMPLATE_TENSOR
+const T& Tensor<T, DeviceType>::at(const std::vector<int>& indices) const {
     return data_.at(indices);
 }
 

@@ -25,6 +25,26 @@ TEST(TensorInitialisationTest, ExpectValueFillInitialisation) {
     ValidateTensorData(a, std::vector<float>(6, 5.0f));
 }
 
+TEST(TensorInitialisationTest, ExpectVectorInitialisation) {
+    const std::vector<float> values = {1, 2, 3, 4, 5, 6};
+    Tensor<float> copied(Shape({2, 3}), values);
+    Tensor<float> moved(Shape({2, 3}), std::vector<float>(values));
+    Tensor<float> shorter(Shape({2, 4}), values);
+
+    ValidateTensorShape(copied, 2, 6, {2, 3});
+    ValidateTensorShape(moved, 2, 6, {2, 3});
+    ValidateTensorData(copied, values);
+    ValidateTensorData(moved, values);
+    ValidateTensorData(shorter, {1, 2, 3, 4, 5, 6, 0, 0});
+}
+
+TEST(TensorInitialisationTest, ExpectOversizedValuesRejected) {
+    const std::vector<float> values = {1, 2, 3};
+    EXPECT_THROW(Tensor<float>(Shape({2}), values), std::invalid_argument);
+    EXPECT_THROW(Tensor<float>(Shape({2}), std::vector<float>(values)), std::invalid_argument);
+    EXPECT_THROW(Tensor<float>(Shape({2}), {1.0f, 2.0f, 3.0f}), std::invalid_argument);
+}
+
 /*
 
     INVALID INITIALISATION TESTS
@@ -167,6 +187,32 @@ TEST(TensorOperatorTest, ExpectValidElementWiseDivisionAssignment) {
     ValidateTensorData(a, std::vector<float>(6, 1.0f));
 }
 
+TEST(TensorOperatorTest, ExpectBroadcastingKeepsValuesAndOperandOrder) {
+    Tensor<float> rows({2, 3}, {1, 2, 4, 8, 16, 32});
+    Tensor<float> row({1, 3}, {10, 20, 30});
+
+    ValidateTensorData(rows + row, std::vector<float>{11, 22, 34, 18, 36, 62});
+    ValidateTensorData(row - rows, std::vector<float>{9, 18, 26, 2, 4, -2});
+    ValidateTensorData(row / rows, std::vector<float>{10, 10, 7.5f, 1.25f, 1.25f, 0.9375f});
+    ValidateTensorData(rows * Tensor<float>({1}, {0.5f}), std::vector<float>{0.5f, 1, 2, 4, 8, 16});
+    ValidateTensorData(Tensor<float>({2, 1, 3}, {1, 2, 4, 8, 16, 32}) - Tensor<float>({3}, {1, 1, 2}), std::vector<float>{0, 1, 2, 7, 15, 30});
+    ValidateTensorData(rows + Tensor<float>({2, 1}, {100, 200}), std::vector<float>{101, 102, 104, 208, 216, 232});
+
+    rows -= row;
+    ValidateTensorData(rows, std::vector<float>{-9, -18, -26, -2, -4, 2});
+}
+
+TEST(TensorOperatorTest, ExpectValidScalarAssignment) {
+    Tensor a({1, 2}, {3.0f, -1.0f});
+
+    a += 1.0f;
+    a -= 2.0f;
+    a *= 3.0f;
+    a /= 2.0f;
+
+    ValidateTensorData(a, std::vector<float>{3.0f, -3.0f});
+}
+
 /*
 
     COPY AND MOVE TESTS
@@ -292,6 +338,34 @@ TEST(TensorScalarOperatorTest, ExpectValidScalarDivisionInverse) {
 
     ValidateTensorShape(b, 3, 6, {1, 2, 3});
     ValidateTensorData(b, std::vector<float>(6, 2.0f));
+}
+
+// ELEMENT ACCESS TESTS
+
+TEST(TensorAccessTest, MultiIndexAccessMatchesFlatLayout) {
+    Tensor<float> t(Shape({2, 3, 4}));
+    for (size_t i = 0; i < t.getShape().size(); ++i) t[i] = static_cast<float>(i);
+
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 3; ++j)
+            for (int k = 0; k < 4; ++k) {
+                const float expected = static_cast<float>((i * 3 + j) * 4 + k);
+                EXPECT_EQ(t(i, j, k), expected);
+                EXPECT_EQ(t.at({i, j, k}), expected);
+                EXPECT_EQ(t.at(std::vector<int>{i, j, k}), expected);
+            }
+
+    t(1, 2, 3) = -1.0f;
+    EXPECT_EQ(t.at({1, 2, 3}), -1.0f);
+    EXPECT_EQ(computeFlatIndex(t.getShape(), {1, 2, 3}), 23u);
+}
+
+TEST(TensorAccessTest, AtChecksRankAndBounds) {
+    Tensor<float> t(Shape({2, 3}));
+    EXPECT_THROW(t.at({1, 3}), std::out_of_range);
+    EXPECT_THROW(t.at({-1, 0}), std::out_of_range);
+    EXPECT_THROW(t.at({1}), std::invalid_argument);
+    EXPECT_THROW(t.at(std::vector<int>{0, 0, 0}), std::invalid_argument);
 }
 
 } // namespace smart_dnn
