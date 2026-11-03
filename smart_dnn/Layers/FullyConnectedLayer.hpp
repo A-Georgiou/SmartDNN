@@ -60,8 +60,7 @@ public:
         TensorType gradOutputRows = asRows(gradOutput); // Shape: (rows, output_size)
 
         // Calculate weight gradients
-        TensorType inputTransposed = AdvancedTensorOperations<T>::transpose(inputRows, 0, 1); // Shape: (input_size, rows)
-        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputTransposed, gradOutputRows)); // Shape: (input_size, output_size)
+        weightGradients.emplace(AdvancedTensorOperations<T>::matmul(inputRows, gradOutputRows, true, false)); // Shape: (input_size, output_size)
 
         // Calculate bias gradients
         biasGradients.emplace(AdvancedTensorOperations<T>::reshape(
@@ -70,8 +69,7 @@ public:
         ));
 
         // Calculate input gradients
-        TensorType weightsTransposed = AdvancedTensorOperations<T>::transpose(*weights, 0, 1); // Shape: (output_size, input_size)
-        TensorType gradInput = AdvancedTensorOperations<T>::matmul(gradOutputRows, weightsTransposed); // Shape: (rows, input_size)
+        TensorType gradInput = AdvancedTensorOperations<T>::matmul(gradOutputRows, *weights, false, true); // Shape: (rows, input_size)
         gradInput.reshape(input->getShape());
 
         return gradInput;

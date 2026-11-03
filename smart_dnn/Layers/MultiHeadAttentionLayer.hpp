@@ -41,7 +41,7 @@ public:
         key.emplace(splitHeads(packed, 1));
         value.emplace(splitHeads(packed, 2));
 
-        Tensor<T> scores = Ops::matmul(*query, Ops::transpose(*key, 2, 3));
+        Tensor<T> scores = Ops::matmul(*query, *key, false, true);
         const size_t n = static_cast<size_t>(length);
         T* rowData = scores.getData().data();
         for (size_t row = 0; row < scores.getShape().size() / n; ++row, rowData += n) {
@@ -73,8 +73,8 @@ public:
         }
 
         const Tensor<T> gradContext = splitHeads(outputProjection.backward(gradOutput), 0);
-        const Tensor<T> gradValue = Ops::matmul(Ops::transpose(*weights, 2, 3), gradContext);
-        Tensor<T> gradScores = Ops::matmul(gradContext, Ops::transpose(*value, 2, 3));
+        const Tensor<T> gradValue = Ops::matmul(*weights, gradContext, true, false);
+        Tensor<T> gradScores = Ops::matmul(gradContext, *value, false, true);
 
         // Softmax backward per row, dScore = w * (dw - sum(dw * w)), times the score scale; masked weights are zero.
         const size_t n = static_cast<size_t>(length);
@@ -92,7 +92,7 @@ public:
 
         Tensor<T> gradPacked(Shape({batch, length, 3 * width}), T(0));
         mergeHeads(Ops::matmul(gradScores, *key), gradPacked, 0);
-        mergeHeads(Ops::matmul(Ops::transpose(gradScores, 2, 3), *query), gradPacked, 1);
+        mergeHeads(Ops::matmul(gradScores, *query, true, false), gradPacked, 1);
         mergeHeads(gradValue, gradPacked, 2);
         return inputProjection.backward(gradPacked);
     }
