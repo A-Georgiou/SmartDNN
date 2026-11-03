@@ -9,6 +9,19 @@
 #include "smart_dnn/Tensor/TensorOperations.hpp"
 #include "smart_dnn/Tensor/BroadcastView.hpp"
 #include <functional>
+#include <type_traits>
+
+// Define SMART_DNN_USE_BLAS and link a CBLAS library (Accelerate on macOS) to multiply float and double matrices with it.
+#ifdef SMART_DNN_USE_BLAS
+#ifdef __APPLE__
+#ifndef ACCELERATE_NEW_LAPACK
+#define ACCELERATE_NEW_LAPACK
+#endif
+#include <Accelerate/Accelerate.h>
+#else
+#include <cblas.h>
+#endif
+#endif
 
 namespace smart_dnn {
 
@@ -374,6 +387,17 @@ private:
 
     // c (m x n) += a (m x k) * b (k x n), all contiguous row-major; the i-p-j order keeps the inner loop contiguous.
     static void multiplyInto(const T* a, const T* b, T* c, size_t m, size_t k, size_t n) {
+#ifdef SMART_DNN_USE_BLAS
+        if constexpr (std::is_same_v<T, float>) {
+            cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, static_cast<int>(m), static_cast<int>(n), static_cast<int>(k), 1.0f, a,
+                        static_cast<int>(k), b, static_cast<int>(n), 1.0f, c, static_cast<int>(n));
+            return;
+        } else if constexpr (std::is_same_v<T, double>) {
+            cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, static_cast<int>(m), static_cast<int>(n), static_cast<int>(k), 1.0, a,
+                        static_cast<int>(k), b, static_cast<int>(n), 1.0, c, static_cast<int>(n));
+            return;
+        }
+#endif
         // A single output column is m dot products; accumulating each in a register beats the row loop.
         if (n == 1) {
             for (size_t i = 0; i < m; i++) {

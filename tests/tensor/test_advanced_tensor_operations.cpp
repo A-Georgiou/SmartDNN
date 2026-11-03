@@ -335,6 +335,15 @@ TEST(AdvancedTensorOperationsTest, TestMatrixMatrixMulRectangular) {
     ASSERT_TRUE(TensorEquals(result, expected));
 }
 
+TEST(AdvancedTensorOperationsTest, TestDoubleMatrixAndBatchedMul) {
+    Tensor<double> a(Shape({2, 3}), {1, 2, 3, 4, 5, 6});
+    Tensor<double> b(Shape({3, 4}), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<double>::matmul(a, b), Tensor<double>(Shape({2, 4}), {38, 44, 50, 56, 83, 98, 113, 128})));
+
+    Tensor<double> batch(Shape({2, 1, 3}), {1, 2, 3, 4, 5, 6});
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<double>::matmul(batch, b), Tensor<double>(Shape({2, 1, 4}), {38, 44, 50, 56, 83, 98, 113, 128})));
+}
+
 TEST(AdvancedTensorOperationsTest, TestMatrixMatrixMulSingleColumn) {
     Tensor<float> a(Shape({2, 3}), {1, 2, 3, 4, 5, 6});
     Tensor<float> b(Shape({3, 1}), {7, 8, 9});

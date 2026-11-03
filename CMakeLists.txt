@@ -23,6 +23,13 @@ add_executable(SmartDNN
     src/main.cpp
 )
 
+option(SMART_DNN_USE_BLAS "Multiply matrices with BLAS, Accelerate on macOS" OFF)
+if(SMART_DNN_USE_BLAS)
+    find_package(BLAS REQUIRED)
+    target_compile_definitions(SmartDNN PRIVATE SMART_DNN_USE_BLAS)
+    target_link_libraries(SmartDNN ${BLAS_LIBRARIES})
+endif()
+
 # Enable logging for debug builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(SmartDNN PRIVATE ENABLE_LOGGING)
