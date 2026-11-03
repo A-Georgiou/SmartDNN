@@ -29,5 +29,12 @@ add_executable(RunTests ${TEST_SOURCES} ${MAIN_SOURCES})
 
 target_link_libraries(RunTests GTest::gtest GTest::gtest_main)
 
+option(SMART_DNN_USE_BLAS "Multiply matrices with BLAS, Accelerate on macOS" OFF)
+if(SMART_DNN_USE_BLAS)
+  find_package(BLAS REQUIRED)
+  target_compile_definitions(RunTests PRIVATE SMART_DNN_USE_BLAS)
+  target_link_libraries(RunTests ${BLAS_LIBRARIES})
+endif()
+
 # Register the test
 add_test(NAME TensorTests COMMAND RunTests)

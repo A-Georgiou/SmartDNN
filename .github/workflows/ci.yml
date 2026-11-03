@@ -18,10 +18,17 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      matrix:
+        blas: [OFF, ON]
+    name: unit-tests (BLAS ${{ matrix.blas }})
     steps:
       - uses: actions/checkout@v4
+      - name: Install OpenBLAS
+        if: matrix.blas == 'ON'
+        run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
       - name: Configure
-        run: cmake -S tests -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S tests -B build -DCMAKE_BUILD_TYPE=Release -DSMART_DNN_USE_BLAS=${{ matrix.blas }}
       - name: Build
         run: cmake --build build -j "$(nproc)"
       - name: Run unit tests
