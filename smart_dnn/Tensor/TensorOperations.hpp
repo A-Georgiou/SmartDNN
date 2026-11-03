@@ -61,6 +61,11 @@ public:
     TensorOperations() = delete; // Prevent instantiation
 
     static TensorData<T, CPUDevice> add(const TensorData<T, CPUDevice>& lhs, const TensorData<T, CPUDevice>& rhs){
+        if (lhs.shape() == rhs.shape()) {
+            TensorData<T, CPUDevice> result(lhs.shape());
+            std::transform(lhs.begin(), lhs.end(), rhs.begin(), result.begin(), std::plus<T>());
+            return result;
+        }
         return combine(lhs, rhs, std::plus<T>());
     }
 
