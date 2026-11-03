@@ -8,7 +8,7 @@
 
 namespace smart_dnn {
 
-// Gaussian error linear unit, tanh approximation as in GPT-2: 0.5x(1 + tanh(sqrt(2/pi)(x + 0.044715x^3))).
+// GPT-2's tanh GELU 0.5x(1 + tanh(u)), u = sqrt(2/pi)(x + 0.044715x^3), evaluated as x * sigmoid(2u) from e = exp(-2|u|) <= 1 so tails neither cancel nor overflow.
 template <typename T = float>
 class GELU : public Activation<T> {
 public:
@@ -17,7 +17,9 @@ public:
         const T* x = input.getData().data();
         T* y = output.getData().data();
         for (size_t i = 0; i < input.getShape().size(); ++i) {
-            y[i] = T(0.5) * x[i] * (T(1) + std::tanh(inner(x[i])));
+            const T u = inner(x[i]);
+            const T e = std::exp(T(-2) * std::abs(u));
+            y[i] = x[i] * (u >= T(0) ? T(1) : e) / (T(1) + e);
         }
         return output;
     }
@@ -32,9 +34,12 @@ public:
         const T* dy = gradOutput.getData().data();
         T* dx = gradInput.getData().data();
         for (size_t i = 0; i < input.getShape().size(); ++i) {
-            const T t = std::tanh(inner(x[i]));
-            const T innerSlope = scale * (T(1) + T(3) * cubic * x[i] * x[i]);
-            dx[i] = dy[i] * (T(0.5) * (T(1) + t) + T(0.5) * x[i] * (T(1) - t * t) * innerSlope);
+            const T u = inner(x[i]);
+            const T e = std::exp(T(-2) * std::abs(u));
+            const T d = T(1) / (T(1) + e);
+            // The derivative is s + 2x s(1 - s) u' with s(1 - s) = e d^2, whose term is exactly zero once e underflows.
+            const T slope = e > T(0) ? T(2) * x[i] * e * d * d * scale * (T(1) + T(3) * cubic * x[i] * x[i]) : T(0);
+            dx[i] = dy[i] * ((u >= T(0) ? T(1) : e) * d + slope);
         }
         return gradInput;
     }
