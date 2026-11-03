@@ -350,6 +350,27 @@ TEST(AdvancedTensorOperationsTest, TestDoubleMatrixAndBatchedMul) {
 
     Tensor<double> batch(Shape({2, 1, 3}), {1, 2, 3, 4, 5, 6});
     ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<double>::matmul(batch, b), Tensor<double>(Shape({2, 1, 4}), {38, 44, 50, 56, 83, 98, 113, 128})));
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<double>::matmul(AdvancedTensorOperations<double>::transpose(a, 0, 1), AdvancedTensorOperations<double>::transpose(b, 0, 1), true, true),
+                             Tensor<double>(Shape({2, 4}), {38, 44, 50, 56, 83, 98, 113, 128})));
+}
+
+TEST(AdvancedTensorOperationsTest, TestMatmulWithTransposedOperands) {
+    using Ops = AdvancedTensorOperations<float>;
+    auto filled = [](const std::vector<int>& dims) {
+        Tensor<float> t{Shape(dims)};
+        for (size_t i = 0; i < t.getShape().size(); ++i) t[i] = static_cast<float>(i % 7) - 3.0f;
+        return t;
+    };
+    // Batched, broadcast 2-D and single-column products must match multiplying explicit transposes.
+    const Tensor<float> a = filled({2, 3, 4, 5}), b = filled({2, 3, 5, 6}), c = filled({5, 6}), m = filled({4, 5}), column = filled({5, 1});
+    const Tensor<float> aT = Ops::transpose(a, 2, 3), bT = Ops::transpose(b, 2, 3), cT = Ops::transpose(c, 0, 1), mT = Ops::transpose(m, 0, 1);
+    EXPECT_TRUE(TensorEquals(Ops::matmul(aT, b, true, false), Ops::matmul(a, b)));
+    EXPECT_TRUE(TensorEquals(Ops::matmul(a, bT, false, true), Ops::matmul(a, b)));
+    EXPECT_TRUE(TensorEquals(Ops::matmul(aT, bT, true, true), Ops::matmul(a, b)));
+    EXPECT_TRUE(TensorEquals(Ops::matmul(aT, c, true, false), Ops::matmul(a, c)));
+    EXPECT_TRUE(TensorEquals(Ops::matmul(a, cT, false, true), Ops::matmul(a, c)));
+    EXPECT_TRUE(TensorEquals(Ops::matmul(mT, column, true, false), Ops::matmul(m, column)));
+    EXPECT_THROW(Ops::matmul(a, b, true, false), std::invalid_argument);
 }
 
 TEST(AdvancedTensorOperationsTest, TestMatrixMatrixMulSingleColumn) {

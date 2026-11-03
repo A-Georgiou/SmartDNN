@@ -238,34 +238,13 @@ class AdvancedTensorOperations<T, CPUDevice> {
         for (size_t d = dim1 + 1; d < rank; ++d) {
             inner *= static_cast<size_t>(shape[d]);
         }
-        const size_t first = static_cast<size_t>(shape[dim0]);
-        const size_t second = static_cast<size_t>(shape[dim1]);
-        const size_t sourceRow = middle * second * inner;
-        const size_t targetRow = middle * first * inner;
-        constexpr size_t tile = 16;
-        const T* in = tensor.getData().begin();
-        T* out = result.getData().begin();
-        for (size_t o = 0; o < outer; ++o) {
-            for (size_t m = 0; m < middle; ++m) {
-                const T* source = in + (o * first * middle + m) * second * inner;
-                T* target = out + (o * second * middle + m) * first * inner;
-                // Square tiles keep the strided side of the copy in cache.
-                for (size_t a0 = 0; a0 < first; a0 += tile) {
-                    for (size_t b0 = 0; b0 < second; b0 += tile) {
-                        for (size_t a = a0; a < std::min(a0 + tile, first); ++a) {
-                            for (size_t b = b0; b < std::min(b0 + tile, second); ++b) {
-                                if (inner == 1) {
-                                    target[b * targetRow + a] = source[a * sourceRow + b];
-                                } else {
-                                    std::copy_n(source + a * sourceRow + b * inner, inner, target + b * targetRow + a * inner);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        transposeInto(tensor.getData().begin(), result.getData().begin(), outer, static_cast<size_t>(shape[dim0]), middle, static_cast<size_t>(shape[dim1]), inner);
         return result;
+    }
+
+    // a times b over the last two axes with either operand transposed there first; BLAS reads the transposes in place instead of copying.
+    static Tensor<T> matmul(const Tensor<T>& a, const Tensor<T>& b, bool transposeA, bool transposeB) {
+        return batchedMatmul(a, b, transposeA, transposeB);
     }
 
     static Tensor<T> matmul(const Tensor<T>& a, const Tensor<T>& b) {
@@ -290,6 +269,33 @@ class AdvancedTensorOperations<T, CPUDevice> {
     }
 
 private:
+
+    // Copies in, viewed as (outer, first, middle, second, inner), to out as (outer, second, middle, first, inner).
+    static void transposeInto(const T* in, T* out, size_t outer, size_t first, size_t middle, size_t second, size_t inner) {
+        const size_t sourceRow = middle * second * inner;
+        const size_t targetRow = middle * first * inner;
+        constexpr size_t tile = 16;
+        for (size_t o = 0; o < outer; ++o) {
+            for (size_t m = 0; m < middle; ++m) {
+                const T* source = in + (o * first * middle + m) * second * inner;
+                T* target = out + (o * second * middle + m) * first * inner;
+                // Square tiles keep the strided side of the copy in cache.
+                for (size_t a0 = 0; a0 < first; a0 += tile) {
+                    for (size_t b0 = 0; b0 < second; b0 += tile) {
+                        for (size_t a = a0; a < std::min(a0 + tile, first); ++a) {
+                            for (size_t b = b0; b < std::min(b0 + tile, second); ++b) {
+                                if (inner == 1) {
+                                    target[b * targetRow + a] = source[a * sourceRow + b];
+                                } else {
+                                    std::copy_n(source + a * sourceRow + b * inner, inner, target + b * targetRow + a * inner);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /*
     
@@ -414,25 +420,37 @@ private:
         return result;
     }
 
-    // c (m x n) += a (m x k) * b (k x n), all contiguous row-major; the i-p-j order keeps the inner loop contiguous.
-    static void multiplyInto(const T* a, const T* b, T* c, size_t m, size_t k, size_t n) {
+    // c (m x n) += a (m x k) * b (k x n), row-major, with a stored (k x m) when transposeA and b stored (n x k) when transposeB; the i-p-j order keeps the inner loop contiguous.
+    static void multiplyInto(const T* a, const T* b, T* c, size_t m, size_t k, size_t n, bool transposeA = false, bool transposeB = false) {
 #ifdef SMART_DNN_USE_BLAS
+        const auto opA = transposeA ? CblasTrans : CblasNoTrans;
+        const auto opB = transposeB ? CblasTrans : CblasNoTrans;
+        const int lda = static_cast<int>(transposeA ? m : k);
+        const int ldb = static_cast<int>(transposeB ? k : n);
         if constexpr (std::is_same_v<T, float>) {
-            cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, static_cast<int>(m), static_cast<int>(n), static_cast<int>(k), 1.0f, a,
-                        static_cast<int>(k), b, static_cast<int>(n), 1.0f, c, static_cast<int>(n));
+            cblas_sgemm(CblasRowMajor, opA, opB, static_cast<int>(m), static_cast<int>(n), static_cast<int>(k), 1.0f, a, lda, b, ldb, 1.0f, c, static_cast<int>(n));
             return;
         } else if constexpr (std::is_same_v<T, double>) {
-            cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, static_cast<int>(m), static_cast<int>(n), static_cast<int>(k), 1.0, a,
-                        static_cast<int>(k), b, static_cast<int>(n), 1.0, c, static_cast<int>(n));
+            cblas_dgemm(CblasRowMajor, opA, opB, static_cast<int>(m), static_cast<int>(n), static_cast<int>(k), 1.0, a, lda, b, ldb, 1.0, c, static_cast<int>(n));
             return;
         }
 #endif
+        // A transposed b is copied once so the inner loop stays contiguous; a transposed a only changes which element each step reads.
+        std::vector<T> bCopy;
+        if (transposeB) {
+            bCopy.resize(k * n);
+            transposeInto(b, bCopy.data(), 1, n, 1, k, 1);
+            b = bCopy.data();
+        }
+        const size_t rowStep = transposeA ? 1 : k;
+        const size_t columnStep = transposeA ? m : 1;
+
         // A single output column is m dot products; accumulating each in a register beats the row loop.
         if (n == 1) {
             for (size_t i = 0; i < m; i++) {
                 T sum = 0;
                 for (size_t p = 0; p < k; p++) {
-                    sum += a[i * k + p] * b[p];
+                    sum += a[i * rowStep + p * columnStep] * b[p];
                 }
                 c[i] += sum;
             }
@@ -443,7 +461,7 @@ private:
         for (size_t i = 0; i < m; i++) {
             T* cRow = c + i * n;
             for (size_t p = 0; p < k; p++) {
-                const T aValue = a[i * k + p];
+                const T aValue = a[i * rowStep + p * columnStep];
                 const T* bRow = b + p * n;
                 for (size_t j = 0; j < n; j++) {
                     cRow[j] += aValue * bRow[j];
@@ -499,32 +517,32 @@ private:
     Batched Matrix Multiplication:
     -----------------------------
 
-    Input: Tensor a (... x m x k), Tensor b (... x k x n), at least one of rank three or more
+    Input: Tensor a (... x m x k), Tensor b (... x k x n), with the last two axes swapped for each transposed operand
     Output: Tensor result (... x m x n)
 
     Batch dimensions broadcast like NumPy: aligned from the right, each pair equal or 1.
-    Each batch is one multiplyInto call, and a 2-D b multiplies every row of a in a single call.
+    Each batch is one multiplyInto call, and a 2-D b multiplies every row of an untransposed a in a single call.
    
    */
 
-    static Tensor<T> batchedMatmul(const Tensor<T>& a, const Tensor<T>& b) {
+    static Tensor<T> batchedMatmul(const Tensor<T>& a, const Tensor<T>& b, bool transposeA = false, bool transposeB = false) {
         const Shape& shapeA = a.getShape();
         const Shape& shapeB = b.getShape();
         const int rankA = shapeA.rank();
         const int rankB = shapeB.rank();
-        if (rankA < 2 || rankB < 2 || shapeA[rankA - 1] != shapeB[rankB - 2]) {
+        if (rankA < 2 || rankB < 2 || shapeA[rankA - (transposeA ? 2 : 1)] != shapeB[rankB - (transposeB ? 1 : 2)]) {
             throw std::invalid_argument("Incompatible dimensions for matrix multiplication: " + shapeA.toString() + " and " + shapeB.toString());
         }
 
-        const int m = shapeA[rankA - 2];
-        const int k = shapeA[rankA - 1];
-        const int n = shapeB[rankB - 1];
+        const int m = shapeA[rankA - (transposeA ? 1 : 2)];
+        const int k = shapeA[rankA - (transposeA ? 2 : 1)];
+        const int n = shapeB[rankB - (transposeB ? 2 : 1)];
 
-        if (rankB == 2) {
+        if (rankB == 2 && !transposeA) {
             std::vector<int> dims = shapeA.getDimensions();
             dims.back() = n;
             Tensor<T> result(Shape(dims), T(0));
-            multiplyInto(a.getData().data(), b.getData().data(), result.getData().data(), shapeA.size() / k, k, n);
+            multiplyInto(a.getData().data(), b.getData().data(), result.getData().data(), shapeA.size() / k, k, n, false, transposeB);
             return result;
         }
 
@@ -561,7 +579,7 @@ private:
         size_t offsetA = 0;
         size_t offsetB = 0;
         for (size_t batch = 0; batch < batches; ++batch) {
-            multiplyInto(aData + offsetA, bData + offsetB, resultData + batch * m * n, m, k, n);
+            multiplyInto(aData + offsetA, bData + offsetB, resultData + batch * m * n, m, k, n, transposeA, transposeB);
             for (int d = batchRank - 1; d >= 0; --d) {
                 offsetA += stepA[d];
                 offsetB += stepB[d];
