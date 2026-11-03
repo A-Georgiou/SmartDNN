@@ -42,16 +42,18 @@ TEST(GELUTest, KeepsRepresentableNegativeTails) {
     EXPECT_NEAR(GELU<double>().backward(xd, Tensor<double>({1}, 1.0))[0] / -4.7147845041068353e-20, 1.0, 1e-4);
 }
 
-TEST(GELUTest, SaturatesWithoutNaNForHugeInputs) {
+TEST(GELUTest, SaturatesForHugeInputsAndKeepsNaN) {
     const float big = std::numeric_limits<float>::max();
-    const Tensor<float> x({3}, {1e20f, big, -big});
-    const Tensor<float> y = GELU<float>().forward(x), dx = GELU<float>().backward(x, Tensor<float>({3}, -2.0f));
+    const Tensor<float> x({4}, {1e20f, big, -big, std::numeric_limits<float>::quiet_NaN()});
+    const Tensor<float> y = GELU<float>().forward(x), dx = GELU<float>().backward(x, Tensor<float>({4}, -2.0f));
     EXPECT_EQ(y[0], 1e20f);
     EXPECT_EQ(y[1], big);
     EXPECT_EQ(y[2], 0.0f);
+    EXPECT_TRUE(std::isnan(y[3]));
     EXPECT_EQ(dx[0], -2.0f);
     EXPECT_EQ(dx[1], -2.0f);
     EXPECT_EQ(dx[2], 0.0f);
+    EXPECT_TRUE(std::isnan(dx[3]));
     EXPECT_EQ(GELU<double>().backward(Tensor<double>({1}, {1e155}), Tensor<double>({1}, 1.0))[0], 1.0);
 }
 
