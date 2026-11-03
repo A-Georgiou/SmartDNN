@@ -8,6 +8,7 @@
 #include "smart_dnn/Tensor/SliceView.hpp"
 #include "smart_dnn/Tensor/TensorOperations.hpp"
 #include "smart_dnn/Tensor/BroadcastView.hpp"
+#include <algorithm>
 #include <functional>
 #include <type_traits>
 
@@ -214,26 +215,54 @@ class AdvancedTensorOperations<T, CPUDevice> {
             throw std::invalid_argument("Invalid dimensions for transpose.");
         }
 
+        if (dim0 == dim1) {
+            return tensor;
+        }
+        if (dim0 > dim1) {
+            std::swap(dim0, dim1);
+        }
         std::vector<int> newDimensions = shape.getDimensions();
         std::swap(newDimensions[dim0], newDimensions[dim1]);
-        Shape newShape(newDimensions);
-        Tensor<T> result(newShape);
+        Tensor<T> result{Shape(newDimensions)};
 
-        // Input element at index (.., i, .., j, ..) lands at output index (.., j, .., i, ..).
-        std::vector<size_t> outStride = newShape.getStride();
-        std::swap(outStride[dim0], outStride[dim1]);
-
+        // Viewed as (outer, first, middle, second, inner), each contiguous inner run moves to (outer, second, middle, first, inner).
+        size_t outer = 1;
+        size_t middle = 1;
+        size_t inner = 1;
+        for (size_t d = 0; d < dim0; ++d) {
+            outer *= static_cast<size_t>(shape[d]);
+        }
+        for (size_t d = dim0 + 1; d < dim1; ++d) {
+            middle *= static_cast<size_t>(shape[d]);
+        }
+        for (size_t d = dim1 + 1; d < rank; ++d) {
+            inner *= static_cast<size_t>(shape[d]);
+        }
+        const size_t first = static_cast<size_t>(shape[dim0]);
+        const size_t second = static_cast<size_t>(shape[dim1]);
+        const size_t sourceRow = middle * second * inner;
+        const size_t targetRow = middle * first * inner;
+        constexpr size_t tile = 16;
         const T* in = tensor.getData().begin();
         T* out = result.getData().begin();
-        std::vector<int> index(rank, 0);
-        for (size_t i = 0; i < shape.size(); ++i) {
-            size_t offset = 0;
-            for (size_t d = 0; d < rank; ++d) {
-                offset += static_cast<size_t>(index[d]) * outStride[d];
-            }
-            out[offset] = in[i];
-            for (int d = static_cast<int>(rank) - 1; d >= 0 && ++index[d] == shape[d]; --d) {
-                index[d] = 0;
+        for (size_t o = 0; o < outer; ++o) {
+            for (size_t m = 0; m < middle; ++m) {
+                const T* source = in + (o * first * middle + m) * second * inner;
+                T* target = out + (o * second * middle + m) * first * inner;
+                // Square tiles keep the strided side of the copy in cache.
+                for (size_t a0 = 0; a0 < first; a0 += tile) {
+                    for (size_t b0 = 0; b0 < second; b0 += tile) {
+                        for (size_t a = a0; a < std::min(a0 + tile, first); ++a) {
+                            for (size_t b = b0; b < std::min(b0 + tile, second); ++b) {
+                                if (inner == 1) {
+                                    target[b * targetRow + a] = source[a * sourceRow + b];
+                                } else {
+                                    std::copy_n(source + a * sourceRow + b * inner, inner, target + b * targetRow + a * inner);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         return result;

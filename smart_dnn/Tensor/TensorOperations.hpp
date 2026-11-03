@@ -177,22 +177,24 @@ public:
 
         TensorData<T, CPUDevice> result(new_shape, T(0));
 
-        std::vector<int> indices(tensor.shape().rank(), 0);  
-        for (size_t i = 0; i < tensor.size(); ++i) {
-            std::vector<int> result_indices;
-            for (size_t j = 0; j < tensor.shape().rank(); ++j) {
-                if (j != axis) {
-                    result_indices.push_back(indices[j]);
+        // The tensor is (outer, axis, inner) in memory, so each axis step adds one contiguous run of inner values.
+        size_t outer = 1;
+        size_t inner = 1;
+        for (size_t d = 0; d < axis; ++d) {
+            outer *= static_cast<size_t>(tensor.shape()[d]);
+        }
+        for (size_t d = axis + 1; d < tensor.shape().rank(); ++d) {
+            inner *= static_cast<size_t>(tensor.shape()[d]);
+        }
+        const size_t length = static_cast<size_t>(tensor.shape()[axis]);
+        const T* in = tensor.data();
+        T* out = result.data();
+        for (size_t o = 0; o < outer; ++o) {
+            for (size_t a = 0; a < length; ++a) {
+                const T* run = in + (o * length + a) * inner;
+                for (size_t i = 0; i < inner; ++i) {
+                    out[o * inner + i] += run[i];
                 }
-            }
-
-            result.at(result_indices) += tensor[i];
-
-            for (int j = tensor.shape().rank() - 1; j >= 0; --j) {
-                if (++indices[j] < tensor.shape()[j]) {
-                    break; 
-                }
-                indices[j] = 0; 
             }
         }
 

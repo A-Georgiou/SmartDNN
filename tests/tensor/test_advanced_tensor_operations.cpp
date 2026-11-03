@@ -92,6 +92,14 @@ TEST(AdvancedTensorOperationsTest, TestSumAcrossMultipleAxes) {
     ValidateTensorData(result, expectedData);
 }
 
+TEST(AdvancedTensorOperationsTest, TestSumAcrossEachAxisOfThreeDimensions) {
+    Tensor<float> a{Shape({2, 3, 2})};
+    for (size_t i = 0; i < a.getShape().size(); ++i) a[i] = static_cast<float>(i);
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<float>::sum(a, 0), Tensor<float>(Shape({3, 2}), {6, 8, 10, 12, 14, 16})));
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<float>::sum(a, 1), Tensor<float>(Shape({2, 2}), {6, 9, 24, 27})));
+    ASSERT_TRUE(TensorEquals(AdvancedTensorOperations<float>::sum(a, 2), Tensor<float>(Shape({2, 3}), {1, 5, 9, 13, 17, 21})));
+}
+
 /*
 
     TEST RECIROCAL FUNCTION
@@ -218,7 +226,7 @@ TEST(AdvancedTensorOperationsTest, TestTransposeWithInvalidDimensions) {
 }
 
 TEST(AdvancedTensorOperationsTest, TestTransposeMatchesCoordinateOracle) {
-    const std::vector<int> dims = {2, 3, 4};
+    const std::vector<int> dims = {3, 17, 19};
     Tensor<float> a{Shape(dims)};
     for (size_t i = 0; i < a.getShape().size(); ++i) a[i] = static_cast<float>(i);
 
