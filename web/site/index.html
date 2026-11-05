@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartDNN digit guesser</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>SmartDNN digit guesser</h1>
+    <p class="subtitle">Draw a digit from 0 to 9. A small CNN trained with <a href="https://github.com/A-Georgiou/SmartDNN">SmartDNN</a> guesses it as you draw, running in your browser as WebAssembly.</p>
+
+    <div class="app">
+      <section class="pad">
+        <canvas id="pad" width="280" height="280" aria-label="Drawing pad"></canvas>
+        <div class="controls">
+          <button id="clear" type="button">Clear</button>
+          <span id="status">Loading model...</span>
+        </div>
+      </section>
+
+      <section class="result" aria-live="polite">
+        <div class="guess">
+          <span id="guess">?</span>
+          <span id="confidence"></span>
+        </div>
+        <ol id="bars"></ol>
+        <figure class="seen">
+          <canvas id="seen" width="28" height="28"></canvas>
+          <figcaption>What the model sees (28 x 28)</figcaption>
+        </figure>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

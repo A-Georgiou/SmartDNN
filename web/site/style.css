@@ -1,0 +1,102 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1117;
+  --panel: #181b24;
+  --text: #e8eaf0;
+  --muted: #9aa1b2;
+  --accent: #4f9cff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+h1 { margin: 0 0 8px; font-size: 1.8rem; }
+
+.subtitle { margin: 0 0 24px; color: var(--muted); line-height: 1.5; }
+
+a { color: var(--accent); }
+
+.app {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.pad, .result {
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+#pad {
+  display: block;
+  width: 280px;
+  height: 280px;
+  border-radius: 8px;
+  background: #000;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+button {
+  font: inherit;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+#status { color: var(--muted); font-size: 0.9rem; }
+
+.result { flex: 1; min-width: 260px; }
+
+.guess { display: flex; align-items: baseline; gap: 12px; }
+
+#guess { font-size: 4rem; font-weight: 700; line-height: 1; }
+
+#confidence { color: var(--muted); }
+
+#bars { list-style: none; margin: 16px 0; padding: 0; }
+
+#bars li {
+  display: grid;
+  grid-template-columns: 1.2em 1fr 3.5em;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar { height: 12px; border-radius: 6px; background: #262b38; overflow: hidden; }
+
+.fill { height: 100%; width: 0; background: #3a4357; transition: width 80ms linear; }
+
+#bars li.best .fill { background: var(--accent); }
+
+.percent { text-align: right; color: var(--muted); font-size: 0.85rem; }
+
+.seen { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--muted); font-size: 0.85rem; }
+
+#seen { width: 84px; height: 84px; image-rendering: pixelated; border-radius: 4px; background: #000; }
