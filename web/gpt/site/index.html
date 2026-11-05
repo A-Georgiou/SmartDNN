@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartDNN Shakespeare GPT</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>SmartDNN Shakespeare GPT</h1>
+    <p class="subtitle">A 0.8M-parameter character-level GPT trained on Tiny Shakespeare with <a href="https://github.com/A-Georgiou/SmartDNN">SmartDNN</a> and shipped as 0.9 MB of 8-bit weights. Give it a prompt and it writes one character at a time, running in your browser as WebAssembly.</p>
+
+    <section class="panel">
+      <label for="prompt">Prompt</label>
+      <textarea id="prompt" rows="3" spellcheck="false">ROMEO:
+</textarea>
+      <div class="controls">
+        <label>Temperature <input id="temperature" type="range" min="0.2" max="1.5" step="0.05" value="0.8"> <output id="temperature-value">0.80</output></label>
+        <label>Length <input id="length" type="range" min="100" max="2000" step="100" value="600"> <output id="length-value">600</output></label>
+        <button id="generate" type="button" disabled>Generate</button>
+      </div>
+      <span id="status">Loading model...</span>
+    </section>
+
+    <pre id="output" class="panel" aria-live="polite"></pre>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
