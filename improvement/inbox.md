@@ -1,0 +1,1 @@
+Docs Keeper | 2026-11-25 | Shared architecture, conventions and e2e history artifacts are missing. | Provide knowledge/architecture.md, knowledge/conventions.md and e2e/history.md at the expected paths.
